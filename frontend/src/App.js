@@ -3,6 +3,7 @@ import { BrowserRouter as Router, Route, Routes } from "react-router-dom";
 import HomePage from "./pages/HomePage";
 import JournalPage from "./pages/JournalPage";
 import MeetingMinutesPage from "./pages/MeetingMinutesPage";
+import LogsDashboard from "./pages/LogsDashboard";
 import api from "./api"
 
 const App = () => {
@@ -103,6 +104,7 @@ const App = () => {
       <div>
         <Routes>
           <Route path="/" element={<HomePage />} />
+          <Route path="/logs" element={<LogsDashboard/>} /> 
           <Route
             path="/journals"
             element={
