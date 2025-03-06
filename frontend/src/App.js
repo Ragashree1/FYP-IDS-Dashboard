@@ -5,6 +5,10 @@ import OffencesPage from './OffencesPage';
 import DashboardPage from './DashboardPage';
 import ReportsPage from './ReportsPage';
 import EventLogPage from './EventLogPage';
+import SystemConfigurationPage from "./SystemConfigurationPage"
+import BlocklistManagementPage from "./BlocklistManagementPage"
+import RolesAndPermissionPage from "./RolesAndPermissionPage"
+import UserManagementPage from "./UserManagementPage"
 
 function App() {
   return (
@@ -16,6 +20,10 @@ function App() {
         <Route path="/offences" element={<OffencesPage />} />
 		<Route path="/reports" element={<ReportsPage />} />
 		<Route path="/event-log" element={<EventLogPage />} />
+		<Route path="/system-config" element={<SystemConfigurationPage />} />
+		<Route path="/blocklist" element={<BlocklistManagementPage />} />
+		<Route path="/roles-permission" element={<RolesAndPermissionPage />} />
+		<Route path="/user-management" element={<UserManagementPage />} />
       </Routes>
     </Router>
   );
