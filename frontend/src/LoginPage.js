@@ -92,12 +92,12 @@ export default function LoginPage() {
 
   const handleLogin = (e) => {
     e.preventDefault();
-    if (role !== "cybersecurity-analyst") {
-      setError("Invalid credentials");
-      return;
-    }
-    if (loginId === "test" && password === "test") {
+    if (role === "cybersecurity-analyst" && loginId === "test" && password === "test") {
       navigate("/dashboard");
+    } else if (role === "network-admin" && loginId === "test" && password === "test") {
+      navigate("/system-config");
+	  } else if (role === "system-admin" && loginId === "test" && password === "test") {
+      navigate("/roles-permission");
     } else {
       setError("Invalid credentials");
     }
@@ -107,7 +107,7 @@ export default function LoginPage() {
     <div style={styles.loginContainer}>
       <div style={styles.loginForm}>
         <div style={styles.logoContainer}>
-          <img src="/logo.png" alt="SecuBoard Logo" style={styles.logo} />
+          <img src="/images/secuboard.png" alt="SecuBoard Logo" style={styles.logo} />
           <h1 style={styles.title}>SecuBoard</h1>
         </div>
 
