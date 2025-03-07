@@ -1,167 +1,451 @@
-import React, { useState } from "react";
-import { useNavigate } from "react-router-dom";
+"use client"
 
-const styles = {
-  loginContainer: {
-    display: "flex",
-    justifyContent: "center",
-    alignItems: "center",
-    minHeight: "100vh",
-    backgroundColor: "#2A2A2A",
-    padding: "1rem",
-  },
-  loginForm: {
-    width: "100%",
-    maxWidth: "400px",
-    backgroundColor: "#333",
-    padding: "2rem",
-    borderRadius: "8px",
-    boxShadow: "0 4px 6px rgba(0, 0, 0, 0.1)",
-  },
-  logoContainer: {
-    display: "flex",
-    justifyContent: "center",
-    alignItems: "center",
-    marginBottom: "2rem",
-  },
-  logo: {
-    width: "40px",
-    height: "40px",
-    marginRight: "0.5rem",
-  },
-  title: {
-    fontSize: "1.875rem",
-    fontWeight: "bold",
-    color: "white",
-  },
-  formGroup: {
-    marginBottom: "1rem",
-  },
-  label: {
-    display: "block",
-    marginBottom: "0.5rem",
-    color: "white",
-  },
-  input: {
-    width: "100%",
-    padding: "0.5rem",
-    border: "1px solid #ccc",
-    borderRadius: "4px",
-    backgroundColor: "white",
-    color: "black",
-  },
-  selectInput: {
-    width: "100%",
-    padding: "0.5rem",
-    border: "1px solid #ccc",
-    borderRadius: "4px",
-    backgroundColor: "white",
-    color: "black",
-    appearance: "none",
-    backgroundRepeat: "no-repeat",
-    backgroundPosition: "right 0.5rem center",
-    backgroundSize: "12px",
-    backgroundImage: "url('data:image/svg+xml;utf8,<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 24 24\" width=\"16\" height=\"16\"><path fill=\"black\" d=\"M7 10l5 5 5-5H7z\"/></svg>')",
-  },
-  error: {
-    color: "#ff4d4d",
-    fontSize: "0.875rem",
-    marginTop: "0.5rem",
-  },
-  loginButton: {
-    display: "block",
-    width: "100%",
-    maxWidth: "8rem",
-    margin: "1.5rem auto 0",
-    padding: "0.5rem 1rem",
-    backgroundColor: "#4a4a4a",
-    color: "white",
-    border: "none",
-    borderRadius: "4px",
-    cursor: "pointer",
-    transition: "background-color 0.3s",
-  },
-};
+import { useEffect, useRef } from "react"
+import { useNavigate } from "react-router-dom"
+import Chart from "chart.js/auto"
 
-export default function LoginPage() {
-  const [loginId, setLoginId] = useState("");
-  const [password, setPassword] = useState("");
-  const [role, setRole] = useState("");
-  const [error, setError] = useState("");
-  const navigate = useNavigate();
+const LandingPage = () => {
+  const navigate = useNavigate()
+  const barChartRef = useRef(null)
+  const lineChartRef = useRef(null)
+  const pieChartRef = useRef(null)
 
-  const handleLogin = (e) => {
-    e.preventDefault();
-    if (role === "cybersecurity-analyst" && loginId === "test" && password === "test") {
-      navigate("/dashboard");
-    } else if (role === "network-admin" && loginId === "test" && password === "test") {
-      navigate("/system-config");
-	  } else if (role === "system-admin" && loginId === "test" && password === "test") {
-      navigate("/roles-permission");
-    } else {
-      setError("Invalid credentials");
+  const handleSignIn = () => {
+    navigate("/login")
+  }
+
+  const handleRegister = () => {
+    navigate("/register")
+  }
+
+  useEffect(() => {
+    const charts = []
+
+    if (barChartRef.current && lineChartRef.current && pieChartRef.current) {
+      // Bar Chart
+      charts.push(
+        new Chart(barChartRef.current, {
+          type: "bar",
+          data: {
+            labels: ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"],
+            datasets: [
+              {
+                label: "Positive",
+                data: [15, 8, 6, 7, 9, 12, 8, 10, 14, 9, 12, 14],
+                backgroundColor: "#3B82F6",
+              },
+              {
+                label: "Negative",
+                data: [10, 12, 5, 8, 7, 6, 9, 8, 11, 10, 13, 11],
+                backgroundColor: "#EF4444",
+              },
+            ],
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+              legend: {
+                position: "top",
+                align: "end",
+                labels: {
+                  usePointStyle: true,
+                  boxWidth: 8,
+                },
+              },
+            },
+            scales: {
+              y: {
+                beginAtZero: true,
+                grid: {
+                  display: false,
+                },
+              },
+              x: {
+                grid: {
+                  display: false,
+                },
+              },
+            },
+          },
+        }),
+      )
+
+      // Line Chart
+      charts.push(
+        new Chart(lineChartRef.current, {
+          type: "line",
+          data: {
+            labels: ["Week 1", "Week 2", "Week 3", "Week 4", "Week 5", "Week 6"],
+            datasets: [
+              {
+                label: "Traffic 1",
+                data: [400, 300, 500, 450, 600, 400],
+                borderColor: "#EF4444",
+                tension: 0.4,
+                pointRadius: 0,
+                borderWidth: 2,
+              },
+              {
+                label: "Traffic 2",
+                data: [240, 350, 320, 400, 350, 300],
+                borderColor: "#10B981",
+                tension: 0.4,
+                pointRadius: 0,
+                borderWidth: 2,
+              },
+            ],
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+              legend: {
+                display: false,
+              },
+            },
+            scales: {
+              y: {
+                display: false,
+                beginAtZero: true,
+              },
+              x: {
+                grid: {
+                  display: false,
+                },
+              },
+            },
+          },
+        }),
+      )
+
+      // Pie Chart
+      charts.push(
+        new Chart(pieChartRef.current, {
+          type: "pie",
+          data: {
+            labels: ["SQL Injection", "DDoS", "Phishing", "Ransomware"],
+            datasets: [
+              {
+                data: [400, 300, 250, 200],
+                backgroundColor: ["#10B981", "#FBBF24", "#EF4444", "#3B82F6"],
+              },
+            ],
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+              legend: {
+                position: "right",
+              },
+            },
+          },
+        }),
+      )
     }
-  };
+
+    // Cleanup function to destroy charts when component unmounts
+    return () => {
+      charts.forEach((chart) => chart.destroy())
+    }
+  }, [])
 
   return (
-    <div style={styles.loginContainer}>
-      <div style={styles.loginForm}>
-        <div style={styles.logoContainer}>
-          <img src="/images/secuboard.png" alt="SecuBoard Logo" style={styles.logo} />
-          <h1 style={styles.title}>SecuBoard</h1>
+    <div
+      style={{
+        margin: 0,
+        fontFamily:
+          "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif",
+        backgroundColor: "#f3f4f6",
+      }}
+    >
+      <header
+        style={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          padding: "1rem",
+          backgroundColor: "black",
+          boxShadow: "0 1px 2px rgba(0, 0, 0, 0.05)",
+          color: "white",
+        }}
+      >
+        <div className="logo" style={{ display: "flex", alignItems: "center" }}>
+          <img
+            src="https://hebbkx1anhila5yf.public.blob.vercel-storage.com/image-Y8LDecX2cddd1SDl4hHq0tDECwe50j.png"
+            alt="SecuBoard Logo"
+            style={{ height: "80px", width: "auto", marginRight: "1rem" }}
+          />
+        </div>
+        <div>
+          <button
+            onClick={handleRegister}
+            style={{
+              padding: "0.5rem 1rem",
+              borderRadius: "9999px",
+              fontSize: "0.875rem",
+              fontWeight: 500,
+              cursor: "pointer",
+              backgroundColor: "white",
+              color: "#374151",
+              border: "none",
+              marginRight: "0.5rem",
+            }}
+          >
+            Register
+          </button>
+          <button
+            onClick={handleSignIn}
+            style={{
+              padding: "0.5rem 1rem",
+              borderRadius: "9999px",
+              fontSize: "0.875rem",
+              fontWeight: 500,
+              cursor: "pointer",
+              backgroundColor: "#3B82F6",
+              color: "white",
+              border: "none",
+            }}
+          >
+            Sign in
+          </button>
+        </div>
+      </header>
+
+      <main style={{ maxWidth: "1200px", margin: "0 auto", padding: "2rem 1rem" }}>
+        <div style={{ maxWidth: "48rem", marginBottom: "3rem" }}>
+          <h1 style={{ fontSize: "1.875rem", fontWeight: "bold", marginBottom: "1rem" }}>
+            Welcome to SecuBoard – The Future of Intrusion Detection
+          </h1>
+          <h2 style={{ fontSize: "1.25rem", color: "#4b5563", marginBottom: "1.5rem" }}>
+            Protect Your Network with AI-Powered Threat Detection
+          </h2>
+          <p style={{ color: "#4b5563", marginBottom: "1.5rem" }}>
+            SecuBoard is a next-generation, web-based Intrusion Detection System (IDS) that seamlessly integrates with
+            industry-leading tools like Snort, Zeek, and Suricata, providing real-time network monitoring, AI-powered
+            threat detection, and automated security alerts – all in one intuitive dashboard.
+          </p>
+          <p style={{ fontWeight: "bold" }}>Get Started Today!</p>
+          <p>Join organizations worldwide in securing their networks with SecuBoard.</p>
+          <p>Sign up now for early access and experience next-gen intrusion detection.</p>
+          <p style={{ fontWeight: "bold" }}>Your network's security starts here.</p>
         </div>
 
-        <form onSubmit={handleLogin}>
-          <div style={styles.formGroup}>
-            <select
-              value={role}
-              onChange={(e) => setRole(e.target.value)}
-              style={styles.selectInput}
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))",
+            gap: "1.5rem",
+          }}
+        >
+          <div
+            style={{
+              backgroundColor: "white",
+              borderRadius: "0.5rem",
+              padding: "1.5rem",
+              boxShadow: "0 1px 3px rgba(0, 0, 0, 0.1)",
+              display: "flex",
+              flexDirection: "column",
+            }}
+          >
+            <h3 style={{ fontWeight: 500, marginBottom: "1rem", textAlign: "left" }}>Alerts each month</h3>
+            <div style={{ flexGrow: 1, position: "relative", height: "300px", width: "100%" }}>
+              <canvas ref={barChartRef}></canvas>
+            </div>
+          </div>
+
+          <div
+            style={{
+              backgroundColor: "white",
+              borderRadius: "0.5rem",
+              padding: "1.5rem",
+              boxShadow: "0 1px 3px rgba(0, 0, 0, 0.1)",
+              display: "flex",
+              flexDirection: "column",
+            }}
+          >
+            <h3 style={{ fontWeight: 500, marginBottom: "1rem", textAlign: "left" }}>Real-time network Traffic</h3>
+            <div style={{ flexGrow: 1, position: "relative", height: "300px", width: "100%" }}>
+              <canvas ref={lineChartRef}></canvas>
+            </div>
+          </div>
+
+          <div
+            style={{
+              backgroundColor: "white",
+              borderRadius: "0.5rem",
+              padding: "1.5rem",
+              boxShadow: "0 1px 3px rgba(0, 0, 0, 0.1)",
+              display: "flex",
+              flexDirection: "column",
+              gridColumn: "span 2",
+            }}
+          >
+            <h3 style={{ fontWeight: 500, marginBottom: "1rem", textAlign: "left" }}>Types of Attack over the month</h3>
+            <div style={{ flexGrow: 1, position: "relative", height: "300px", width: "100%" }}>
+              <canvas ref={pieChartRef}></canvas>
+            </div>
+          </div>
+        </div>
+
+        <div style={{ height: "1px", backgroundColor: "#e5e7eb", margin: "2rem 0" }}></div>
+
+        <div style={{ marginTop: "2rem" }}>
+          <h2 style={{ fontSize: "1.5rem", fontWeight: 600, marginBottom: "1.5rem" }}>Customer Testimonials</h2>
+
+          <div
+            style={{
+              backgroundColor: "white",
+              borderRadius: "0.5rem",
+              padding: "1.5rem",
+              boxShadow: "0 1px 3px rgba(0, 0, 0, 0.1)",
+              marginBottom: "1.5rem",
+            }}
+          >
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "flex-start",
+                marginBottom: "1rem",
+              }}
             >
-              <option value="" disabled>Select role</option>
-              <option value="system-admin">System Admin</option>
-              <option value="network-admin">Network Admin</option>
-              <option value="cybersecurity-analyst">Cybersecurity Analyst</option>
-              <option value="it-manager">IT Manager</option>
-              <option value="data-analyst">Data Analyst</option>
-            </select>
+              <div style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}>
+                <div
+                  style={{
+                    width: "2.5rem",
+                    height: "2.5rem",
+                    backgroundColor: "#e5e7eb",
+                    borderRadius: "9999px",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                  }}
+                >
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    width="20"
+                    height="20"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  >
+                    <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2" />
+                    <circle cx="12" cy="7" r="4" />
+                  </svg>
+                </div>
+                <div>
+                  <h3 style={{ margin: 0, fontWeight: 500 }}>Apex Capital Group</h3>
+                  <div style={{ display: "flex", color: "#FBBF24" }}>
+                    {[...Array(5)].map((_, i) => (
+                      <svg
+                        key={i}
+                        xmlns="http://www.w3.org/2000/svg"
+                        width="16"
+                        height="16"
+                        viewBox="0 0 24 24"
+                        fill="currentColor"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      >
+                        <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
+                      </svg>
+                    ))}
+                  </div>
+                </div>
+              </div>
+              <span style={{ color: "#6b7280", fontSize: "0.875rem" }}>A month ago</span>
+            </div>
+            <p style={{ color: "#374151", lineHeight: 1.5 }}>
+              We've been using SecuBoard IDS for a few months now, and it has completely transformed our network
+              security. The real-time threat detection is incredibly accurate, and the system quickly identifies and
+              mitigates potential attacks before they become serious issues.
+            </p>
           </div>
 
-          <div style={styles.formGroup}>
-            <label htmlFor="loginId" style={styles.label}>
-              Login ID
-            </label>
-            <input
-              id="loginId"
-              type="text"
-              value={loginId}
-              onChange={(e) => setLoginId(e.target.value)}
-              placeholder="Enter your login ID"
-              style={styles.input}
-            />
+          <div
+            style={{
+              backgroundColor: "white",
+              borderRadius: "0.5rem",
+              padding: "1.5rem",
+              boxShadow: "0 1px 3px rgba(0, 0, 0, 0.1)",
+            }}
+          >
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "flex-start",
+                marginBottom: "1rem",
+              }}
+            >
+              <div style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}>
+                <div
+                  style={{
+                    width: "2.5rem",
+                    height: "2.5rem",
+                    backgroundColor: "#e5e7eb",
+                    borderRadius: "9999px",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                  }}
+                >
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    width="20"
+                    height="20"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  >
+                    <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2" />
+                    <circle cx="12" cy="7" r="4" />
+                  </svg>
+                </div>
+                <div>
+                  <h3 style={{ margin: 0, fontWeight: 500 }}>Trenditive Market</h3>
+                  <div style={{ display: "flex", color: "#FBBF24" }}>
+                    {[...Array(5)].map((_, i) => (
+                      <svg
+                        key={i}
+                        xmlns="http://www.w3.org/2000/svg"
+                        width="16"
+                        height="16"
+                        viewBox="0 0 24 24"
+                        fill="currentColor"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      >
+                        <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
+                      </svg>
+                    ))}
+                  </div>
+                </div>
+              </div>
+              <span style={{ color: "#6b7280", fontSize: "0.875rem" }}>3 months ago</span>
+            </div>
+            <p style={{ color: "#374151", lineHeight: 1.5 }}>
+              Highly recommend SecuBoard IDS for businesses looking for a powerful, efficient, and user-friendly
+              intrusion detection system!
+            </p>
           </div>
-
-          <div style={styles.formGroup}>
-            <label htmlFor="password" style={styles.label}>
-              Password
-            </label>
-            <input
-              id="password"
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              placeholder="Enter your password"
-              style={styles.input}
-            />
-          </div>
-
-          {error && <p style={styles.error}>{error}</p>}
-
-          <button type="submit" style={styles.loginButton}>
-            Login
-          </button>
-        </form>
-      </div>
+        </div>
+      </main>
     </div>
-  );
+  )
 }
+
+export default LandingPage
+
