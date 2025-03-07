@@ -9,12 +9,14 @@ import SystemConfigurationPage from "./SystemConfigurationPage"
 import BlocklistManagementPage from "./BlocklistManagementPage"
 import RolesAndPermissionPage from "./RolesAndPermissionPage"
 import UserManagementPage from "./UserManagementPage"
+import LandingPage from "./LandingPage"
 
 function App() {
   return (
     <Router>
       <Routes>
-        <Route path="/" element={<Navigate to="/login" replace />} />
+        <Route path="/" element={<Navigate to="/LandingPage" replace />} />
+		<Route path="/landingPage" element={<LandingPage />} />
         <Route path="/login" element={<LoginPage />} />
 		<Route path="/dashboard" element={<DashboardPage />} />
         <Route path="/offences" element={<OffencesPage />} />
