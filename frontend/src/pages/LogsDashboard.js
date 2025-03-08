@@ -35,10 +35,14 @@ const LogsDashboard = () => {
         <thead>
           <tr>
             <th>Timestamp</th>
+            <th>Device</th>
+            <th>Alert Message</th>
             <th>Source IP</th>
             <th>Destination IP</th>
+            <th>Protocol</th>
+            <th>Alert Category</th>
             <th>Rule ID</th>
-            <th>Priority</th>
+            <th>Flow</th>
           </tr>
         </thead>
         <tbody>
@@ -46,10 +50,14 @@ const LogsDashboard = () => {
             logs.map((log, index) => (
               <tr key={index}>
                 <td>{new Date(log._source['@timestamp']).toLocaleString()}</td>
+                <td>{log._source['host']['ip'][0]}</td>
+                <td>{log._source['message'] || 'N/A'}</td>
                 <td>{log._source['src_ap'] || 'N/A'}</td>
                 <td>{log._source['dst_ap'] || 'N/A'}</td>
+                <td>{log._source['proto']|| 'N/A'}</td>
+                <td>{log._source['class']|| 'N/A'}</td>
                 <td>{log._source['rule']|| 'N/A'}</td>
-                <td>{'N/A'}</td>
+                <td>{log._source['dir'] == 'C2S' ? 'Client to Server' : log._source['dir'] =='S2C' ? 'Server to Client' : log._source['dir'] || 'N/A'}</td>
               </tr>
             ))
           ) : (
