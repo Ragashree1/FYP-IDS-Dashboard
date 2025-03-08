@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React from "react";
 import { BrowserRouter as Router, Route, Routes, Navigate } from 'react-router-dom';
 import LoginPage from './LoginPage';
 import OffencesPage from './OffencesPage';
@@ -13,7 +13,7 @@ import LandingPage from "./LandingPage"
 import LogsDashboard from "./pages/LogsDashboard";
 //import api from "./api"
 
-function APP() {
+function App() {
   return (
     <Router>
         <Routes>
