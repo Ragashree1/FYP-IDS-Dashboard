@@ -1,7 +1,8 @@
 "use client"
 
-import React, { useState, useMemo } from "react"
+import React, { useState, useMemo, useEffect} from "react"
 import { useNavigate, useLocation } from "react-router-dom"
+import axios from 'axios';
 
 const AutomatedReportForm = ({ onClose, onSubmit }) => {
   const [formData, setFormData] = useState({
@@ -251,7 +252,6 @@ const AutomatedReportForm = ({ onClose, onSubmit }) => {
                 </label>
               </div>
             </div>
-
             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
               <button
                 type="submit"
@@ -475,45 +475,37 @@ const Offences = () => {
   const [showGenerateReport, setShowGenerateReport] = useState(false)
   const navigate = useNavigate()
   const location = useLocation()
+  const [logs, setLogs] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [offences, setOffences] = useState([])
+
+  useEffect(() => {
+    axios.get('http://localhost:8000/logs')
+      .then(response => {
+        if (response.data.hits && response.data.hits.hits) {
+          setLogs(response.data.hits.hits);
+          setOffences(response.data.hits.hits);
+          console.log(response.data.hits.hits)
+        } else {
+          setLogs([]);
+          setError('Unexpected data format from server');
+        }
+      })
+      .catch(error => {
+        console.error('Error fetching logs:', error);
+        setError('Failed to fetch logs');
+      })
+      .finally(() => {
+        setLoading(false);
+      });
+  }, []);
   
   const isActive = (path) => location.pathname.startsWith(path)
 
-  const offences = [
-    { criticality: "Med", name: "Suspicious Activity from user", time: "12:12 PM", category: "Suspicious Activity" },
-    { criticality: "Med", name: "Suspicious Activity from user", time: "12:15 PM", category: "Suspicious Activity" },
-    { criticality: "Med", name: "Suspicious Activity from user", time: "12:17 PM", category: "Suspicious Activity" },
-    { criticality: "High", name: "DDOS Attack", time: "12:20 PM", category: "Known Threat" },
-    {
-      criticality: "Low",
-      name: "Connection Request from untrusted ...",
-      time: "1:00 PM",
-      category: "Suspicious Activity",
-    },
-    { criticality: "High", name: "DDOS Attack", time: "1:05 PM", category: "Known Threat" },
-    {
-      criticality: "High",
-      name: "Connection Request from untrusted ...",
-      time: "1:10 PM",
-      category: "Suspicious Activity",
-    },
-    {
-      criticality: "High",
-      name: "Suspicious changes to system setti...",
-      time: "1:12 PM",
-      category: "Highly Dangerous",
-    },
-    {
-      criticality: "Low",
-      name: "Connection Request from untrusted ...",
-      time: "1:14 PM",
-      category: "Suspicious Activity",
-    },
-    { criticality: "Low", name: "Suspicious Activity from user", time: "1:15 PM", category: "Suspicious Activity" },
-  ]
-
   const filteredOffences = useMemo(() => {
     return offences
-  }, [])
+  }, [offences])
 
   const openModal = (offence) => {
     setSelectedOffence(offence)
@@ -691,7 +683,7 @@ const Offences = () => {
         {/* Statistics */}
         <div style={{ display: "flex", gap: "10px", marginBottom: "20px" }}>
           <div style={{ background: "#ddd", padding: "12px 20px", borderRadius: "20px", textAlign: "center" }}>
-            <p>Total Alerts</p>
+            <p>Total Alerts </p>
             <p style={{ fontSize: "20px", fontWeight: "bold" }}>10</p>
           </div>
           <div style={{ background: "#ddd", padding: "12px 20px", borderRadius: "20px", textAlign: "center" }}>
@@ -766,16 +758,16 @@ const Offences = () => {
               <th style={{ padding: "10px", textAlign: "center", borderRight: "1px solid #aaa" }}>
                 <input type="checkbox" /> Select
               </th>
-              {(filter === "" || filter === "Alert Criticality") && (
+              {(filter === "" || filter === "Alert Message") && (
                 <th style={{ padding: "10px", textAlign: "center", borderRight: "1px solid #aaa" }}>
-                  Alert Criticality
+                  Alert Message
                 </th>
-              )}
-              {(filter === "" || filter === "Alert Name") && (
-                <th style={{ padding: "10px", textAlign: "center", borderRight: "1px solid #aaa" }}>Alert Name</th>
               )}
               {(filter === "" || filter === "Date & Time") && (
                 <th style={{ padding: "10px", textAlign: "center", borderRight: "1px solid #aaa" }}>Date & Time</th>
+              )}
+              {(filter === "" || filter === "Alert Name") && (
+                <th style={{ padding: "10px", textAlign: "center", borderRight: "1px solid #aaa" }}>Protocol</th>
               )}
               {(filter === "" || filter === "Alert Category") && (
                 <th style={{ padding: "10px", textAlign: "center", borderRight: "1px solid #aaa" }}>Alert Category</th>
@@ -784,22 +776,22 @@ const Offences = () => {
             </tr>
           </thead>
           <tbody>
-            {filteredOffences.map((offence, index) => (
+            {offences.map((offence, index) => (
               <tr key={index} style={{ borderBottom: "1px solid #ddd" }}>
                 <td style={{ padding: "10px", textAlign: "center" }}>
                   <input type="checkbox" />
                 </td>
-                {(filter === "" || filter === "Alert Criticality") && (
-                  <td style={{ padding: "10px", textAlign: "center" }}>{offence.criticality}</td>
-                )}
-                {(filter === "" || filter === "Alert Name") && (
-                  <td style={{ padding: "10px", textAlign: "center" }}>{offence.name}</td>
+                {(filter === "" || filter === "Alert Message") && (
+                  <td style={{ padding: "10px", textAlign: "center" }}>{offence._source['message'].split(',')[10].replace(/"/g, '') || 'N/A'}</td>
                 )}
                 {(filter === "" || filter === "Date & Time") && (
-                  <td style={{ padding: "10px", textAlign: "center" }}>{offence.time}</td>
+                  <td style={{ padding: "10px", textAlign: "center" }}>{new Date(offence._source['@timestamp']).toLocaleString()}</td>
+                )}
+                {(filter === "" || filter === "Protocol") && (
+                  <td style={{ padding: "10px", textAlign: "center" }}>{offence._source['message'].split(',')[2] || 'N/A'}</td>
                 )}
                 {(filter === "" || filter === "Alert Category") && (
-                  <td style={{ padding: "10px", textAlign: "center" }}>{offence.category}</td>
+                  <td style={{ padding: "10px", textAlign: "center" }}>{offence._source['message'].split(',')[11] || 'N/A'}</td>
                 )}
                 <td style={{ padding: "10px", textAlign: "center" }}>
                   <button
@@ -859,72 +851,40 @@ const Offences = () => {
                   ×
                 </button>
               </div>
+              
+              
               {selectedOffence && (
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "20px" }}>
-                  <div>
-                    <p style={{ fontWeight: "bold", marginBottom: "5px" }}>Alert Name:</p>
-                    <div style={{ background: "#f0f0f0", padding: "8px", borderRadius: "4px", marginBottom: "15px" }}>
-                      {selectedOffence.name}
-                    </div>
-
-                    <p style={{ fontWeight: "bold", marginBottom: "5px" }}>Date & Time:</p>
-                    <div style={{ background: "#f0f0f0", padding: "8px", borderRadius: "4px", marginBottom: "15px" }}>
-                      {selectedOffence.time}
-                    </div>
-
-                    <p style={{ fontWeight: "bold", marginBottom: "5px" }}>Source IP:</p>
-                    <div style={{ background: "#f0f0f0", padding: "8px", borderRadius: "4px", marginBottom: "15px" }}>
-                      121:121:121:121
-                    </div>
-                  </div>
-
-                  <div>
-                    <p style={{ fontWeight: "bold", marginBottom: "5px" }}>Alert Criticality:</p>
-                    <div style={{ background: "#f0f0f0", padding: "8px", borderRadius: "4px", marginBottom: "15px" }}>
-                      {selectedOffence.criticality}
-                    </div>
-
-                    <p style={{ fontWeight: "bold", marginBottom: "5px" }}>Alert Category:</p>
-                    <div style={{ background: "#f0f0f0", padding: "8px", borderRadius: "4px", marginBottom: "15px" }}>
-                      {selectedOffence.category}
-                    </div>
-
-                    <p style={{ fontWeight: "bold", marginBottom: "5px" }}>Destination IP:</p>
-                    <div style={{ background: "#f0f0f0", padding: "8px", borderRadius: "4px", marginBottom: "15px" }}>
-                      6.66.666.6666
-                    </div>
-                  </div>
-
-                  <div style={{ gridColumn: "1 / -1" }}>
-                    <p style={{ fontWeight: "bold", marginBottom: "5px" }}>Alert Message:</p>
-                    <div
-                      style={{
-                        background: "#f0f0f0",
-                        padding: "8px",
-                        borderRadius: "4px",
-                        marginBottom: "15px",
-                        minHeight: "100px",
-                        position: "relative",
-                      }}
-                    >
-                      Suspicious activity has been detected from user DumbDumb
-                      <button
-                        style={{
-                          position: "absolute",
-                          right: "8px",
-                          top: "8px",
-                          background: "none",
-                          border: "none",
-                          cursor: "pointer",
-                          padding: "0",
-                        }}
-                      >
-                        📋
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              )}
+  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "20px" }}>
+    <div>
+      <p style={{ fontWeight: "bold", marginBottom: "5px" }}>Alert Name:</p>
+      <div style={{ background: "#f0f0f0", padding: "8px", borderRadius: "4px", marginBottom: "15px" }}>
+        {selectedOffence._source['message'].split(',')[10]?.trim().replace(/^"|"$/g, '') || 'N/A'}
+      </div>
+      <p style={{ fontWeight: "bold", marginBottom: "5px" }}>Date & Time:</p>
+      <div style={{ background: "#f0f0f0", padding: "8px", borderRadius: "4px", marginBottom: "15px" }}>
+        {selectedOffence._source['@timestamp'] ? new Date(selectedOffence._source['@timestamp']).toLocaleString() : 'N/A'}
+      </div>
+      <p style={{ fontWeight: "bold", marginBottom: "5px" }}>Source IP:</p>
+      <div style={{ background: "#f0f0f0", padding: "8px", borderRadius: "4px", marginBottom: "15px" }}>
+        {selectedOffence._source['message'].split(',')[7]  || 'N/A'}
+      </div>
+    </div>
+    <div>
+      <p style={{ fontWeight: "bold", marginBottom: "5px" }}>Alert Type:</p>
+      <div style={{ background: "#f0f0f0", padding: "8px", borderRadius: "4px", marginBottom: "15px" }}>
+        {selectedOffence._source['message'].split(',')[11]|| 'N/A'}
+      </div>
+      <p style={{ fontWeight: "bold", marginBottom: "5px" }}>Alert Protocol:</p>
+      <div style={{ background: "#f0f0f0", padding: "8px", borderRadius: "4px", marginBottom: "15px" }}>
+      {selectedOffence._source['message'].split(',')[2]  || 'N/A'}
+      </div>
+      <p style={{ fontWeight: "bold", marginBottom: "5px" }}>Destination IP:</p>
+      <div style={{ background: "#f0f0f0", padding: "8px", borderRadius: "4px", marginBottom: "15px" }}>
+        {selectedOffence._source['message'].split(',')[8]  || 'N/A'}
+      </div>
+    </div>
+  </div>
+)}
             </div>
           </div>
         )}
