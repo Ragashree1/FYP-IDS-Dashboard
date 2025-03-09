@@ -10,6 +10,8 @@ import BlocklistManagementPage from "./BlocklistManagementPage"
 import RolesAndPermissionPage from "./RolesAndPermissionPage"
 import UserManagementPage from "./UserManagementPage"
 import LandingPage from "./LandingPage"
+import RegistrationPage from "./RegistrationPage"
+import PaymentPage from "./PaymentPage"
 
 function App() {
   return (
@@ -17,6 +19,8 @@ function App() {
       <Routes>
         <Route path="/" element={<Navigate to="/LandingPage" replace />} />
 		<Route path="/landingPage" element={<LandingPage />} />
+		<Route path="/register" element={<RegistrationPage />} />
+		<Route path="/payment" element={<PaymentPage />} />
         <Route path="/login" element={<LoginPage />} />
 		<Route path="/dashboard" element={<DashboardPage />} />
         <Route path="/offences" element={<OffencesPage />} />
