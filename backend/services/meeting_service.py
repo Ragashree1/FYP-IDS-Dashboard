@@ -36,3 +36,5 @@ def update_meeting_minute(meeting_id: int, update_data: MeetingMinutesBase) -> O
         db.commit()
         db.refresh(meeting_minute)
         return meeting_minute
+    
+    #
