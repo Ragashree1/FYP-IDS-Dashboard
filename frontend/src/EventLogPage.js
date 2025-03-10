@@ -110,10 +110,9 @@ const EventLogPage = () => {
 
   // Filter logs based on search query
   const searchedLogs = useMemo(() => {
-    if (!searchQuery) return logs
-
+    if (!searchQuery) return logs;
     return logs.filter((log) => {
-      const query = searchQuery.toLowerCase()
+      const query = searchQuery.toLowerCase();
       return (
         log.type.toLowerCase().includes(query) ||
         log.name.toLowerCase().includes(query) ||
@@ -121,9 +120,10 @@ const EventLogPage = () => {
         log.sourceIP.toLowerCase().includes(query) ||
         log.destinationIP.toLowerCase().includes(query) ||
         log.logSource.toLowerCase().includes(query)
-      )
-    })
-  }, [searchQuery])
+      );
+    });
+  }, [searchQuery, logs]); // Add logs here
+  
 
   // Get visible columns based on filter type
   const getVisibleColumns = () => {

@@ -548,6 +548,31 @@ const Offences = () => {
     return offences
   }, [offences])
 
+  function getAlertCount() {
+    return offences.length
+  }
+
+  
+  function getHighAlerts() {
+    return offences.map((offence, index) => getPriority(offence._source['message'].split(',')[11].toLowerCase().trim() || 'N/A')).filter((val) => val == 1).length
+
+  }
+
+  
+  function getMediumAlerts() {
+    return offences.map((offence, index) => getPriority(offence._source['message'].split(',')[11].toLowerCase().trim() || 'N/A')).filter((val) => val == 2 || val == 3).length
+
+  }
+
+  function getLowAlerts() {
+    return offences.map((offence, index) => getPriority(offence._source['message'].split(',')[11].toLowerCase().trim() || 'N/A')).filter((val) => val == 4).length
+
+  }
+
+  function getUncategorizedAlerts() {
+    return offences.filter((offence, index) => getPriority(offence._source['message'].split(',')[11].toLowerCase().trim() || 'N/A') == 'Unknown').length
+  }
+
   const openModal = (offence) => {
     setSelectedOffence(offence)
     setIsModalOpen(true)
@@ -732,19 +757,23 @@ const Offences = () => {
         <div style={{ display: "flex", gap: "10px", marginBottom: "20px" }}>
           <div style={{ background: "#ddd", padding: "12px 20px", borderRadius: "20px", textAlign: "center" }}>
             <p>Total Alerts </p>
-            <p style={{ fontSize: "20px", fontWeight: "bold" }}>10</p>
+            <p style={{ fontSize: "20px", fontWeight: "bold" }}>{getAlertCount()}</p>
           </div>
           <div style={{ background: "#ddd", padding: "12px 20px", borderRadius: "20px", textAlign: "center" }}>
             <p>Total High</p>
-            <p style={{ fontSize: "20px", fontWeight: "bold" }}>4</p>
+            <p style={{ fontSize: "20px", fontWeight: "bold" }}>{getHighAlerts()}</p>
           </div>
           <div style={{ background: "#ddd", padding: "12px 20px", borderRadius: "20px", textAlign: "center" }}>
             <p>Total Med</p>
-            <p style={{ fontSize: "20px", fontWeight: "bold" }}>3</p>
+            <p style={{ fontSize: "20px", fontWeight: "bold" }}>{getMediumAlerts()}</p>
           </div>
           <div style={{ background: "#ddd", padding: "12px 20px", borderRadius: "20px", textAlign: "center" }}>
             <p>Total Low</p>
-            <p style={{ fontSize: "20px", fontWeight: "bold" }}>3</p>
+            <p style={{ fontSize: "20px", fontWeight: "bold" }}>{getLowAlerts()}</p>
+          </div>
+          <div style={{ background: "#ddd", padding: "12px 20px", borderRadius: "20px", textAlign: "center" }}>
+            <p>Uncategorized Alerts</p>
+            <p style={{ fontSize: "20px", fontWeight: "bold" }}>{getUncategorizedAlerts()}</p>
           </div>
         </div>
 
