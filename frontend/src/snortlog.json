@@ -1,0 +1,65 @@
+{
+    "_index": "snort-logs-2025.03.11",
+    "_id": "bzXng5UBW4T_SDmQCZMR",
+    "_score": null,
+    "_source": {
+      "host": {
+        "id": "48cdefbfc16d49caa1991d5304165686",
+        "hostname": "Ubuntu",
+        "mac": [
+          "08-00-27-3D-41-D3"
+        ],
+        "containerized": false,
+        "name": "ubuntu",
+        "ip": [
+          "192.168.1.2",
+          "fe80::a00:27ff:fe3d:41d3"
+        ],
+        "os": {
+          "kernel": "6.11.0-19-generic",
+          "type": "linux",
+          "version": "24.04.1 LTS (Noble Numbat)",
+          "name": "Ubuntu",
+          "codename": "noble",
+          "platform": "ubuntu",
+          "family": "debian"
+        },
+        "architecture": "x86_64"
+      },
+      "log": {
+        "file": {
+          "path": "/var/log/snort/alert_csv.txt"
+        },
+        "offset": 242755
+      },
+      "@version": "1",
+      "agent": {
+        "name": "Ubuntu",
+        "id": "5a80c0ec-b1b6-4457-9250-940bf09d7b77",
+        "ephemeral_id": "b08352c1-5380-4c96-a6ea-9bd02621f313",
+        "type": "filebeat",
+        "version": "8.17.2"
+      },
+      "ecs": {
+        "version": "8.0.0"
+      },
+      "tags": [
+        "beats_input_codec_plain_applied",
+        "_csvparsefailure"
+      ],
+      "fields": {
+        "log_type": "snort_csv"
+      },
+      "@timestamp": "2025-03-11T06:31:41.139Z",
+      "message": "03/11-06:31:15.664042, 39279, TCP, raw, 40, C2S, 192.168.1.16:56980, 192.168.1.2:22, 1:1000003:1, allow, \"SSH Authentication Detected\", none, 0",
+      "input": {
+        "type": "log"
+      },
+      "event": {
+        "original": "03/11-06:31:15.664042, 39279, TCP, raw, 40, C2S, 192.168.1.16:56980, 192.168.1.2:22, 1:1000003:1, allow, \"SSH Authentication Detected\", none, 0"
+      }
+    },
+    "sort": [
+      1741674701139
+    ]
+  }
