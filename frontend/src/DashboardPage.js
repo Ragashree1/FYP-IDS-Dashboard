@@ -64,9 +64,7 @@ const Dashboard = () => {
 
   const attackData = Object.values(
       offences.reduce((acc, offence) => {
-          const message = offence._source?.message || ''; // Ensure message exists
-          const parts = message.split(','); 
-          const attackType = parts[11] ? parts[11].toLowerCase().trim() : 'Unknown'; // Extract attack type
+          const attackType = offence.description  || 'Unknown'; // Extract attack type
           
           if (!acc[attackType]) {
               acc[attackType] = { name: attackType, value: 0, color: getRandomColor() }; // Initialize
@@ -76,13 +74,13 @@ const Dashboard = () => {
           return acc;
         }, {})
     );
-    // function getRandomColor() {
-    //   return `#${Math.floor(Math.random() * 16777215).toString(16).padStart(6, '0')}`;
-    // }
     function getRandomColor() {
-      const colors = ['#8884d8', '#ffc658', '#ff8042', '#82ca9d', '#d84d8d', '#4d88d8'];
-      return colors[Math.floor(Math.random() * colors.length)];
-  }
+      return `#${Math.floor(Math.random() * 16777215).toString(16).padStart(6, '0')}`;
+    }
+  //   function getRandomColor() {
+  //     const colors = ['#8884d8', '#ffc658', '#ff8042', '#82ca9d', '#d84d8d', '#4d88d8'];
+  //     return colors[Math.floor(Math.random() * colors.length)];
+  // }
   
   
   
@@ -90,10 +88,10 @@ const Dashboard = () => {
   useEffect(() => {
     axios.get('http://localhost:8000/logs')
       .then(response => {
-        if (response.data.hits && response.data.hits.hits) {
-          setLogs(response.data.hits.hits);
-          setOffences(response.data.hits.hits);
-          console.log(response.data.hits.hits)
+        if (response.data) {
+          setLogs(response.data);
+          setOffences(response.data);
+          console.log(response.data)
         } else {
           setLogs([]);
           setError('Unexpected data format from server');

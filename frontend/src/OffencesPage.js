@@ -473,6 +473,7 @@ const Offences = () => {
   const [selectedOffence, setSelectedOffence] = useState(null)
   const [showReportForm, setShowReportForm] = useState(false)
   const [showGenerateReport, setShowGenerateReport] = useState(false)
+  const [selectAll, setSelectAll] = useState(false);
   const navigate = useNavigate()
   const location = useLocation()
   const [logs, setLogs] = useState([]);
@@ -524,14 +525,9 @@ const Offences = () => {
   useEffect(() => {
     axios.get('http://localhost:8000/logs')
       .then(response => {
-        if (response.data.hits && response.data.hits.hits) {
-          setLogs(response.data.hits.hits);
-          setOffences(response.data.hits.hits);
-          console.log(response.data.hits.hits)
-        } else {
-          setLogs([]);
-          setError('Unexpected data format from server');
-        }
+        setLogs(response.data);
+        setOffences(response.data);
+        console.log(response.data);
       })
       .catch(error => {
         console.error('Error fetching logs:', error);
@@ -554,22 +550,20 @@ const Offences = () => {
 
   
   function getHighAlerts() {
-    return offences.map((offence, index) => getPriority(offence._source['message'].split(',')[11].toLowerCase().trim() || 'N/A')).filter((val) => val == 1).length
-
+    return offences.map((offence, index) => getPriority(offence.description.toLowerCase().trim() || 'N/A')).filter((val) => val == 1).length;
   }
 
   
   function getMediumAlerts() {
-    return offences.map((offence, index) => getPriority(offence._source['message'].split(',')[11].toLowerCase().trim() || 'N/A')).filter((val) => val == 2 || val == 3).length
+    return offences.map((offence, index) => getPriority(offence.description.toLowerCase().trim() || 'N/A')).filter((val) => val == 2 || val == 3).length;
   }
 
   function getLowAlerts() {
-    return offences.map((offence, index) => getPriority(offence._source['message'].split(',')[11].toLowerCase().trim() || 'N/A')).filter((val) => val == 4).length
-
+    return offences.map((offence, index) => getPriority(offence.description.toLowerCase().trim() || 'N/A')).filter((val) => val == 4).length;
   }
 
   function getUncategorizedAlerts() {
-    return offences.filter((offence, index) => getPriority(offence._source['message'].split(',')[11].toLowerCase().trim() || 'N/A') == 'Unknown').length
+    return offences.filter((offence, index) => getPriority(offence.description.toLowerCase().trim() || 'N/A') == 'Unknown').length;
   }
 
   const openModal = (offence) => {
@@ -578,9 +572,7 @@ const Offences = () => {
   }
 
   function getPriority(name) {
-    console.log(name)
     name = name.trim()
-    console.log(classifications[name])
     return classifications[name] ? classifications[name].priority : 'Unknown'
   }
 
@@ -618,6 +610,18 @@ const Offences = () => {
     console.log("Generate Report Data:", formData)
     setShowGenerateReport(false)
   }
+
+  const handleSelectAll = () => {
+    const newSelectAll = !selectAll;
+    setSelectAll(newSelectAll);
+    setOffences(offences.map(offence => ({ ...offence, selected: newSelectAll })));
+  };
+
+  const handleSelect = (index) => {
+    const updatedOffences = [...offences];
+    updatedOffences[index].selected = !updatedOffences[index].selected;
+    setOffences(updatedOffences);
+  };
 
   return (
     <div style={{ display: "flex", height: "100vh", background: "#f4f4f4" }}>
@@ -834,7 +838,7 @@ const Offences = () => {
           <thead style={{ position: "sticky", top: 0, background: "#fff", zIndex: 2, boxShadow: "0 2px 2px rgba(0,0,0,0.1)" }}>
             <tr style={{ background: "#ccc", borderBottom: "2px solid #aaa" }}>
               <th style={{ padding: "10px", textAlign: "center", borderRight: "1px solid #aaa" }}>
-                <input type="checkbox" /> Select
+                <input type="checkbox" checked={selectAll} onChange={handleSelectAll} /> Select
               </th>
               {(filter === "" || filter === "Alert Message") && (
                 <th style={{ padding: "10px", textAlign: "center", borderRight: "1px solid #aaa" }}>
@@ -858,21 +862,21 @@ const Offences = () => {
             {offences.map((offence, index) => (
               <tr key={index} style={{ borderBottom: "1px solid #ddd" }}>
                 <td style={{ padding: "10px", textAlign: "center" }}>
-                  <input type="checkbox" />
+                  <input type="checkbox" checked={offence.selected || false} onChange={() => handleSelect(index)} />
                 </td>
                 {(filter === "" || filter === "Alert Message") && (
-                  <td style={{ padding: "10px", textAlign: "center" }}>{offence._source['message'].split(',')[10].replace(/"/g, '') || 'N/A'}</td>
+                  <td style={{ padding: "10px", textAlign: "center" }}>{offence.message || 'N/A'}</td>
                 )}
                 {(filter === "" || filter === "Date & Time") && (
-                  <td style={{ padding: "10px", textAlign: "center" }}>{new Date(offence._source['@timestamp']).toLocaleString()}</td>
+                  <td style={{ padding: "10px", textAlign: "center" }}>{new Date(offence.timestamp).toLocaleString()}</td>
                 )}
                 {(filter === "" || filter === "Protocol") && (
-                  <td style={{ padding: "10px", textAlign: "center" }}>{offence._source['message'].split(',')[2] || 'N/A'}</td>
+                  <td style={{ padding: "10px", textAlign: "center" }}>{offence.protocol || 'N/A'}</td>
                 )}
                 {(filter === "" || filter === "Alert Category") && (
-                  <td style={{ padding: "10px", textAlign: "center" }}>{offence._source['message'].split(',')[11].toLowerCase() || 'N/A'}</td>
+                  <td style={{ padding: "10px", textAlign: "center" }}>{offence.description.toLowerCase() || 'N/A'}</td>
                 )}
-                <td style={{ padding: "10px", textAlign: "center" }}>{getPriority(offence._source['message'].split(',')[11].toLowerCase().trim() || 'N/A')}</td>
+                <td style={{ padding: "10px", textAlign: "center" }}>{getPriority(offence.description.toLowerCase().trim() || 'N/A')}</td>
                 <td style={{ padding: "10px", textAlign: "center" }}>
                   <button
                     style={{ background: "purple", color: "#fff", padding: "5px 10px", borderRadius: "5px" }}
@@ -939,29 +943,29 @@ const Offences = () => {
     <div>
       <p style={{ fontWeight: "bold", marginBottom: "5px" }}>Alert Name:</p>
       <div style={{ background: "#f0f0f0", padding: "8px", borderRadius: "4px", marginBottom: "15px" }}>
-        {selectedOffence._source['message'].split(',')[10]?.trim().replace(/^"|"$/g, '') || 'N/A'}
+        {selectedOffence.message || 'N/A'}
       </div>
       <p style={{ fontWeight: "bold", marginBottom: "5px" }}>Date & Time:</p>
       <div style={{ background: "#f0f0f0", padding: "8px", borderRadius: "4px", marginBottom: "15px" }}>
-        {selectedOffence._source['@timestamp'] ? new Date(selectedOffence._source['@timestamp']).toLocaleString() : 'N/A'}
+        {selectedOffence.timestamp ? new Date(selectedOffence.timestamp).toLocaleString() : 'N/A'}
       </div>
       <p style={{ fontWeight: "bold", marginBottom: "5px" }}>Source IP:</p>
       <div style={{ background: "#f0f0f0", padding: "8px", borderRadius: "4px", marginBottom: "15px" }}>
-        {selectedOffence._source['message'].split(',')[7]  || 'N/A'}
+        {selectedOffence.src_ip || 'N/A'}
       </div>
     </div>
     <div>
       <p style={{ fontWeight: "bold", marginBottom: "5px" }}>Alert Type:</p>
       <div style={{ background: "#f0f0f0", padding: "8px", borderRadius: "4px", marginBottom: "15px" }}>
-        {selectedOffence._source['message'].split(',')[11]|| 'N/A'}
+        {selectedOffence.description || 'N/A'}
       </div>
       <p style={{ fontWeight: "bold", marginBottom: "5px" }}>Alert Protocol:</p>
       <div style={{ background: "#f0f0f0", padding: "8px", borderRadius: "4px", marginBottom: "15px" }}>
-      {selectedOffence._source['message'].split(',')[2]  || 'N/A'}
+      {selectedOffence.protocol || 'N/A'}
       </div>
       <p style={{ fontWeight: "bold", marginBottom: "5px" }}>Destination IP:</p>
       <div style={{ background: "#f0f0f0", padding: "8px", borderRadius: "4px", marginBottom: "15px" }}>
-        {selectedOffence._source['message'].split(',')[8]  || 'N/A'}
+        {selectedOffence.dest_ip || 'N/A'}
       </div>
     </div>
   </div>
