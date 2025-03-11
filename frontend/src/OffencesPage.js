@@ -561,7 +561,6 @@ const Offences = () => {
   
   function getMediumAlerts() {
     return offences.map((offence, index) => getPriority(offence._source['message'].split(',')[11].toLowerCase().trim() || 'N/A')).filter((val) => val == 2 || val == 3).length
-
   }
 
   function getLowAlerts() {
@@ -822,15 +821,17 @@ const Offences = () => {
         </div>
 
         {/* Offences Table */}
+        <div style={{ width: "100%", overflowX: "auto", maxHeight: "900px", overflowY: "auto" }}>
         <table
           style={{
             width: "100%",
             background: "#fff",
             borderCollapse: "collapse",
             boxShadow: "0 0 10px rgba(0,0,0,0.1)",
+            minWidth: "800px"
           }}
         >
-          <thead>
+          <thead style={{ position: "sticky", top: 0, background: "#fff", zIndex: 2, boxShadow: "0 2px 2px rgba(0,0,0,0.1)" }}>
             <tr style={{ background: "#ccc", borderBottom: "2px solid #aaa" }}>
               <th style={{ padding: "10px", textAlign: "center", borderRight: "1px solid #aaa" }}>
                 <input type="checkbox" /> Select
@@ -884,6 +885,7 @@ const Offences = () => {
             ))}
           </tbody>
         </table>
+        </div>
 
         {/* Modal */}
         {isModalOpen && (
