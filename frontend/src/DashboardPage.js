@@ -1,15 +1,112 @@
 "use client"
 
-import React from 'react';
+import React,  {useState, useMemo, useEffect} from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, LineChart, Line, PieChart, Pie, Cell } from 'recharts';
+import axios from 'axios';
 
 const Dashboard = () => {
   const navigate = useNavigate();
   const location = useLocation();
+ 
+  const isActive = (path) => location.pathname.startsWith(path);
 
+  const [filter, setFilter] = useState("")
+  const [isModalOpen, setIsModalOpen] = useState(false)
+  const [selectedOffence, setSelectedOffence] = useState(null)
+  const [showReportForm, setShowReportForm] = useState(false)
+  const [showGenerateReport, setShowGenerateReport] = useState(false)
+  const [logs, setLogs] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [offences, setOffences] = useState([]);
+  //const [attackData, setAttackData] = useState([]);
+  const classifications = {
+    "not suspicious": { priority: 3, text: "Not Suspicious Traffic" },
+    "unknown": { priority: 3, text: "Unknown Traffic" },
+    "bad unknown": { priority: 2, text: "Potentially Bad Traffic" },
+    "attempted recon": { priority: 2, text: "Attempted Information Leak" },
+    "successful recon limited": { priority: 2, text: "Information Leak" },
+    "successful recon largescale": { priority: 2, text: "Large Scale Information Leak" },
+    "attempted dos": { priority: 2, text: "Attempted Denial of Service" },
+    "successful dos": { priority: 2, text: "Denial of Service" },
+    "attempted user": { priority: 1, text: "Attempted User Privilege Gain" },
+    "unsuccessful user": { priority: 1, text: "Unsuccessful User Privilege Gain" },
+    "successful user": { priority: 1, text: "Successful User Privilege Gain" },
+    "attempted admin": { priority: 1, text: "Attempted Administrator Privilege Gain" },
+    "successful admin": { priority: 1, text: "Successful Administrator Privilege Gain" },
+    "rpc portmap decode": { priority: 2, text: "Decode of an RPC Query" },
+    "shellcode detect": { priority: 1, text: "Executable code was detected" },
+    "string detect": { priority: 3, text: "A suspicious string was detected" },
+    "suspicious filename detect": { priority: 2, text: "A suspicious filename was detected" },
+    "suspicious login": { priority: 2, text: "An attempted login using a suspicious username was detected" },
+    "system call detect": { priority: 2, text: "A system call was detected" },
+    "tcp connection": { priority: 4, text: "A TCP connection was detected" },
+    "trojan activity": { priority: 1, text: "A Network Trojan was detected" },
+    "unusual client port connection": { priority: 2, text: "A client was using an unusual port" },
+    "network scan": { priority: 3, text: "Detection of a Network Scan" },
+    "denial of service": { priority: 2, text: "Detection of a Denial of Service Attack" },
+    "non standard protocol": { priority: 2, text: "Detection of a non standard protocol or event" },
+    "protocol command decode": { priority: 3, text: "Generic Protocol Command Decode" },
+    "web application activity": { priority: 2, text: "Access to a potentially vulnerable web application" },
+    "web application attack": { priority: 1, text: "Web Application Attack" },
+    "misc activity": { priority: 3, text: "Misc activity" },
+    "misc attack": { priority: 2, text: "Misc Attack" },
+    "icmp event": { priority: 3, text: "Generic ICMP event" },
+    "inappropriate content": { priority: 1, text: "Inappropriate Content was Detected" },
+    "policy violation": { priority: 1, text: "Potential Corporate Privacy Violation" },
+    "default login attempt": { priority: 2, text: "Attempt to login by a default username and password" },
+    "sdf": { priority: 2, text: "Sensitive Data" },
+    "file format": { priority: 1, text: "Known malicious file or file based exploit" },
+    "malware cnc": { priority: 1, text: "Known malware command and control traffic" },
+    "client side exploit": { priority: 1, text: "Known client side exploit attempt" }
+};
+
+  const attackData = Object.values(
+      offences.reduce((acc, offence) => {
+          const message = offence._source?.message || ''; // Ensure message exists
+          const parts = message.split(','); 
+          const attackType = parts[11] ? parts[11].toLowerCase().trim() : 'Unknown'; // Extract attack type
+          
+          if (!acc[attackType]) {
+              acc[attackType] = { name: attackType, value: 0, color: getRandomColor() }; // Initialize
+          }
+          acc[attackType].value += 1; // Aggregate count
   
-    const isActive = (path) => location.pathname.startsWith(path);
+          return acc;
+        }, {})
+    );
+    // function getRandomColor() {
+    //   return `#${Math.floor(Math.random() * 16777215).toString(16).padStart(6, '0')}`;
+    // }
+    function getRandomColor() {
+      const colors = ['#8884d8', '#ffc658', '#ff8042', '#82ca9d', '#d84d8d', '#4d88d8'];
+      return colors[Math.floor(Math.random() * colors.length)];
+  }
+  
+  
+  
+
+  useEffect(() => {
+    axios.get('http://localhost:8000/logs')
+      .then(response => {
+        if (response.data.hits && response.data.hits.hits) {
+          setLogs(response.data.hits.hits);
+          setOffences(response.data.hits.hits);
+          console.log(response.data.hits.hits)
+        } else {
+          setLogs([]);
+          setError('Unexpected data format from server');
+        }
+      })
+      .catch(error => {
+        console.error('Error fetching logs:', error);
+        setError('Failed to fetch logs');
+      })
+      .finally(() => {
+        setLoading(false);
+      });
+  }, []);
 
 
   // Monthly alerts data
@@ -40,12 +137,12 @@ const Dashboard = () => {
   ];
 
   // Attack types data
-  const attackData = [
-    { name: 'Ransomwares', value: 20, color: '#8884d8' },
-    { name: 'DDos', value: 20, color: '#ffc658' },
-    { name: 'Phishing', value: 15, color: '#ff8042' },
-    { name: 'SQL Injections', value: 7, color: '#82ca9d' },
-  ];
+  // const attackData = [
+  //   { name: 'Ransomwares', value: 20, color: '#8884d8' },
+  //   { name: 'DDos', value: 20, color: '#ffc658' },
+  //   { name: 'Phishing', value: 15, color: '#ff8042' },
+  //   { name: 'SQL Injections', value: 7, color: '#82ca9d' },
+  // ];
 
   const handleLogout = () => {
     navigate('/login');
