@@ -45,6 +45,7 @@ Make sure you have the following installed:
 2. Install dependencies:
    ```sh
    npm install
+   npm install axios
    ```
 3. Start the frontend application:
    ```sh
