@@ -28,3 +28,7 @@ class Journal(Base):
 
     class Config:
         orm_mode = True
+
+class BlockedIP(Base):
+    __tablename__ = "blocked_ips"
+    ip = Column(String, primary_key=True)

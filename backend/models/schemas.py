@@ -1,4 +1,4 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, IPvAnyAddress
 from typing import List
 
 class MeetingMinutesBase(BaseModel):
@@ -30,3 +30,6 @@ class MeetingMinutesOut(BaseModel):
     agenda: str
     discussion: str
     actions: str
+
+class IPAddressSchema(BaseModel):
+    ip: IPvAnyAddress
