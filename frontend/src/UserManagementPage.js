@@ -76,80 +76,80 @@ const NewUserModal = ({ onClose, onConfirm, user = null }) => {
     email: user?.email || "",
     phone: user?.phone || "",
     password: "",
-  });
+  })
 
   const [errors, setErrors] = useState({
     phone: "",
     password: "",
-  });
+  })
 
   const handleInputChange = (e) => {
-    const { name, value } = e.target;
-    setFormData((prev) => ({ ...prev, [name]: value }));
-    
-    if (name === 'phone') {
-      validatePhone(value);
-    } else if (name === 'password') {
-      validatePassword(value);
+    const { name, value } = e.target
+    setFormData((prev) => ({ ...prev, [name]: value }))
+
+    if (name === "phone") {
+      validatePhone(value)
+    } else if (name === "password") {
+      validatePassword(value)
     }
-  };
+  }
 
   const validatePhone = (phone) => {
     if (user && !phone) {
-      setErrors(prev => ({ ...prev, phone: "" }));
-      return true;
+      setErrors((prev) => ({ ...prev, phone: "" }))
+      return true
     }
-    
-    const phoneRegex = /^(\+\d{1,3}\s?)?[0-9]{8,10}$/;
-    
+
+    const phoneRegex = /^(\+\d{1,3}\s?)?[0-9]{8,10}$/
+
     if (!phoneRegex.test(phone)) {
-      setErrors(prev => ({ 
-        ...prev, 
-        phone: "Please enter a valid phone number (8-10 digits with optional country code)" 
-      }));
-      return false;
+      setErrors((prev) => ({
+        ...prev,
+        phone: "Please enter a valid phone number (8-10 digits with optional country code)",
+      }))
+      return false
     } else {
-      setErrors(prev => ({ ...prev, phone: "" }));
-      return true;
+      setErrors((prev) => ({ ...prev, phone: "" }))
+      return true
     }
-  };
+  }
 
   const validatePassword = (password) => {
     if (user && !password) {
-      setErrors(prev => ({ ...prev, password: "" }));
-      return true;
+      setErrors((prev) => ({ ...prev, password: "" }))
+      return true
     }
-    
+
     if (!user || password) {
-      const hasSymbol = /[!@#$%^&*(),.?":{}|<>]/.test(password);
-      const hasNumber = /\d/.test(password);
-      const hasCapital = /[A-Z]/.test(password);
-      
+      const hasSymbol = /[!@#$%^&*(),.?":{}|<>]/.test(password)
+      const hasNumber = /\d/.test(password)
+      const hasCapital = /[A-Z]/.test(password)
+
       if (!hasSymbol || !hasNumber || !hasCapital) {
-        setErrors(prev => ({ 
-          ...prev, 
-          password: "Password must contain symbols, numbers, and capital letters" 
-        }));
-        return false;
+        setErrors((prev) => ({
+          ...prev,
+          password: "Password must contain symbols, numbers, and capital letters",
+        }))
+        return false
       } else {
-        setErrors(prev => ({ ...prev, password: "" }));
-        return true;
+        setErrors((prev) => ({ ...prev, password: "" }))
+        return true
       }
     }
-    
-    return true;
-  };
+
+    return true
+  }
 
   const handleSubmit = (e) => {
-    e.preventDefault();
-    
-    const isPhoneValid = validatePhone(formData.phone);
-    const isPasswordValid = validatePassword(formData.password);
-    
+    e.preventDefault()
+
+    const isPhoneValid = validatePhone(formData.phone)
+    const isPasswordValid = validatePassword(formData.password)
+
     if (isPhoneValid && isPasswordValid) {
-      onConfirm(formData, user?.id);
+      onConfirm(formData, user?.id)
     }
-  };
+  }
 
   return (
     <div
@@ -185,6 +185,9 @@ const NewUserModal = ({ onClose, onConfirm, user = null }) => {
               gridTemplateColumns: "1fr 1fr",
               gap: "40px",
               alignItems: "start",
+              "@media (max-width: 768px)": {
+                gridTemplateColumns: "1fr",
+              },
             }}
           >
             {/* Left Column */}
@@ -202,6 +205,7 @@ const NewUserModal = ({ onClose, onConfirm, user = null }) => {
                     border: "1px solid #ddd",
                     borderRadius: "4px",
                     backgroundColor: "#f5f5f5",
+                    boxSizing: "border-box", // Added to prevent overflow
                   }}
                   required
                   disabled={!!user}
@@ -220,6 +224,7 @@ const NewUserModal = ({ onClose, onConfirm, user = null }) => {
                     border: "1px solid #ddd",
                     borderRadius: "4px",
                     backgroundColor: "#f5f5f5",
+                    boxSizing: "border-box", // Added to prevent overflow
                   }}
                   required
                 />
@@ -237,6 +242,7 @@ const NewUserModal = ({ onClose, onConfirm, user = null }) => {
                     border: "1px solid #ddd",
                     borderRadius: "4px",
                     backgroundColor: "#f5f5f5",
+                    boxSizing: "border-box", // Added to prevent overflow
                   }}
                   required
                 />
@@ -253,6 +259,7 @@ const NewUserModal = ({ onClose, onConfirm, user = null }) => {
                     border: "1px solid #ddd",
                     borderRadius: "4px",
                     backgroundColor: "#f5f5f5",
+                    boxSizing: "border-box", // Added to prevent overflow
                   }}
                   required
                 >
@@ -260,7 +267,7 @@ const NewUserModal = ({ onClose, onConfirm, user = null }) => {
                   <option value="Organisation Admin">Organisation Admin</option>
                   <option value="Network Admin">Network Admin</option>
                   <option value="IT Manager">IT Manager</option>
-				  <option value="Data Analyst">Data Analyst</option>
+                  <option value="Data Analyst">Data Analyst</option>
                 </select>
               </div>
             </div>
@@ -280,6 +287,7 @@ const NewUserModal = ({ onClose, onConfirm, user = null }) => {
                     border: "1px solid #ddd",
                     borderRadius: "4px",
                     backgroundColor: "#f5f5f5",
+                    boxSizing: "border-box", // Added to prevent overflow
                   }}
                   required
                 />
@@ -297,14 +305,13 @@ const NewUserModal = ({ onClose, onConfirm, user = null }) => {
                     border: errors.phone ? "1px solid #ff4d4f" : "1px solid #ddd",
                     borderRadius: "4px",
                     backgroundColor: "#f5f5f5",
+                    boxSizing: "border-box", // Added to prevent overflow
                   }}
                   placeholder="+65 98765432"
                   required
                 />
                 {errors.phone && (
-                  <p style={{ color: "#ff4d4f", fontSize: "12px", margin: "4px 0 0 0" }}>
-                    {errors.phone}
-                  </p>
+                  <p style={{ color: "#ff4d4f", fontSize: "12px", margin: "4px 0 0 0" }}>{errors.phone}</p>
                 )}
               </div>
               <div>
@@ -320,14 +327,13 @@ const NewUserModal = ({ onClose, onConfirm, user = null }) => {
                     border: errors.password ? "1px solid #ff4d4f" : "1px solid #ddd",
                     borderRadius: "4px",
                     backgroundColor: "#f5f5f5",
+                    boxSizing: "border-box", // Added to prevent overflow
                   }}
                   required={!user}
                   placeholder={user ? "Leave blank to keep current password" : ""}
                 />
                 {errors.password && (
-                  <p style={{ color: "#ff4d4f", fontSize: "12px", margin: "4px 0 0 0" }}>
-                    {errors.password}
-                  </p>
+                  <p style={{ color: "#ff4d4f", fontSize: "12px", margin: "4px 0 0 0" }}>{errors.password}</p>
                 )}
                 <p style={{ color: "#666", fontSize: "12px", margin: "4px 0 0 0" }}>
                   Password must contain symbols, numbers, and capital letters.
@@ -372,8 +378,75 @@ const NewUserModal = ({ onClose, onConfirm, user = null }) => {
         </form>
       </div>
     </div>
-  );
-};
+  )
+}
+
+const SuspendConfirmationModal = ({ onClose, onConfirm, user, isSuspending }) => {
+  return (
+    <div
+      style={{
+        position: "fixed",
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        backgroundColor: "rgba(0, 0, 0, 0.5)",
+        display: "flex",
+        justifyContent: "center",
+        alignItems: "center",
+        zIndex: 1000,
+      }}
+    >
+      <div
+        style={{
+          backgroundColor: "white",
+          borderRadius: "8px",
+          padding: "24px",
+          width: "90%",
+          maxWidth: "400px",
+          textAlign: "center",
+        }}
+      >
+        <h3 style={{ marginTop: 0, marginBottom: "16px" }}>
+          {isSuspending
+            ? `Are you sure you want to suspend ${user.name}?`
+            : `Are you sure you want to reactivate ${user.name}?`}
+        </h3>
+        <p style={{ marginBottom: "24px", color: "#666" }}>
+          {isSuspending
+            ? "This user will no longer be able to access the system until reactivated."
+            : "This will restore the user's access to the system."}
+        </p>
+        <div style={{ display: "flex", justifyContent: "center", gap: "10px" }}>
+          <button
+            onClick={onConfirm}
+            style={{
+              padding: "8px 24px",
+              backgroundColor: "#90EE90",
+              border: "none",
+              borderRadius: "4px",
+              cursor: "pointer",
+            }}
+          >
+            Confirm
+          </button>
+          <button
+            onClick={onClose}
+            style={{
+              padding: "8px 24px",
+              backgroundColor: "#ffcccb",
+              border: "none",
+              borderRadius: "4px",
+              cursor: "pointer",
+            }}
+          >
+            Cancel
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
 
 const UserManagementPage = () => {
   const navigate = useNavigate()
@@ -388,6 +461,7 @@ const UserManagementPage = () => {
       role: "Organisation Admin",
       email: "RyanAtwood@yahoo.com",
       phone: "98705564",
+      suspended: false,
     },
     {
       id: 2,
@@ -396,6 +470,7 @@ const UserManagementPage = () => {
       role: "Network Admin",
       email: "SethCohen@yahoo.com",
       phone: "97352790",
+      suspended: false,
     },
     {
       id: 3,
@@ -404,6 +479,7 @@ const UserManagementPage = () => {
       role: "Network Admin",
       email: "MarissaCoop@gmail.com",
       phone: "92735234",
+      suspended: true,
     },
     {
       id: 4,
@@ -412,6 +488,7 @@ const UserManagementPage = () => {
       role: "Data Analyst",
       email: "SummerRob@hotmail.com",
       phone: "87354723",
+      suspended: false,
     },
     {
       id: 5,
@@ -420,6 +497,7 @@ const UserManagementPage = () => {
       role: "Organisation Admin",
       email: "Kirsten@yahoo.com",
       phone: "93214456",
+      suspended: false,
     },
     {
       id: 6,
@@ -428,6 +506,7 @@ const UserManagementPage = () => {
       role: "Network Admin",
       email: "SandyCohen@yahoo.com",
       phone: "87709667",
+      suspended: false,
     },
     {
       id: 7,
@@ -436,6 +515,7 @@ const UserManagementPage = () => {
       role: "Network Admin",
       email: "JulieCooper@gmail.com",
       phone: "85658203",
+      suspended: false,
     },
     {
       id: 8,
@@ -444,6 +524,7 @@ const UserManagementPage = () => {
       role: "IT Manager",
       email: "LukeW@gmail.com",
       phone: "96689077",
+      suspended: false,
     },
     {
       id: 9,
@@ -452,6 +533,7 @@ const UserManagementPage = () => {
       role: "IT Manager",
       email: "Theresa@hotmail.com",
       phone: "97554211",
+      suspended: false,
     },
     {
       id: 10,
@@ -460,12 +542,15 @@ const UserManagementPage = () => {
       role: "Network Admin",
       email: "AnnaSt@yahoo.com",
       phone: "83314489",
+      suspended: false,
     },
   ])
 
   const [selectedUser, setSelectedUser] = useState(null)
   const [showDeleteModal, setShowDeleteModal] = useState(false)
   const [userToDelete, setUserToDelete] = useState(null)
+  const [showSuspendModal, setShowSuspendModal] = useState(false)
+  const [userToSuspend, setUserToSuspend] = useState(null)
 
   const filteredUsers = users.filter(
     (user) =>
@@ -480,8 +565,29 @@ const UserManagementPage = () => {
     setSearchQuery(e.target.value)
   }
 
-  const handleView = (user) => {
-    console.log("Viewing user:", user)
+  const handleSuspend = (user) => {
+    setUserToSuspend(user)
+    setShowSuspendModal(true)
+  }
+
+  const handleConfirmSuspend = () => {
+    setUsers(
+      users.map((user) =>
+        user.id === userToSuspend.id
+          ? {
+              ...user,
+              suspended: !user.suspended,
+            }
+          : user,
+      ),
+    )
+    setShowSuspendModal(false)
+    setUserToSuspend(null)
+  }
+
+  const handleCloseSuspendModal = () => {
+    setShowSuspendModal(false)
+    setUserToSuspend(null)
   }
 
   const handleEdit = (user) => {
@@ -528,6 +634,7 @@ const UserManagementPage = () => {
         role: formData.role,
         email: formData.email,
         phone: formData.phone,
+        suspended: false,
       }
       setUsers([...users, newUser])
     }
@@ -541,10 +648,24 @@ const UserManagementPage = () => {
   }
 
   return (
-    <div style={{ display: "flex", height: "100vh", background: "#f4f4f4" }}>
+    <div
+      style={{
+        display: "flex",
+        height: "100vh",
+        background: "#f4f4f4",
+        overflow: "hidden", // Added to prevent horizontal scrolling
+      }}
+    >
       <Sidebar userRole={userRole} />
 
-      <div style={{ flex: 1, padding: "32px" }}>
+      <div
+        style={{
+          flex: 1,
+          padding: "32px",
+          overflowY: "auto", // Allow vertical scrolling
+          overflowX: "hidden", // Prevent horizontal scrolling
+        }}
+      >
         <h1 style={{ margin: "0 0 8px 0" }}>User Management</h1>
         <h2 style={{ margin: "0 0 24px 0", fontWeight: "normal", color: "#666" }}>Users Details</h2>
 
@@ -554,6 +675,8 @@ const UserManagementPage = () => {
             justifyContent: "space-between",
             alignItems: "center",
             marginBottom: "24px",
+            flexWrap: "wrap", // Added to prevent overflow on small screens
+            gap: "10px", // Added for spacing when wrapped
           }}
         >
           <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
@@ -574,7 +697,7 @@ const UserManagementPage = () => {
                 boxShadow: "0 2px 4px rgba(0,0,0,0.1)",
               }}
             >
-              + 
+              +
             </button>
             Add User
           </div>
@@ -601,6 +724,7 @@ const UserManagementPage = () => {
                   border: "1px solid #ddd",
                   borderRadius: "4px",
                   width: "200px",
+                  boxSizing: "border-box", // Added to prevent overflow
                 }}
               />
               <button
@@ -626,8 +750,9 @@ const UserManagementPage = () => {
           style={{
             background: "white",
             borderRadius: "8px",
-            overflow: "hidden",
+            overflow: "auto", // Changed from "hidden" to "auto" to allow scrolling if needed
             boxShadow: "0 1px 3px rgba(0,0,0,0.1)",
+            maxWidth: "100%", // Added to prevent overflow
           }}
         >
           <table style={{ width: "100%", borderCollapse: "collapse" }}>
@@ -639,30 +764,54 @@ const UserManagementPage = () => {
                 <th style={{ padding: "16px", textAlign: "left", borderBottom: "1px solid #eee" }}>Role</th>
                 <th style={{ padding: "16px", textAlign: "left", borderBottom: "1px solid #eee" }}>Email</th>
                 <th style={{ padding: "16px", textAlign: "left", borderBottom: "1px solid #eee" }}>Phone</th>
+                <th style={{ padding: "16px", textAlign: "left", borderBottom: "1px solid #eee" }}>Status</th>
                 <th style={{ padding: "16px", textAlign: "center", borderBottom: "1px solid #eee" }}>Modify</th>
               </tr>
             </thead>
             <tbody>
               {filteredUsers.map((user) => (
-                <tr key={user.id} style={{ borderBottom: "1px solid #eee" }}>
+                <tr
+                  key={user.id}
+                  style={{
+                    borderBottom: "1px solid #eee",
+                    backgroundColor: user.suspended ? "#fff5f5" : "inherit",
+                  }}
+                >
                   <td style={{ padding: "16px" }}>{user.id}</td>
                   <td style={{ padding: "16px" }}>{user.employeeId}</td>
                   <td style={{ padding: "16px" }}>{user.name}</td>
                   <td style={{ padding: "16px" }}>{user.role}</td>
                   <td style={{ padding: "16px" }}>{user.email}</td>
                   <td style={{ padding: "16px" }}>{user.phone}</td>
+                  <td style={{ padding: "16px" }}>
+                    <span
+                      style={{
+                        display: "inline-block",
+                        padding: "4px 8px",
+                        borderRadius: "4px",
+                        fontSize: "12px",
+                        fontWeight: "bold",
+                        backgroundColor: user.suspended ? "#ffcccb" : "#90EE90",
+                        color: user.suspended ? "#d32f2f" : "#2e7d32",
+                      }}
+                    >
+                      {user.suspended ? "Suspended" : "Active"}
+                    </span>
+                  </td>
                   <td style={{ padding: "16px", textAlign: "center" }}>
                     <div style={{ display: "flex", justifyContent: "center", gap: "16px" }}>
                       <button
-                        onClick={() => handleView(user)}
+                        onClick={() => handleSuspend(user)}
                         style={{
                           background: "none",
                           border: "none",
                           cursor: "pointer",
                           fontSize: "16px",
+                          color: user.suspended ? "#2e7d32" : "#d32f2f",
                         }}
+                        title={user.suspended ? "Reactivate User" : "Suspend User"}
                       >
-                        👁️
+                        {user.suspended ? "❌" : "✅"}
                       </button>
                       <button
                         onClick={() => handleEdit(user)}
@@ -708,10 +857,22 @@ const UserManagementPage = () => {
           <NewUserModal user={selectedUser} onClose={handleCloseModal} onConfirm={handleAddOrUpdateUser} />
         )}
 
-        {showDeleteModal && <DeleteConfirmationModal onClose={handleCloseDeleteModal} onConfirm={handleConfirmDelete} />}
+        {showDeleteModal && (
+          <DeleteConfirmationModal onClose={handleCloseDeleteModal} onConfirm={handleConfirmDelete} />
+        )}
+
+        {showSuspendModal && (
+          <SuspendConfirmationModal
+            user={userToSuspend}
+            isSuspending={!userToSuspend.suspended}
+            onClose={handleCloseSuspendModal}
+            onConfirm={handleConfirmSuspend}
+          />
+        )}
       </div>
     </div>
   )
 }
 
 export default UserManagementPage
+

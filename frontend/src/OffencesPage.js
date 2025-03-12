@@ -8,61 +8,65 @@ const userRole = "network-admin"
 
 const AutomatedReportForm = ({ onClose, onSubmit }) => {
   const [formData, setFormData] = useState({
-    reportName: '',
-    alertType: '',
-    alertCriticality: '',
-    repeatNumber: '',
-    repeatPeriod: '',
-    startDate: '',
-    endDate: '',
-    reportFormat: '',
-    reportType: 'summarized'
-  });
+    reportName: "",
+    alertType: "",
+    alertCriticality: "",
+    repeatNumber: "",
+    repeatPeriod: "",
+    startDate: "",
+    endDate: "",
+    reportFormat: "",
+    reportType: "summarized",
+  })
 
   const handleChange = (e) => {
-    const { name, value } = e.target;
-    setFormData(prev => ({
+    const { name, value } = e.target
+    setFormData((prev) => ({
       ...prev,
-      [name]: value
-    }));
-  };
+      [name]: value,
+    }))
+  }
 
   const handleSubmit = (e) => {
-    e.preventDefault();
-    onSubmit(formData);
-  };
+    e.preventDefault()
+    onSubmit(formData)
+  }
 
   return (
-    <div style={{
-      position: 'fixed',
-      top: 0,
-      left: 0,
-      right: 0,
-      bottom: 0,
-      backgroundColor: 'rgba(0, 0, 0, 0.5)',
-      display: 'flex',
-      justifyContent: 'center',
-      alignItems: 'center',
-      zIndex: 1000
-    }}>
-      <div style={{
-        backgroundColor: 'white',
-        padding: '20px',
-        borderRadius: '8px',
-        width: '90%',
-        maxWidth: '600px',
-        maxHeight: '90vh',
-        overflowY: 'auto'
-      }}>
-        <div style={{ display: 'flex', alignItems: 'center', marginBottom: '20px' }}>
+    <div
+      style={{
+        position: "fixed",
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        backgroundColor: "rgba(0, 0, 0, 0.5)",
+        display: "flex",
+        justifyContent: "center",
+        alignItems: "center",
+        zIndex: 1000,
+      }}
+    >
+      <div
+        style={{
+          backgroundColor: "white",
+          padding: "20px",
+          borderRadius: "8px",
+          width: "90%",
+          maxWidth: "600px",
+          maxHeight: "90vh",
+          overflowY: "auto",
+        }}
+      >
+        <div style={{ display: "flex", alignItems: "center", marginBottom: "20px" }}>
           <button
             onClick={onClose}
             style={{
-              background: 'none',
-              border: 'none',
-              fontSize: '24px',
-              cursor: 'pointer',
-              marginRight: '10px'
+              background: "none",
+              border: "none",
+              fontSize: "24px",
+              cursor: "pointer",
+              marginRight: "10px",
             }}
           >
             ←
@@ -70,16 +74,18 @@ const AutomatedReportForm = ({ onClose, onSubmit }) => {
           <h2 style={{ margin: 0 }}>Automated Report Cycle:</h2>
         </div>
 
-        <div style={{
-          backgroundColor: '#f5f5f5',
-          padding: '20px',
-          borderRadius: '8px'
-        }}>
+        <div
+          style={{
+            backgroundColor: "#f5f5f5",
+            padding: "20px",
+            borderRadius: "8px",
+          }}
+        >
           <h3 style={{ marginTop: 0 }}>Alert Report Generation:</h3>
 
           <form onSubmit={handleSubmit}>
-            <div style={{ marginBottom: '15px' }}>
-              <label style={{ display: 'block', marginBottom: '5px' }}>Report's Name:</label>
+            <div style={{ marginBottom: "15px" }}>
+              <label style={{ display: "block", marginBottom: "5px" }}>Report's Name:</label>
               <input
                 type="text"
                 name="reportName"
@@ -87,25 +93,27 @@ const AutomatedReportForm = ({ onClose, onSubmit }) => {
                 onChange={handleChange}
                 placeholder="Enter Name"
                 style={{
-                  width: '100%',
-                  padding: '8px',
-                  border: '1px solid #ddd',
-                  borderRadius: '4px'
+                  width: "100%",
+                  padding: "8px",
+                  border: "1px solid #ddd",
+                  borderRadius: "4px",
+                  boxSizing: "border-box", // Added to prevent overflow
                 }}
               />
             </div>
 
-            <div style={{ marginBottom: '15px' }}>
-              <label style={{ display: 'block', marginBottom: '5px' }}>Alert Type:</label>
+            <div style={{ marginBottom: "15px" }}>
+              <label style={{ display: "block", marginBottom: "5px" }}>Alert Type:</label>
               <select
                 name="alertType"
                 value={formData.alertType}
                 onChange={handleChange}
                 style={{
-                  width: '100%',
-                  padding: '8px',
-                  border: '1px solid #ddd',
-                  borderRadius: '4px'
+                  width: "100%",
+                  padding: "8px",
+                  border: "1px solid #ddd",
+                  borderRadius: "4px",
+                  boxSizing: "border-box", // Added to prevent overflow
                 }}
               >
                 <option value="">Select Type</option>
@@ -116,17 +124,18 @@ const AutomatedReportForm = ({ onClose, onSubmit }) => {
               </select>
             </div>
 
-            <div style={{ marginBottom: '15px' }}>
-              <label style={{ display: 'block', marginBottom: '5px' }}>Alert Criticality:</label>
+            <div style={{ marginBottom: "15px" }}>
+              <label style={{ display: "block", marginBottom: "5px" }}>Alert Criticality:</label>
               <select
                 name="alertCriticality"
                 value={formData.alertCriticality}
                 onChange={handleChange}
                 style={{
-                  width: '100%',
-                  padding: '8px',
-                  border: '1px solid #ddd',
-                  borderRadius: '4px'
+                  width: "100%",
+                  padding: "8px",
+                  border: "1px solid #ddd",
+                  borderRadius: "4px",
+                  boxSizing: "border-box", // Added to prevent overflow
                 }}
               >
                 <option value="">Select Criticality</option>
@@ -137,9 +146,16 @@ const AutomatedReportForm = ({ onClose, onSubmit }) => {
               </select>
             </div>
 
-            <div style={{ marginBottom: '15px', display: 'flex', gap: '10px' }}>
-              <div style={{ flex: 1 }}>
-                <label style={{ display: 'block', marginBottom: '5px' }}>Repeat Every:</label>
+            <div
+              style={{
+                marginBottom: "15px",
+                display: "flex",
+                gap: "10px",
+                flexWrap: "wrap", // Added to prevent overflow on small screens
+              }}
+            >
+              <div style={{ flex: "1 1 150px" }}>
+                <label style={{ display: "block", marginBottom: "5px" }}>Repeat Every:</label>
                 <input
                   type="number"
                   name="repeatNumber"
@@ -147,24 +163,26 @@ const AutomatedReportForm = ({ onClose, onSubmit }) => {
                   onChange={handleChange}
                   placeholder="Enter Number"
                   style={{
-                    width: '100%',
-                    padding: '8px',
-                    border: '1px solid #ddd',
-                    borderRadius: '4px'
+                    width: "100%",
+                    padding: "8px",
+                    border: "1px solid #ddd",
+                    borderRadius: "4px",
+                    boxSizing: "border-box", // Added to prevent overflow
                   }}
                 />
               </div>
-              <div style={{ flex: 1 }}>
-                <label style={{ display: 'block', marginBottom: '5px' }}>&nbsp;</label>
+              <div style={{ flex: "1 1 150px" }}>
+                <label style={{ display: "block", marginBottom: "5px" }}>&nbsp;</label>
                 <select
                   name="repeatPeriod"
                   value={formData.repeatPeriod}
                   onChange={handleChange}
                   style={{
-                    width: '100%',
-                    padding: '8px',
-                    border: '1px solid #ddd',
-                    borderRadius: '4px'
+                    width: "100%",
+                    padding: "8px",
+                    border: "1px solid #ddd",
+                    borderRadius: "4px",
+                    boxSizing: "border-box", // Added to prevent overflow
                   }}
                 >
                   <option value="">Select Period</option>
@@ -176,49 +194,52 @@ const AutomatedReportForm = ({ onClose, onSubmit }) => {
               </div>
             </div>
 
-            <div style={{ marginBottom: '15px' }}>
-              <label style={{ display: 'block', marginBottom: '5px' }}>Start Date:</label>
+            <div style={{ marginBottom: "15px" }}>
+              <label style={{ display: "block", marginBottom: "5px" }}>Start Date:</label>
               <input
                 type="date"
                 name="startDate"
                 value={formData.startDate}
                 onChange={handleChange}
                 style={{
-                  width: '100%',
-                  padding: '8px',
-                  border: '1px solid #ddd',
-                  borderRadius: '4px'
+                  width: "100%",
+                  padding: "8px",
+                  border: "1px solid #ddd",
+                  borderRadius: "4px",
+                  boxSizing: "border-box", // Added to prevent overflow
                 }}
               />
             </div>
 
-            <div style={{ marginBottom: '15px' }}>
-              <label style={{ display: 'block', marginBottom: '5px' }}>End Date:</label>
+            <div style={{ marginBottom: "15px" }}>
+              <label style={{ display: "block", marginBottom: "5px" }}>End Date:</label>
               <input
                 type="date"
                 name="endDate"
                 value={formData.endDate}
                 onChange={handleChange}
                 style={{
-                  width: '100%',
-                  padding: '8px',
-                  border: '1px solid #ddd',
-                  borderRadius: '4px'
+                  width: "100%",
+                  padding: "8px",
+                  border: "1px solid #ddd",
+                  borderRadius: "4px",
+                  boxSizing: "border-box", // Added to prevent overflow
                 }}
               />
             </div>
 
-            <div style={{ marginBottom: '15px' }}>
-              <label style={{ display: 'block', marginBottom: '5px' }}>Report's Format:</label>
+            <div style={{ marginBottom: "15px" }}>
+              <label style={{ display: "block", marginBottom: "5px" }}>Report's Format:</label>
               <select
                 name="reportFormat"
                 value={formData.reportFormat}
                 onChange={handleChange}
                 style={{
-                  width: '100%',
-                  padding: '8px',
-                  border: '1px solid #ddd',
-                  borderRadius: '4px'
+                  width: "100%",
+                  padding: "8px",
+                  border: "1px solid #ddd",
+                  borderRadius: "4px",
+                  boxSizing: "border-box", // Added to prevent overflow
                 }}
               >
                 <option value="">Select Type</option>
@@ -227,44 +248,57 @@ const AutomatedReportForm = ({ onClose, onSubmit }) => {
               </select>
             </div>
 
-            <div style={{ marginBottom: '20px' }}>
-              <label style={{ display: 'block', marginBottom: '5px' }}>Report Type:</label>
-              <div style={{ display: 'flex', gap: '20px' }}>
-                <label style={{ display: 'flex', alignItems: 'center' }}>
+            <div style={{ marginBottom: "20px" }}>
+              <label style={{ display: "block", marginBottom: "5px" }}>Report Type:</label>
+              <div
+                style={{
+                  display: "flex",
+                  gap: "20px",
+                  flexWrap: "wrap", // Added to prevent overflow on small screens
+                }}
+              >
+                <label style={{ display: "flex", alignItems: "center" }}>
                   <input
                     type="radio"
                     name="reportType"
                     value="summarized"
-                    checked={formData.reportType === 'summarized'}
+                    checked={formData.reportType === "summarized"}
                     onChange={handleChange}
-                    style={{ marginRight: '5px' }}
+                    style={{ marginRight: "5px" }}
                   />
                   Summarized
                 </label>
-                <label style={{ display: 'flex', alignItems: 'center' }}>
+                <label style={{ display: "flex", alignItems: "center" }}>
                   <input
                     type="radio"
                     name="reportType"
                     value="detailed"
-                    checked={formData.reportType === 'detailed'}
+                    checked={formData.reportType === "detailed"}
                     onChange={handleChange}
-                    style={{ marginRight: '5px' }}
+                    style={{ marginRight: "5px" }}
                   />
                   Detailed
                 </label>
               </div>
             </div>
 
-            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "flex-end",
+                gap: "10px",
+                flexWrap: "wrap", // Added to prevent overflow on small screens
+              }}
+            >
               <button
                 type="submit"
                 style={{
-                  padding: '8px 16px',
-                  backgroundColor: '#4CAF50',
-                  color: 'white',
-                  border: 'none',
-                  borderRadius: '4px',
-                  cursor: 'pointer'
+                  padding: "8px 16px",
+                  backgroundColor: "#4CAF50",
+                  color: "white",
+                  border: "none",
+                  borderRadius: "4px",
+                  cursor: "pointer",
                 }}
               >
                 Generate
@@ -273,12 +307,12 @@ const AutomatedReportForm = ({ onClose, onSubmit }) => {
                 type="button"
                 onClick={onClose}
                 style={{
-                  padding: '8px 16px',
-                  backgroundColor: '#333',
-                  color: 'white',
-                  border: 'none',
-                  borderRadius: '4px',
-                  cursor: 'pointer'
+                  padding: "8px 16px",
+                  backgroundColor: "#333",
+                  color: "white",
+                  border: "none",
+                  borderRadius: "4px",
+                  cursor: "pointer",
                 }}
               >
                 Cancel
@@ -288,9 +322,8 @@ const AutomatedReportForm = ({ onClose, onSubmit }) => {
         </div>
       </div>
     </div>
-  );
-};
-
+  )
+}
 
 const GenerateReportModal = ({ onClose, onSubmit }) => {
   const [formData, setFormData] = React.useState({
@@ -384,6 +417,7 @@ const GenerateReportModal = ({ onClose, onSubmit }) => {
                   padding: "8px",
                   border: "1px solid #ddd",
                   borderRadius: "4px",
+                  boxSizing: "border-box", // Added to prevent overflow
                 }}
               />
             </div>
@@ -400,6 +434,7 @@ const GenerateReportModal = ({ onClose, onSubmit }) => {
                   border: "1px solid #ddd",
                   borderRadius: "4px",
                   backgroundColor: "white",
+                  boxSizing: "border-box", // Added to prevent overflow
                 }}
               >
                 <option value="">Select Type</option>
@@ -410,7 +445,13 @@ const GenerateReportModal = ({ onClose, onSubmit }) => {
 
             <div style={{ marginBottom: "30px" }}>
               <label style={{ display: "block", marginBottom: "8px" }}>Report Type:</label>
-              <div style={{ display: "flex", gap: "20px" }}>
+              <div
+                style={{
+                  display: "flex",
+                  gap: "20px",
+                  flexWrap: "wrap", // Added to prevent overflow on small screens
+                }}
+              >
                 <label style={{ display: "flex", alignItems: "center", gap: "8px" }}>
                   <input
                     type="radio"
@@ -434,7 +475,14 @@ const GenerateReportModal = ({ onClose, onSubmit }) => {
               </div>
             </div>
 
-            <div style={{ display: "flex", justifyContent: "flex-end", gap: "10px" }}>
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "flex-end",
+                gap: "10px",
+                flexWrap: "wrap", // Added to prevent overflow on small screens
+              }}
+            >
               <button
                 type="submit"
                 style={{
@@ -481,7 +529,7 @@ const Offences = () => {
   const [selectedRows, setSelectedRows] = useState([])
   const navigate = useNavigate()
   const location = useLocation()
-  
+
   const isActive = (path) => location.pathname.startsWith(path)
 
   const offences = [
@@ -514,6 +562,7 @@ const Offences = () => {
       time: "1:14 PM",
       category: "Suspicious Activity",
     },
+
     { criticality: "Low", name: "Suspicious Activity from user", time: "1:15 PM", category: "Suspicious Activity" },
   ]
 
@@ -525,12 +574,12 @@ const Offences = () => {
 
     return offences.filter((offence) => {
       const query = searchQuery.toLowerCase()
-      
+
       // If we have a filter type but no search query, show all logs
       if (filterType && !searchQuery) {
         return true
       }
-      
+
       // If we have a search query but no filter type, search across all fields
       if (searchQuery && !filterType) {
         return (
@@ -540,7 +589,7 @@ const Offences = () => {
           offence.category.toLowerCase().includes(query)
         )
       }
-      
+
       // If we have both filter type and search query, search only in the specified field
       switch (filterType) {
         case "Alert Criticality":
@@ -578,7 +627,7 @@ const Offences = () => {
       }
     } else {
       // Remove this row from selected rows
-      setSelectedRows(selectedRows.filter(rowIndex => rowIndex !== index))
+      setSelectedRows(selectedRows.filter((rowIndex) => rowIndex !== index))
     }
   }
 
@@ -594,7 +643,7 @@ const Offences = () => {
     setIsModalOpen(false)
     setSelectedOffence(null)
   }
-  
+
   const handleLogout = () => {
     navigate("/login")
   }
@@ -626,51 +675,121 @@ const Offences = () => {
   }
 
   return (
-    <div style={{ display: "flex", height: "100vh", background: "#f4f4f4" }}>
+    <div
+      style={{
+        display: "flex",
+        height: "100vh",
+        background: "#f4f4f4",
+        overflow: "hidden", // Added to prevent horizontal scrolling
+      }}
+    >
       {/* Use the Sidebar component */}
       <Sidebar userRole={userRole} />
 
       {/* Main Content */}
-      <div style={{ flex: 1, padding: "20px" }}>
+      <div
+        style={{
+          flex: 1,
+          padding: "20px",
+          overflowY: "auto", // Allow vertical scrolling
+          overflowX: "hidden", // Prevent horizontal scrolling
+        }}
+      >
         <h1>Offences (Alert) Interface:</h1>
 
         {/* Statistics */}
-        <div style={{ display: "flex", gap: "10px", marginBottom: "20px" }}>
-          <div style={{ background: "#ddd", padding: "12px 20px", borderRadius: "20px", textAlign: "center" }}>
+        <div
+          style={{
+            display: "flex",
+            gap: "10px",
+            marginBottom: "20px",
+            flexWrap: "wrap", // Added to prevent overflow on small screens
+          }}
+        >
+          <div
+            style={{
+              background: "#ddd",
+              padding: "12px 20px",
+              borderRadius: "20px",
+              textAlign: "center",
+              flex: "1 1 150px", // Added to make responsive
+            }}
+          >
             <p>Total Alerts</p>
             <p style={{ fontSize: "20px", fontWeight: "bold" }}>{filteredOffences.length}</p>
           </div>
-          <div style={{ background: "#ddd", padding: "12px 20px", borderRadius: "20px", textAlign: "center" }}>
+          <div
+            style={{
+              background: "#ddd",
+              padding: "12px 20px",
+              borderRadius: "20px",
+              textAlign: "center",
+              flex: "1 1 150px", // Added to make responsive
+            }}
+          >
             <p>Total High</p>
             <p style={{ fontSize: "20px", fontWeight: "bold" }}>
-              {filteredOffences.filter(o => o.criticality === "High").length}
+              {filteredOffences.filter((o) => o.criticality === "High").length}
             </p>
           </div>
-          <div style={{ background: "#ddd", padding: "12px 20px", borderRadius: "20px", textAlign: "center" }}>
+          <div
+            style={{
+              background: "#ddd",
+              padding: "12px 20px",
+              borderRadius: "20px",
+              textAlign: "center",
+              flex: "1 1 150px", // Added to make responsive
+            }}
+          >
             <p>Total Med</p>
             <p style={{ fontSize: "20px", fontWeight: "bold" }}>
-              {filteredOffences.filter(o => o.criticality === "Med").length}
+              {filteredOffences.filter((o) => o.criticality === "Med").length}
             </p>
           </div>
-          <div style={{ background: "#ddd", padding: "12px 20px", borderRadius: "20px", textAlign: "center" }}>
+          <div
+            style={{
+              background: "#ddd",
+              padding: "12px 20px",
+              borderRadius: "20px",
+              textAlign: "center",
+              flex: "1 1 150px", // Added to make responsive
+            }}
+          >
             <p>Total Low</p>
             <p style={{ fontSize: "20px", fontWeight: "bold" }}>
-              {filteredOffences.filter(o => o.criticality === "Low").length}
+              {filteredOffences.filter((o) => o.criticality === "Low").length}
             </p>
           </div>
         </div>
 
         {/* Filter and Buttons */}
-        <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "20px" }}>
-          <div style={{ display: "flex", gap: "10px", flex: 1, maxWidth: "600px" }}>
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "space-between",
+            marginBottom: "20px",
+            flexWrap: "wrap", // Added to prevent overflow on small screens
+            gap: "10px", // Added for spacing when wrapped
+          }}
+        >
+          <div
+            style={{
+              display: "flex",
+              gap: "10px",
+              flex: "1 1 300px",
+              maxWidth: "600px",
+              flexWrap: "wrap", // Added to prevent overflow on small screens
+            }}
+          >
             <select
               value={filterType}
               onChange={(e) => setFilterType(e.target.value)}
-              style={{ 
-                padding: "10px", 
+              style={{
+                padding: "10px",
                 border: "1px solid #ccc",
                 borderRadius: "4px",
-                minWidth: "180px"
+                minWidth: "180px",
+                boxSizing: "border-box", // Added to prevent overflow
               }}
             >
               <option value="">Filter By (All Fields)</option>
@@ -679,12 +798,14 @@ const Offences = () => {
               <option value="Alert Name">Alert Name</option>
               <option value="Date & Time">Date & Time</option>
             </select>
-            
-            <div style={{ 
-              position: "relative", 
-              flex: 1,
-              display: "flex"
-            }}>
+
+            <div
+              style={{
+                position: "relative",
+                flex: "1 1 200px",
+                display: "flex",
+              }}
+            >
               <input
                 type="text"
                 placeholder={filterType ? `Search by ${filterType}...` : "Search all fields..."}
@@ -694,7 +815,8 @@ const Offences = () => {
                   flex: 1,
                   padding: "10px",
                   border: "1px solid #ccc",
-                  borderRadius: "4px"
+                  borderRadius: "4px",
+                  boxSizing: "border-box", // Added to prevent overflow
                 }}
               />
               <button
@@ -712,18 +834,26 @@ const Offences = () => {
               </button>
             </div>
           </div>
-          
-          <div>
+
+          <div
+            style={{
+              display: "flex",
+              gap: "10px",
+              flexWrap: "wrap", // Added to prevent overflow on small screens
+              flex: "1 1 300px",
+              justifyContent: "flex-end",
+            }}
+          >
             <button
               onClick={handleOpenReportForm}
               style={{
                 background: "green",
                 color: "#fff",
                 padding: "12px 20px",
-                marginRight: "10px",
                 border: "none",
                 borderRadius: "20px",
                 cursor: "pointer",
+                whiteSpace: "nowrap", // Prevent text wrapping
               }}
             >
               Add Automate Report Cycle
@@ -737,6 +867,7 @@ const Offences = () => {
                 border: "none",
                 borderRadius: "20px",
                 cursor: "pointer",
+                whiteSpace: "nowrap", // Prevent text wrapping
               }}
             >
               Generate Report
@@ -746,24 +877,26 @@ const Offences = () => {
 
         {/* Selected rows info */}
         {selectedRows.length > 0 && (
-          <div style={{ 
-            marginBottom: "10px", 
-            padding: "8px 12px", 
-            backgroundColor: "#e0f7fa", 
-            borderRadius: "4px",
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "center"
-          }}>
+          <div
+            style={{
+              marginBottom: "10px",
+              padding: "8px 12px",
+              backgroundColor: "#e0f7fa",
+              borderRadius: "4px",
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+            }}
+          >
             <span>{selectedRows.length} offences selected</span>
-            <button 
+            <button
               onClick={() => setSelectedRows([])}
               style={{
                 background: "none",
                 border: "none",
                 color: "#0277bd",
                 cursor: "pointer",
-                fontWeight: "bold"
+                fontWeight: "bold",
               }}
             >
               Clear selection
@@ -772,66 +905,75 @@ const Offences = () => {
         )}
 
         {/* Offences Table */}
-        <table
+        <div
           style={{
             width: "100%",
-            background: "#fff",
-            borderCollapse: "collapse",
-            boxShadow: "0 0 10px rgba(0,0,0,0.1)",
+            overflow: "auto", // Changed from "hidden" to "auto" to allow scrolling if needed
+            maxWidth: "100%", // Added to prevent overflow
           }}
         >
-          <thead>
-            <tr style={{ background: "#ccc", borderBottom: "2px solid #aaa" }}>
-              <th style={{ padding: "10px", textAlign: "center", borderRight: "1px solid #aaa" }}>
-                <input 
-                  type="checkbox" 
-                  checked={areAllSelected}
-                  onChange={handleSelectAll}
-                  style={{ cursor: "pointer" }}
-                /> Select
-              </th>
-              <th style={{ padding: "10px", textAlign: "center", borderRight: "1px solid #aaa" }}>
-                Alert Criticality
-              </th>
-              <th style={{ padding: "10px", textAlign: "center", borderRight: "1px solid #aaa" }}>Alert Name</th>
-              <th style={{ padding: "10px", textAlign: "center", borderRight: "1px solid #aaa" }}>Date & Time</th>
-              <th style={{ padding: "10px", textAlign: "center", borderRight: "1px solid #aaa" }}>Alert Category</th>
-              <th style={{ padding: "10px", textAlign: "center" }}>View</th>
-            </tr>
-          </thead>
-          <tbody>
-            {filteredOffences.map((offence, index) => (
-              <tr 
-                key={index} 
-                style={{ 
-                  borderBottom: "1px solid #ddd",
-                  backgroundColor: selectedRows.includes(index) ? "#f0f7ff" : "inherit"
-                }}
-              >
-                <td style={{ padding: "10px", textAlign: "center" }}>
-                  <input 
-                    type="checkbox" 
-                    checked={selectedRows.includes(index)}
-                    onChange={(e) => handleSelectRow(index, e)}
+          <table
+            style={{
+              width: "100%",
+              background: "#fff",
+              borderCollapse: "collapse",
+              boxShadow: "0 0 10px rgba(0,0,0,0.1)",
+            }}
+          >
+            <thead>
+              <tr style={{ background: "#ccc", borderBottom: "2px solid #aaa" }}>
+                <th style={{ padding: "10px", textAlign: "center", borderRight: "1px solid #aaa" }}>
+                  <input
+                    type="checkbox"
+                    checked={areAllSelected}
+                    onChange={handleSelectAll}
                     style={{ cursor: "pointer" }}
-                  />
-                </td>
-                <td style={{ padding: "10px", textAlign: "center" }}>{offence.criticality}</td>
-                <td style={{ padding: "10px", textAlign: "center" }}>{offence.name}</td>
-                <td style={{ padding: "10px", textAlign: "center" }}>{offence.time}</td>
-                <td style={{ padding: "10px", textAlign: "center" }}>{offence.category}</td>
-                <td style={{ padding: "10px", textAlign: "center" }}>
-                  <button
-                    style={{ background: "purple", color: "#fff", padding: "5px 10px", borderRadius: "5px" }}
-                    onClick={() => openModal(offence)}
-                  >
-                    View
-                  </button>
-                </td>
+                  />{" "}
+                  Select
+                </th>
+                <th style={{ padding: "10px", textAlign: "center", borderRight: "1px solid #aaa" }}>
+                  Alert Criticality
+                </th>
+                <th style={{ padding: "10px", textAlign: "center", borderRight: "1px solid #aaa" }}>Alert Name</th>
+                <th style={{ padding: "10px", textAlign: "center", borderRight: "1px solid #aaa" }}>Date & Time</th>
+                <th style={{ padding: "10px", textAlign: "center", borderRight: "1px solid #aaa" }}>Alert Category</th>
+                <th style={{ padding: "10px", textAlign: "center" }}>View</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {filteredOffences.map((offence, index) => (
+                <tr
+                  key={index}
+                  style={{
+                    borderBottom: "1px solid #ddd",
+                    backgroundColor: selectedRows.includes(index) ? "#f0f7ff" : "inherit",
+                  }}
+                >
+                  <td style={{ padding: "10px", textAlign: "center" }}>
+                    <input
+                      type="checkbox"
+                      checked={selectedRows.includes(index)}
+                      onChange={(e) => handleSelectRow(index, e)}
+                      style={{ cursor: "pointer" }}
+                    />
+                  </td>
+                  <td style={{ padding: "10px", textAlign: "center" }}>{offence.criticality}</td>
+                  <td style={{ padding: "10px", textAlign: "center" }}>{offence.name}</td>
+                  <td style={{ padding: "10px", textAlign: "center" }}>{offence.time}</td>
+                  <td style={{ padding: "10px", textAlign: "center" }}>{offence.category}</td>
+                  <td style={{ padding: "10px", textAlign: "center" }}>
+                    <button
+                      style={{ background: "purple", color: "#fff", padding: "5px 10px", borderRadius: "5px" }}
+                      onClick={() => openModal(offence)}
+                    >
+                      View
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
 
         {/* Modal */}
         {isModalOpen && (
@@ -846,6 +988,7 @@ const Offences = () => {
               display: "flex",
               justifyContent: "center",
               alignItems: "center",
+              zIndex: 1000,
             }}
             onClick={closeModal}
           >
@@ -854,9 +997,12 @@ const Offences = () => {
                 backgroundColor: "white",
                 padding: "20px",
                 borderRadius: "10px",
-                width: "800px",
+                width: "90%",
+                maxWidth: "800px",
                 boxShadow: "0 0 10px rgba(0, 0, 0, 0.2)",
                 position: "relative",
+                maxHeight: "90vh",
+                overflowY: "auto",
               }}
               onClick={(e) => e.stopPropagation()}
             >
@@ -879,7 +1025,16 @@ const Offences = () => {
                 </button>
               </div>
               {selectedOffence && (
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "20px" }}>
+                <div
+                  style={{
+                    display: "grid",
+                    gridTemplateColumns: "1fr 1fr",
+                    gap: "20px",
+                    "@media (max-width: 600px)": {
+                      gridTemplateColumns: "1fr",
+                    },
+                  }}
+                >
                   <div>
                     <p style={{ fontWeight: "bold", marginBottom: "5px" }}>Alert Name:</p>
                     <div style={{ background: "#f0f0f0", padding: "8px", borderRadius: "4px", marginBottom: "15px" }}>
@@ -949,17 +1104,15 @@ const Offences = () => {
         )}
 
         {/* Automated Report Form Modal */}
-        {showReportForm && (
-          <AutomatedReportForm onClose={handleCloseReportForm} onSubmit={handleSubmitReport} />
-        )}
+        {showReportForm && <AutomatedReportForm onClose={handleCloseReportForm} onSubmit={handleSubmitReport} />}
 
         {showGenerateReport && (
           <GenerateReportModal onClose={handleCloseGenerateReport} onSubmit={handleSubmitGenerateReport} />
         )}
-        
       </div>
     </div>
   )
 }
 
 export default Offences
+

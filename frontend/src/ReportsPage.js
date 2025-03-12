@@ -33,12 +33,26 @@ const Reports = () => {
   }
 
   return (
-    <div style={{ display: "flex", height: "100vh", background: "#f4f4f4" }}>
-     {/* Use the Sidebar component instead of hardcoded sidebar */}
+    <div
+      style={{
+        display: "flex",
+        height: "100vh",
+        background: "#f4f4f4",
+        overflow: "hidden", // Added to prevent horizontal scrolling
+      }}
+    >
+      {/* Use the Sidebar component instead of hardcoded sidebar */}
       <Sidebar userRole={userRole} />
 
       {/* Main Content */}
-      <div style={{ flex: 1, padding: "20px" }}>
+      <div
+        style={{
+          flex: 1,
+          padding: "20px",
+          overflowY: "auto", // Allow vertical scrolling
+          overflowX: "hidden", // Prevent horizontal scrolling
+        }}
+      >
         <h1>Reports</h1>
 
         {/* Reports Table */}
@@ -46,8 +60,9 @@ const Reports = () => {
           style={{
             background: "white",
             borderRadius: "8px",
-            overflow: "hidden",
+            overflow: "auto", // Changed from "hidden" to "auto" to allow scrolling if needed
             boxShadow: "0 1px 3px rgba(0,0,0,0.1)",
+            maxWidth: "100%", // Added to prevent overflow
           }}
         >
           <table style={{ width: "100%", borderCollapse: "collapse" }}>

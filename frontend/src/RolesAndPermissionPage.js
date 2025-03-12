@@ -6,20 +6,73 @@ import Sidebar from "./Sidebar"
 
 const userRole = "organisation-admin"
 
+const DeleteConfirmationModal = ({ onClose, onConfirm }) => {
+  return (
+    <div
+      style={{
+        position: "fixed",
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        backgroundColor: "rgba(0, 0, 0, 0.5)",
+        display: "flex",
+        justifyContent: "center",
+        alignItems: "center",
+        zIndex: 1000,
+      }}
+    >
+      <div
+        style={{
+          backgroundColor: "white",
+          borderRadius: "8px",
+          padding: "24px",
+          width: "90%",
+          maxWidth: "400px",
+          textAlign: "center",
+        }}
+      >
+        <h3 style={{ marginTop: 0, marginBottom: "16px" }}>Are you sure you want to delete this role?</h3>
+        <p style={{ marginBottom: "24px", color: "#666" }}>
+          This action cannot be undone and all permissions associated with this role will be permanently deleted.
+        </p>
+        <div style={{ display: "flex", justifyContent: "center", gap: "10px" }}>
+          <button
+            onClick={onConfirm}
+            style={{
+              padding: "8px 24px",
+              backgroundColor: "#90EE90",
+              border: "none",
+              borderRadius: "4px",
+              cursor: "pointer",
+            }}
+          >
+            Confirm
+          </button>
+          <button
+            onClick={onClose}
+            style={{
+              padding: "8px 24px",
+              backgroundColor: "#ffcccb",
+              border: "none",
+              borderRadius: "4px",
+              cursor: "pointer",
+            }}
+          >
+            Cancel
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 const RoleDetailModal = ({ onClose, onConfirm, role = null }) => {
   const [formData, setFormData] = useState({
-    role: role?.name || "Select Role",
+    role: role?.name || "",
     permissions: role?.permissions || [],
   })
   const [searchPermissions, setSearchPermissions] = useState("")
-
-  const availableRoles = [
-    "Select Role",
-    "IT Manager",
-    "Organisation Admin",
-    "Network Admin",
-    "Data Analyst",
-  ]
 
   const permissions = [
     "Blacklist UI",
@@ -44,8 +97,8 @@ const RoleDetailModal = ({ onClose, onConfirm, role = null }) => {
   }
 
   const handleConfirm = () => {
-    if (formData.role === "Select Role") {
-      alert("Please select a role")
+    if (!formData.role.trim()) {
+      alert("Please enter a role name")
       return
     }
     onConfirm(formData)
@@ -74,40 +127,46 @@ const RoleDetailModal = ({ onClose, onConfirm, role = null }) => {
           width: "90%",
           maxWidth: "800px",
           padding: "24px",
+          maxHeight: "90vh",
+          overflowY: "auto",
         }}
       >
-        <h2 style={{ margin: "0 0 20px 0" }}>Create Role</h2>
-        <div style={{ display: "flex", gap: "24px" }}>
-          {/* Left Side - Role Selection */}
-          <div style={{ flex: 1 }}>
+        <h2 style={{ margin: "0 0 20px 0" }}>{role ? "Edit Role" : "Create Role"}</h2>
+        <div
+          style={{
+            display: "flex",
+            gap: "24px",
+            flexDirection: "row",
+            flexWrap: "wrap", // Added to prevent overflow on small screens
+          }}
+        >
+          {/* Left Side - Role Input */}
+          <div style={{ flex: "1 1 300px" }}>
             <div>
-              <label style={{ display: "block", marginBottom: "8px" }}>Role</label>
-              <select
+              <label style={{ display: "block", marginBottom: "8px" }}>Role Name</label>
+              <input
+                type="text"
                 value={formData.role}
                 onChange={(e) => setFormData((prev) => ({ ...prev, role: e.target.value }))}
+                placeholder="Enter role name"
                 style={{
                   width: "100%",
                   padding: "8px",
                   border: "1px solid #ddd",
                   borderRadius: "4px",
                   backgroundColor: "#f5f5f5",
+                  boxSizing: "border-box", // Added to prevent overflow
                 }}
-              >
-                {availableRoles.map((role) => (
-                  <option key={role} value={role}>
-                    {role}
-                  </option>
-                ))}
-              </select>
+              />
             </div>
           </div>
 
           {/* Right Side - Permissions */}
-          <div style={{ flex: 1 }}>
+          <div style={{ flex: "1 1 300px" }}>
             <h3 style={{ margin: "0 0 16px 0" }}>Permissions</h3>
             <input
               type="text"
-              placeholder="Search"
+              placeholder="Search permissions"
               value={searchPermissions}
               onChange={(e) => setSearchPermissions(e.target.value)}
               style={{
@@ -117,6 +176,7 @@ const RoleDetailModal = ({ onClose, onConfirm, role = null }) => {
                 border: "1px solid #ddd",
                 borderRadius: "4px",
                 backgroundColor: "#e0e0e0",
+                boxSizing: "border-box", // Added to prevent overflow
               }}
             />
             <div
@@ -220,6 +280,8 @@ const RolesAndPermissionPage = () => {
 
   const [roleFilter, setRoleFilter] = useState("All Roles")
   const [showRoleFilter, setShowRoleFilter] = useState(false)
+  const [showDeleteModal, setShowDeleteModal] = useState(false)
+  const [roleToDelete, setRoleToDelete] = useState(null)
 
   const uniqueRoles = ["All Roles", ...new Set(roles.map((role) => role.name))]
 
@@ -264,11 +326,41 @@ const RolesAndPermissionPage = () => {
     setShowRoleModal(false)
   }
 
+  const handleDelete = (role) => {
+    setRoleToDelete(role)
+    setShowDeleteModal(true)
+  }
+
+  const handleConfirmDelete = () => {
+    setRoles(roles.filter((role) => role.id !== roleToDelete.id))
+    setShowDeleteModal(false)
+    setRoleToDelete(null)
+  }
+
+  const handleCloseDeleteModal = () => {
+    setShowDeleteModal(false)
+    setRoleToDelete(null)
+  }
+
   return (
-    <div style={{ display: "flex", height: "100vh", background: "#f4f4f4" }}>
+    <div
+      style={{
+        display: "flex",
+        height: "100vh",
+        background: "#f4f4f4",
+        overflow: "hidden", // Added to prevent horizontal scrolling
+      }}
+    >
       <Sidebar userRole={userRole} />
 
-      <div style={{ flex: 1, padding: "32px" }}>
+      <div
+        style={{
+          flex: 1,
+          padding: "32px",
+          overflowY: "auto", // Allow vertical scrolling
+          overflowX: "hidden", // Prevent horizontal scrolling
+        }}
+      >
         <h1 style={{ margin: "0 0 8px 0" }}>Roles & Permission Management</h1>
         <h2 style={{ margin: "0 0 24px 0", fontWeight: "normal", color: "#666" }}>Role Details & Permissions</h2>
 
@@ -278,6 +370,8 @@ const RolesAndPermissionPage = () => {
             justifyContent: "space-between",
             alignItems: "center",
             marginBottom: "24px",
+            flexWrap: "wrap", // Added to prevent overflow on small screens
+            gap: "10px", // Added for spacing when wrapped
           }}
         >
           <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
@@ -302,7 +396,14 @@ const RolesAndPermissionPage = () => {
             </button>
             Add Role
           </div>
-          <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: "12px",
+              flexWrap: "wrap", // Added to prevent overflow on small screens
+            }}
+          >
             <button
               style={{
                 background: "none",
@@ -372,6 +473,7 @@ const RolesAndPermissionPage = () => {
                   border: "1px solid #ddd",
                   borderRadius: "4px",
                   width: "200px",
+                  boxSizing: "border-box", // Added to prevent overflow
                 }}
               />
               <button
@@ -397,8 +499,9 @@ const RolesAndPermissionPage = () => {
           style={{
             background: "white",
             borderRadius: "8px",
-            overflow: "hidden",
+            overflow: "auto", // Changed from "hidden" to "auto" to allow scrolling if needed
             boxShadow: "0 1px 3px rgba(0,0,0,0.1)",
+            maxWidth: "100%", // Added to prevent overflow
           }}
         >
           <table style={{ width: "100%", borderCollapse: "collapse" }}>
@@ -415,17 +518,30 @@ const RolesAndPermissionPage = () => {
                   <td style={{ padding: "16px" }}>{role.id}</td>
                   <td style={{ padding: "16px", textAlign: "center" }}>{role.name}</td>
                   <td style={{ padding: "16px", textAlign: "center" }}>
-                    <button
-                      onClick={() => handleOpenModal(role)}
-                      style={{
-                        background: "none",
-                        border: "none",
-                        cursor: "pointer",
-                        fontSize: "16px",
-                      }}
-                    >
-                      ✎
-                    </button>
+                    <div style={{ display: "flex", justifyContent: "center", gap: "16px" }}>
+                      <button
+                        onClick={() => handleOpenModal(role)}
+                        style={{
+                          background: "none",
+                          border: "none",
+                          cursor: "pointer",
+                          fontSize: "16px",
+                        }}
+                      >
+                        ✎
+                      </button>
+                      <button
+                        onClick={() => handleDelete(role)}
+                        style={{
+                          background: "none",
+                          border: "none",
+                          cursor: "pointer",
+                          fontSize: "16px",
+                        }}
+                      >
+                        🗑️
+                      </button>
+                    </div>
                   </td>
                 </tr>
               ))}
@@ -445,6 +561,10 @@ const RolesAndPermissionPage = () => {
 
         {showRoleModal && (
           <RoleDetailModal role={selectedRole} onClose={() => setShowRoleModal(false)} onConfirm={handleConfirmRole} />
+        )}
+
+        {showDeleteModal && (
+          <DeleteConfirmationModal onClose={handleCloseDeleteModal} onConfirm={handleConfirmDelete} />
         )}
       </div>
     </div>
