@@ -12,6 +12,7 @@ import UserManagementPage from "./UserManagementPage"
 import LandingPage from "./LandingPage"
 import RegistrationPage from "./RegistrationPage"
 import PaymentPage from "./PaymentPage"
+import Sidebar from "./Sidebar"
 
 function App() {
   return (
@@ -30,6 +31,7 @@ function App() {
 		<Route path="/blocklist" element={<BlocklistManagementPage />} />
 		<Route path="/roles-permission" element={<RolesAndPermissionPage />} />
 		<Route path="/user-management" element={<UserManagementPage />} />
+		<Route path="/Sidebar" element={<Sidebar />} />
       </Routes>
     </Router>
   );

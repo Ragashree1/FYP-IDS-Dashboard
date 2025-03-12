@@ -2,8 +2,10 @@
 
 import { useState } from "react"
 import { useNavigate, useLocation } from "react-router-dom"
+import Sidebar from "./Sidebar"
 
-// Add this new component at the top of the file
+const userRole = "organisation-admin"
+
 const DeleteConfirmationModal = ({ onClose, onConfirm }) => {
   return (
     <div
@@ -70,15 +72,84 @@ const NewUserModal = ({ onClose, onConfirm, user = null }) => {
     employeeId: user?.employeeId || "",
     firstName: user?.name?.split(" ")[0] || "",
     lastName: user?.name?.split(" ")[1] || "",
+    role: user?.role || "",
     email: user?.email || "",
     phone: user?.phone || "",
     password: "",
-  })
+  });
+
+  const [errors, setErrors] = useState({
+    phone: "",
+    password: "",
+  });
+
+  const handleInputChange = (e) => {
+    const { name, value } = e.target;
+    setFormData((prev) => ({ ...prev, [name]: value }));
+    
+    if (name === 'phone') {
+      validatePhone(value);
+    } else if (name === 'password') {
+      validatePassword(value);
+    }
+  };
+
+  const validatePhone = (phone) => {
+    if (user && !phone) {
+      setErrors(prev => ({ ...prev, phone: "" }));
+      return true;
+    }
+    
+    const phoneRegex = /^(\+\d{1,3}\s?)?[0-9]{8,10}$/;
+    
+    if (!phoneRegex.test(phone)) {
+      setErrors(prev => ({ 
+        ...prev, 
+        phone: "Please enter a valid phone number (8-10 digits with optional country code)" 
+      }));
+      return false;
+    } else {
+      setErrors(prev => ({ ...prev, phone: "" }));
+      return true;
+    }
+  };
+
+  const validatePassword = (password) => {
+    if (user && !password) {
+      setErrors(prev => ({ ...prev, password: "" }));
+      return true;
+    }
+    
+    if (!user || password) {
+      const hasSymbol = /[!@#$%^&*(),.?":{}|<>]/.test(password);
+      const hasNumber = /\d/.test(password);
+      const hasCapital = /[A-Z]/.test(password);
+      
+      if (!hasSymbol || !hasNumber || !hasCapital) {
+        setErrors(prev => ({ 
+          ...prev, 
+          password: "Password must contain symbols, numbers, and capital letters" 
+        }));
+        return false;
+      } else {
+        setErrors(prev => ({ ...prev, password: "" }));
+        return true;
+      }
+    }
+    
+    return true;
+  };
 
   const handleSubmit = (e) => {
-    e.preventDefault()
-    onConfirm(formData, user?.id)
-  }
+    e.preventDefault();
+    
+    const isPhoneValid = validatePhone(formData.phone);
+    const isPasswordValid = validatePassword(formData.password);
+    
+    if (isPhoneValid && isPasswordValid) {
+      onConfirm(formData, user?.id);
+    }
+  };
 
   return (
     <div
@@ -102,6 +173,8 @@ const NewUserModal = ({ onClose, onConfirm, user = null }) => {
           width: "90%",
           maxWidth: "800px",
           padding: "24px",
+          maxHeight: "90vh",
+          overflowY: "auto",
         }}
       >
         <h2 style={{ margin: "0 0 24px 0" }}>{user ? "Modify User" : "New User"}</h2>
@@ -120,8 +193,9 @@ const NewUserModal = ({ onClose, onConfirm, user = null }) => {
                 <label style={{ display: "block", marginBottom: "8px" }}>Employee ID (username)</label>
                 <input
                   type="text"
+                  name="employeeId"
                   value={formData.employeeId}
-                  onChange={(e) => setFormData((prev) => ({ ...prev, employeeId: e.target.value }))}
+                  onChange={handleInputChange}
                   style={{
                     width: "100%",
                     padding: "8px",
@@ -137,8 +211,9 @@ const NewUserModal = ({ onClose, onConfirm, user = null }) => {
                 <label style={{ display: "block", marginBottom: "8px" }}>First Name</label>
                 <input
                   type="text"
+                  name="firstName"
                   value={formData.firstName}
-                  onChange={(e) => setFormData((prev) => ({ ...prev, firstName: e.target.value }))}
+                  onChange={handleInputChange}
                   style={{
                     width: "100%",
                     padding: "8px",
@@ -153,8 +228,9 @@ const NewUserModal = ({ onClose, onConfirm, user = null }) => {
                 <label style={{ display: "block", marginBottom: "8px" }}>Last Name</label>
                 <input
                   type="text"
+                  name="lastName"
                   value={formData.lastName}
-                  onChange={(e) => setFormData((prev) => ({ ...prev, lastName: e.target.value }))}
+                  onChange={handleInputChange}
                   style={{
                     width: "100%",
                     padding: "8px",
@@ -165,6 +241,28 @@ const NewUserModal = ({ onClose, onConfirm, user = null }) => {
                   required
                 />
               </div>
+              <div>
+                <label style={{ display: "block", marginBottom: "8px" }}>Role</label>
+                <select
+                  name="role"
+                  value={formData.role}
+                  onChange={handleInputChange}
+                  style={{
+                    width: "100%",
+                    padding: "8px",
+                    border: "1px solid #ddd",
+                    borderRadius: "4px",
+                    backgroundColor: "#f5f5f5",
+                  }}
+                  required
+                >
+                  <option value="">Select Role</option>
+                  <option value="Organisation Admin">Organisation Admin</option>
+                  <option value="Network Admin">Network Admin</option>
+                  <option value="IT Manager">IT Manager</option>
+				  <option value="Data Analyst">Data Analyst</option>
+                </select>
+              </div>
             </div>
 
             {/* Right Column */}
@@ -173,8 +271,9 @@ const NewUserModal = ({ onClose, onConfirm, user = null }) => {
                 <label style={{ display: "block", marginBottom: "8px" }}>Email</label>
                 <input
                   type="email"
+                  name="email"
                   value={formData.email}
-                  onChange={(e) => setFormData((prev) => ({ ...prev, email: e.target.value }))}
+                  onChange={handleInputChange}
                   style={{
                     width: "100%",
                     padding: "8px",
@@ -189,34 +288,50 @@ const NewUserModal = ({ onClose, onConfirm, user = null }) => {
                 <label style={{ display: "block", marginBottom: "8px" }}>Phone</label>
                 <input
                   type="tel"
+                  name="phone"
                   value={formData.phone}
-                  onChange={(e) => setFormData((prev) => ({ ...prev, phone: e.target.value }))}
+                  onChange={handleInputChange}
                   style={{
                     width: "100%",
                     padding: "8px",
-                    border: "1px solid #ddd",
+                    border: errors.phone ? "1px solid #ff4d4f" : "1px solid #ddd",
                     borderRadius: "4px",
                     backgroundColor: "#f5f5f5",
                   }}
+                  placeholder="+65 98765432"
                   required
                 />
+                {errors.phone && (
+                  <p style={{ color: "#ff4d4f", fontSize: "12px", margin: "4px 0 0 0" }}>
+                    {errors.phone}
+                  </p>
+                )}
               </div>
               <div>
                 <label style={{ display: "block", marginBottom: "8px" }}>Password</label>
                 <input
                   type="password"
+                  name="password"
                   value={formData.password}
-                  onChange={(e) => setFormData((prev) => ({ ...prev, password: e.target.value }))}
+                  onChange={handleInputChange}
                   style={{
                     width: "100%",
                     padding: "8px",
-                    border: "1px solid #ddd",
+                    border: errors.password ? "1px solid #ff4d4f" : "1px solid #ddd",
                     borderRadius: "4px",
                     backgroundColor: "#f5f5f5",
                   }}
                   required={!user}
                   placeholder={user ? "Leave blank to keep current password" : ""}
                 />
+                {errors.password && (
+                  <p style={{ color: "#ff4d4f", fontSize: "12px", margin: "4px 0 0 0" }}>
+                    {errors.password}
+                  </p>
+                )}
+                <p style={{ color: "#666", fontSize: "12px", margin: "4px 0 0 0" }}>
+                  Password must contain symbols, numbers, and capital letters.
+                </p>
               </div>
             </div>
           </div>
@@ -257,10 +372,9 @@ const NewUserModal = ({ onClose, onConfirm, user = null }) => {
         </form>
       </div>
     </div>
-  )
-}
+  );
+};
 
-// In the UserManagementPage component, add these new state variables
 const UserManagementPage = () => {
   const navigate = useNavigate()
   const location = useLocation()
@@ -271,6 +385,7 @@ const UserManagementPage = () => {
       id: 1,
       employeeId: "SA01",
       name: "Ryan Atwood",
+      role: "Organisation Admin",
       email: "RyanAtwood@yahoo.com",
       phone: "98705564",
     },
@@ -278,6 +393,7 @@ const UserManagementPage = () => {
       id: 2,
       employeeId: "NA01",
       name: "Seth Cohen",
+      role: "Network Admin",
       email: "SethCohen@yahoo.com",
       phone: "97352790",
     },
@@ -285,6 +401,7 @@ const UserManagementPage = () => {
       id: 3,
       employeeId: "CA01",
       name: "Marissa Cooper",
+      role: "Network Admin",
       email: "MarissaCoop@gmail.com",
       phone: "92735234",
     },
@@ -292,6 +409,7 @@ const UserManagementPage = () => {
       id: 4,
       employeeId: "ITM01",
       name: "Summer Roberts",
+      role: "Data Analyst",
       email: "SummerRob@hotmail.com",
       phone: "87354723",
     },
@@ -299,6 +417,7 @@ const UserManagementPage = () => {
       id: 5,
       employeeId: "SA02",
       name: "Kirsten Cohen",
+      role: "Organisation Admin",
       email: "Kirsten@yahoo.com",
       phone: "93214456",
     },
@@ -306,6 +425,7 @@ const UserManagementPage = () => {
       id: 6,
       employeeId: "NA02",
       name: "Sandy Cohen",
+      role: "Network Admin",
       email: "SandyCohen@yahoo.com",
       phone: "87709667",
     },
@@ -313,6 +433,7 @@ const UserManagementPage = () => {
       id: 7,
       employeeId: "CA02",
       name: "Julie Cooper",
+      role: "Network Admin",
       email: "JulieCooper@gmail.com",
       phone: "85658203",
     },
@@ -320,6 +441,7 @@ const UserManagementPage = () => {
       id: 8,
       employeeId: "ITM02",
       name: "Luke Ward",
+      role: "IT Manager",
       email: "LukeW@gmail.com",
       phone: "96689077",
     },
@@ -327,6 +449,7 @@ const UserManagementPage = () => {
       id: 9,
       employeeId: "CA03",
       name: "Theresa Diaz",
+      role: "IT Manager",
       email: "Theresa@hotmail.com",
       phone: "97554211",
     },
@@ -334,6 +457,7 @@ const UserManagementPage = () => {
       id: 10,
       employeeId: "DA01",
       name: "Anna Stern",
+      role: "Network Admin",
       email: "AnnaSt@yahoo.com",
       phone: "83314489",
     },
@@ -347,6 +471,7 @@ const UserManagementPage = () => {
     (user) =>
       user.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       user.employeeId.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      user.role.toLowerCase().includes(searchQuery.toLowerCase()) ||
       user.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
       user.phone.includes(searchQuery),
   )
@@ -357,7 +482,6 @@ const UserManagementPage = () => {
 
   const handleView = (user) => {
     console.log("Viewing user:", user)
-    // Implement view functionality
   }
 
   const handleEdit = (user) => {
@@ -365,20 +489,17 @@ const UserManagementPage = () => {
     setShowNewUserModal(true)
   }
 
-  // Update the handleDelete function
   const handleDelete = (user) => {
     setUserToDelete(user)
     setShowDeleteModal(true)
   }
 
-  // Add this new function to handle the actual deletion
   const handleConfirmDelete = () => {
     setUsers(users.filter((user) => user.id !== userToDelete.id))
     setShowDeleteModal(false)
     setUserToDelete(null)
   }
 
-  // Add this function to handle closing the delete modal
   const handleCloseDeleteModal = () => {
     setShowDeleteModal(false)
     setUserToDelete(null)
@@ -386,13 +507,13 @@ const UserManagementPage = () => {
 
   const handleAddOrUpdateUser = (formData, userId) => {
     if (userId) {
-      // Update existing user
       setUsers(
         users.map((user) =>
           user.id === userId
             ? {
                 ...user,
                 name: `${formData.firstName} ${formData.lastName}`,
+                role: formData.role,
                 email: formData.email,
                 phone: formData.phone,
               }
@@ -400,11 +521,11 @@ const UserManagementPage = () => {
         ),
       )
     } else {
-      // Add new user
       const newUser = {
         id: users.length + 1,
         employeeId: formData.employeeId,
         name: `${formData.firstName} ${formData.lastName}`,
+        role: formData.role,
         email: formData.email,
         phone: formData.phone,
       }
@@ -419,105 +540,14 @@ const UserManagementPage = () => {
     setSelectedUser(null)
   }
 
-  // In the return statement, add the DeleteConfirmationModal
   return (
     <div style={{ display: "flex", height: "100vh", background: "#f4f4f4" }}>
-      {/* Sidebar */}
-      <div
-        style={{
-          width: "250px",
-          background: "#222",
-          color: "#fff",
-          padding: "20px",
-          display: "flex",
-          flexDirection: "column",
-        }}
-      >
-        <div style={{ marginBottom: "40px" }}>
-          <h2 style={{ display: "flex", alignItems: "center", gap: "10px", margin: 0 }}>
-            <img src="/images/secuboard-logo.png" alt="SecuBoard" style={{ width: "24px", height: "24px" }} />
-            SecuBoard
-          </h2>
-        </div>
+      <Sidebar userRole={userRole} />
 
-        <ul style={{ listStyle: "none", padding: 0, margin: 0 }}>
-          <li
-            style={{
-              padding: "12px 16px",
-              marginBottom: "8px",
-              borderRadius: "4px",
-              display: "flex",
-              alignItems: "center",
-              gap: "12px",
-              cursor: "pointer",
-            }}
-            onClick={() => navigate("/roles-permission")}
-          >
-            <span style={{ fontSize: "18px" }}>🔒</span>
-            Roles and Permission Management
-          </li>
-          <li
-            style={{
-              padding: "12px 16px",
-              background: "#333",
-              marginBottom: "8px",
-              borderRadius: "4px",
-              display: "flex",
-              alignItems: "center",
-              gap: "12px",
-              cursor: "pointer",
-            }}
-			onClick={() => navigate("/user-management")}
-          >
-            <span style={{ fontSize: "18px" }}>👥</span>
-            User Management
-          </li>
-          <li
-            style={{
-              padding: "12px 16px",
-              marginBottom: "8px",
-              borderRadius: "4px",
-              display: "flex",
-              alignItems: "center",
-              gap: "12px",
-              cursor: "pointer",
-            }}
-            onClick={() => navigate("/settings")}
-          >
-            <span style={{ fontSize: "18px" }}>⚙️</span>
-            Settings
-          </li>
-        </ul>
-
-        <button
-          onClick={() => navigate("/login")}
-          style={{
-            marginTop: "auto",
-            width: "100%",
-            padding: "10px",
-            background: "red",
-            border: "none",
-            color: "#fff",
-            display: "flex",
-            alignItems: "center",
-            cursor: "pointer",
-          }}
-        >
-          <img
-            src="/images/logout-logo.png"
-            alt="Logout Logo"
-            style={{ width: "20px", height: "20px", marginRight: "10px" }}
-          />
-          Logout
-        </button>
-      </div>
-
-      {/* Main Content */}
       <div style={{ flex: 1, padding: "32px" }}>
         <h1 style={{ margin: "0 0 8px 0" }}>User Management</h1>
         <h2 style={{ margin: "0 0 24px 0", fontWeight: "normal", color: "#666" }}>Users Details</h2>
 
-        {/* Update the Add User button */}
         <div
           style={{
             display: "flex",
@@ -530,18 +560,23 @@ const UserManagementPage = () => {
             <button
               onClick={() => setShowNewUserModal(true)}
               style={{
-                background: "none",
+                background: "#90EE90",
                 border: "none",
                 cursor: "pointer",
-                fontSize: "16px",
-                color: "#666",
+                fontSize: "20px",
+                color: "white",
                 display: "flex",
                 alignItems: "center",
-                gap: "4px",
+                justifyContent: "center",
+                width: "36px",
+                height: "36px",
+                borderRadius: "50%",
+                boxShadow: "0 2px 4px rgba(0,0,0,0.1)",
               }}
             >
-              Add User 👆
+              + 
             </button>
+            Add User
           </div>
           <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
             <button
@@ -554,17 +589,6 @@ const UserManagementPage = () => {
               }}
             >
               🔄
-            </button>
-            <button
-              style={{
-                background: "none",
-                border: "none",
-                cursor: "pointer",
-                fontSize: "16px",
-                color: "#666",
-              }}
-            >
-              ⚡
             </button>
             <div style={{ position: "relative" }}>
               <input
@@ -598,7 +622,6 @@ const UserManagementPage = () => {
           </div>
         </div>
 
-        {/* Users Table */}
         <div
           style={{
             background: "white",
@@ -613,6 +636,7 @@ const UserManagementPage = () => {
                 <th style={{ padding: "16px", textAlign: "left", borderBottom: "1px solid #eee" }}>#</th>
                 <th style={{ padding: "16px", textAlign: "left", borderBottom: "1px solid #eee" }}>Employee ID</th>
                 <th style={{ padding: "16px", textAlign: "left", borderBottom: "1px solid #eee" }}>Name</th>
+                <th style={{ padding: "16px", textAlign: "left", borderBottom: "1px solid #eee" }}>Role</th>
                 <th style={{ padding: "16px", textAlign: "left", borderBottom: "1px solid #eee" }}>Email</th>
                 <th style={{ padding: "16px", textAlign: "left", borderBottom: "1px solid #eee" }}>Phone</th>
                 <th style={{ padding: "16px", textAlign: "center", borderBottom: "1px solid #eee" }}>Modify</th>
@@ -624,6 +648,7 @@ const UserManagementPage = () => {
                   <td style={{ padding: "16px" }}>{user.id}</td>
                   <td style={{ padding: "16px" }}>{user.employeeId}</td>
                   <td style={{ padding: "16px" }}>{user.name}</td>
+                  <td style={{ padding: "16px" }}>{user.role}</td>
                   <td style={{ padding: "16px" }}>{user.email}</td>
                   <td style={{ padding: "16px" }}>{user.phone}</td>
                   <td style={{ padding: "16px", textAlign: "center" }}>
@@ -679,17 +704,14 @@ const UserManagementPage = () => {
           </div>
         </div>
 
-        {/* Add the New User Modal */}
         {showNewUserModal && (
           <NewUserModal user={selectedUser} onClose={handleCloseModal} onConfirm={handleAddOrUpdateUser} />
         )}
-      </div>
 
-      {/* Add the Delete Confirmation Modal */}
-      {showDeleteModal && <DeleteConfirmationModal onClose={handleCloseDeleteModal} onConfirm={handleConfirmDelete} />}
+        {showDeleteModal && <DeleteConfirmationModal onClose={handleCloseDeleteModal} onConfirm={handleConfirmDelete} />}
+      </div>
     </div>
   )
 }
 
 export default UserManagementPage
-

@@ -2,6 +2,9 @@
 
 import React, { useState, useMemo } from "react"
 import { useNavigate, useLocation } from "react-router-dom"
+import Sidebar from "./Sidebar" // Import the Sidebar component
+
+const userRole = "network-admin"
 
 const AutomatedReportForm = ({ onClose, onSubmit }) => {
   const [formData, setFormData] = useState({
@@ -468,11 +471,14 @@ const GenerateReportModal = ({ onClose, onSubmit }) => {
 }
 
 const Offences = () => {
-  const [filter, setFilter] = useState("")
+  const [filterType, setFilterType] = useState("")
+  const [searchQuery, setSearchQuery] = useState("")
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [selectedOffence, setSelectedOffence] = useState(null)
   const [showReportForm, setShowReportForm] = useState(false)
   const [showGenerateReport, setShowGenerateReport] = useState(false)
+  // Add state to track selected rows
+  const [selectedRows, setSelectedRows] = useState([])
   const navigate = useNavigate()
   const location = useLocation()
   
@@ -511,9 +517,73 @@ const Offences = () => {
     { criticality: "Low", name: "Suspicious Activity from user", time: "1:15 PM", category: "Suspicious Activity" },
   ]
 
+  // Updated filter logic to filter rows based on both filter type and search query
   const filteredOffences = useMemo(() => {
-    return offences
-  }, [])
+    if (!filterType && !searchQuery) {
+      return offences
+    }
+
+    return offences.filter((offence) => {
+      const query = searchQuery.toLowerCase()
+      
+      // If we have a filter type but no search query, show all logs
+      if (filterType && !searchQuery) {
+        return true
+      }
+      
+      // If we have a search query but no filter type, search across all fields
+      if (searchQuery && !filterType) {
+        return (
+          offence.criticality.toLowerCase().includes(query) ||
+          offence.name.toLowerCase().includes(query) ||
+          offence.time.toLowerCase().includes(query) ||
+          offence.category.toLowerCase().includes(query)
+        )
+      }
+      
+      // If we have both filter type and search query, search only in the specified field
+      switch (filterType) {
+        case "Alert Criticality":
+          return offence.criticality.toLowerCase().includes(query)
+        case "Alert Name":
+          return offence.name.toLowerCase().includes(query)
+        case "Date & Time":
+          return offence.time.toLowerCase().includes(query)
+        case "Alert Category":
+          return offence.category.toLowerCase().includes(query)
+        default:
+          return false
+      }
+    })
+  }, [offences, filterType, searchQuery])
+
+  // Function to handle "select all" checkbox
+  const handleSelectAll = (e) => {
+    if (e.target.checked) {
+      // If checked, select all filtered offences
+      const allRowIndexes = filteredOffences.map((_, index) => index)
+      setSelectedRows(allRowIndexes)
+    } else {
+      // If unchecked, clear all selections
+      setSelectedRows([])
+    }
+  }
+
+  // Function to handle individual row selection
+  const handleSelectRow = (index, e) => {
+    if (e.target.checked) {
+      // Add this row to selected rows if not already there
+      if (!selectedRows.includes(index)) {
+        setSelectedRows([...selectedRows, index])
+      }
+    } else {
+      // Remove this row from selected rows
+      setSelectedRows(selectedRows.filter(rowIndex => rowIndex !== index))
+    }
+  }
+
+  // Check if all filtered rows are selected
+  const areAllSelected = filteredOffences.length > 0 && selectedRows.length === filteredOffences.length
 
   const openModal = (offence) => {
     setSelectedOffence(offence)
@@ -557,132 +627,8 @@ const Offences = () => {
 
   return (
     <div style={{ display: "flex", height: "100vh", background: "#f4f4f4" }}>
-      {/* Sidebar */}
-      <div
-        style={{
-          width: "250px",
-          background: "#222",
-          color: "#fff",
-          padding: "20px",
-          display: "flex",
-          flexDirection: "column",
-        }}
-      >
-        <h2>SecuBoard</h2>
-        <ul style={{ listStyle: "none", padding: 0 }}>
-          <li
-            style={{
-              padding: "10px",
-              background: isActive("/dashboard") ? "#555" : "#333",
-              marginBottom: "5px",
-              display: "flex",
-              alignItems: "center",
-              cursor: "pointer",
-            }}
-            onClick={() => navigate("/dashboard")}
-          >
-            <img
-              src="/images/dashboard-logo.png"
-              alt="Dashboard Logo"
-              style={{ width: "20px", height: "20px", marginRight: "10px" }}
-            />
-            Dashboard
-          </li>
-          <li
-            style={{
-              padding: "10px",
-              background: isActive("/offences") ? "#555" : "#333",
-              marginBottom: "5px",
-              display: "flex",
-              alignItems: "center",
-              cursor: "pointer",
-            }}
-            onClick={() => navigate("/offences")}
-          >
-            <img
-              src="/images/offences-logo.png"
-              alt="Offences Logo"
-              style={{ width: "20px", height: "20px", marginRight: "10px" }}
-            />
-            Offences
-          </li>
-          <li
-            style={{
-              padding: "10px",
-              background: isActive("/event-log") ? "#555" : "#333",
-              marginBottom: "5px",
-              display: "flex",
-              alignItems: "center",
-              cursor: "pointer",
-            }}
-            onClick={() => navigate("/event-log")}
-          >
-            <img
-              src="/images/event-log-logo.png"
-              alt="Event Log Logo"
-              style={{ width: "20px", height: "20px", marginRight: "10px" }}
-            />
-            Event Log Activity
-          </li>
-          <li
-            style={{
-              padding: "10px",
-              background: isActive("/reports") ? "#555" : "#333",
-              marginBottom: "5px",
-              display: "flex",
-              alignItems: "center",
-              cursor: "pointer",
-            }}
-            onClick={() => navigate("/reports")}
-          >
-            <img
-              src="/images/report-logo.png"
-              alt="Reports Logo"
-              style={{ width: "20px", height: "20px", marginRight: "10px" }}
-            />
-            Reports
-          </li>
-          <li
-            style={{
-              padding: "10px",
-              background: isActive("/settings") ? "#555" : "#333",
-              marginBottom: "5px",
-              display: "flex",
-              alignItems: "center",
-              cursor: "pointer",
-            }}
-            onClick={() => navigate("/settings")}
-          >
-            <img
-              src="/images/settings-logo.png"
-              alt="Settings Logo"
-              style={{ width: "20px", height: "20px", marginRight: "10px" }}
-            />
-            Settings
-          </li>
-        </ul>
-        <button
-          onClick={handleLogout}
-          style={{
-            marginTop: "auto",
-            width: "100%",
-            padding: "10px",
-            background: "red",
-            border: "none",
-            color: "#fff",
-            display: "flex",
-            alignItems: "center",
-            cursor: "pointer",
-          }}
-        >
-          <img
-            src="/images/logout-logo.png"
-            alt="Logout Logo"
-            style={{ width: "20px", height: "20px", marginRight: "10px" }}
-          />
-          Logout
-        </button>
-      </div>
+      {/* Use the Sidebar component */}
+      <Sidebar userRole={userRole} />
 
       {/* Main Content */}
       <div style={{ flex: 1, padding: "20px" }}>
@@ -692,35 +638,81 @@ const Offences = () => {
         <div style={{ display: "flex", gap: "10px", marginBottom: "20px" }}>
           <div style={{ background: "#ddd", padding: "12px 20px", borderRadius: "20px", textAlign: "center" }}>
             <p>Total Alerts</p>
-            <p style={{ fontSize: "20px", fontWeight: "bold" }}>10</p>
+            <p style={{ fontSize: "20px", fontWeight: "bold" }}>{filteredOffences.length}</p>
           </div>
           <div style={{ background: "#ddd", padding: "12px 20px", borderRadius: "20px", textAlign: "center" }}>
             <p>Total High</p>
-            <p style={{ fontSize: "20px", fontWeight: "bold" }}>4</p>
+            <p style={{ fontSize: "20px", fontWeight: "bold" }}>
+              {filteredOffences.filter(o => o.criticality === "High").length}
+            </p>
           </div>
           <div style={{ background: "#ddd", padding: "12px 20px", borderRadius: "20px", textAlign: "center" }}>
             <p>Total Med</p>
-            <p style={{ fontSize: "20px", fontWeight: "bold" }}>3</p>
+            <p style={{ fontSize: "20px", fontWeight: "bold" }}>
+              {filteredOffences.filter(o => o.criticality === "Med").length}
+            </p>
           </div>
           <div style={{ background: "#ddd", padding: "12px 20px", borderRadius: "20px", textAlign: "center" }}>
             <p>Total Low</p>
-            <p style={{ fontSize: "20px", fontWeight: "bold" }}>3</p>
+            <p style={{ fontSize: "20px", fontWeight: "bold" }}>
+              {filteredOffences.filter(o => o.criticality === "Low").length}
+            </p>
           </div>
         </div>
 
         {/* Filter and Buttons */}
         <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "20px" }}>
-          <select
-            value={filter}
-            onChange={(e) => setFilter(e.target.value)}
-            style={{ padding: "10px", border: "1px solid #ccc" }}
-          >
-            <option value="">Select Filter Type</option>
-            <option value="Alert Criticality">Alert Criticality</option>
-            <option value="Alert Category">Alert Category</option>
-            <option value="Alert Name">Alert Name</option>
-            <option value="Date & Time">Date & Time</option>
-          </select>
+          <div style={{ display: "flex", gap: "10px", flex: 1, maxWidth: "600px" }}>
+            <select
+              value={filterType}
+              onChange={(e) => setFilterType(e.target.value)}
+              style={{ 
+                padding: "10px", 
+                border: "1px solid #ccc",
+                borderRadius: "4px",
+                minWidth: "180px"
+              }}
+            >
+              <option value="">Filter By (All Fields)</option>
+              <option value="Alert Criticality">Alert Criticality</option>
+              <option value="Alert Category">Alert Category</option>
+              <option value="Alert Name">Alert Name</option>
+              <option value="Date & Time">Date & Time</option>
+            </select>
+            
+            <div style={{ 
+              position: "relative", 
+              flex: 1,
+              display: "flex"
+            }}>
+              <input
+                type="text"
+                placeholder={filterType ? `Search by ${filterType}...` : "Search all fields..."}
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                style={{
+                  flex: 1,
+                  padding: "10px",
+                  border: "1px solid #ccc",
+                  borderRadius: "4px"
+                }}
+              />
+              <button
+                style={{
+                  position: "absolute",
+                  right: "8px",
+                  top: "50%",
+                  transform: "translateY(-50%)",
+                  background: "none",
+                  border: "none",
+                  cursor: "pointer",
+                }}
+              >
+                🔍
+              </button>
+            </div>
+          </div>
+          
           <div>
             <button
               onClick={handleOpenReportForm}
@@ -737,7 +729,7 @@ const Offences = () => {
               Add Automate Report Cycle
             </button>
             <button
-			onClick={handleOpenGenerateReport}
+              onClick={handleOpenGenerateReport}
               style={{
                 background: "darkgreen",
                 color: "#fff",
@@ -752,6 +744,33 @@ const Offences = () => {
           </div>
         </div>
 
+        {/* Selected rows info */}
+        {selectedRows.length > 0 && (
+          <div style={{ 
+            marginBottom: "10px", 
+            padding: "8px 12px", 
+            backgroundColor: "#e0f7fa", 
+            borderRadius: "4px",
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center"
+          }}>
+            <span>{selectedRows.length} offences selected</span>
+            <button 
+              onClick={() => setSelectedRows([])}
+              style={{
+                background: "none",
+                border: "none",
+                color: "#0277bd",
+                cursor: "pointer",
+                fontWeight: "bold"
+              }}
+            >
+              Clear selection
+            </button>
+          </div>
+        )}
+
         {/* Offences Table */}
         <table
           style={{
@@ -764,43 +783,43 @@ const Offences = () => {
           <thead>
             <tr style={{ background: "#ccc", borderBottom: "2px solid #aaa" }}>
               <th style={{ padding: "10px", textAlign: "center", borderRight: "1px solid #aaa" }}>
-                <input type="checkbox" /> Select
+                <input 
+                  type="checkbox" 
+                  checked={areAllSelected}
+                  onChange={handleSelectAll}
+                  style={{ cursor: "pointer" }}
+                /> Select
               </th>
-              {(filter === "" || filter === "Alert Criticality") && (
-                <th style={{ padding: "10px", textAlign: "center", borderRight: "1px solid #aaa" }}>
-                  Alert Criticality
-                </th>
-              )}
-              {(filter === "" || filter === "Alert Name") && (
-                <th style={{ padding: "10px", textAlign: "center", borderRight: "1px solid #aaa" }}>Alert Name</th>
-              )}
-              {(filter === "" || filter === "Date & Time") && (
-                <th style={{ padding: "10px", textAlign: "center", borderRight: "1px solid #aaa" }}>Date & Time</th>
-              )}
-              {(filter === "" || filter === "Alert Category") && (
-                <th style={{ padding: "10px", textAlign: "center", borderRight: "1px solid #aaa" }}>Alert Category</th>
-              )}
+              <th style={{ padding: "10px", textAlign: "center", borderRight: "1px solid #aaa" }}>
+                Alert Criticality
+              </th>
+              <th style={{ padding: "10px", textAlign: "center", borderRight: "1px solid #aaa" }}>Alert Name</th>
+              <th style={{ padding: "10px", textAlign: "center", borderRight: "1px solid #aaa" }}>Date & Time</th>
+              <th style={{ padding: "10px", textAlign: "center", borderRight: "1px solid #aaa" }}>Alert Category</th>
               <th style={{ padding: "10px", textAlign: "center" }}>View</th>
             </tr>
           </thead>
           <tbody>
             {filteredOffences.map((offence, index) => (
-              <tr key={index} style={{ borderBottom: "1px solid #ddd" }}>
+              <tr 
+                key={index} 
+                style={{ 
+                  borderBottom: "1px solid #ddd",
+                  backgroundColor: selectedRows.includes(index) ? "#f0f7ff" : "inherit"
+                }}
+              >
                 <td style={{ padding: "10px", textAlign: "center" }}>
-                  <input type="checkbox" />
+                  <input 
+                    type="checkbox" 
+                    checked={selectedRows.includes(index)}
+                    onChange={(e) => handleSelectRow(index, e)}
+                    style={{ cursor: "pointer" }}
+                  />
                 </td>
-                {(filter === "" || filter === "Alert Criticality") && (
-                  <td style={{ padding: "10px", textAlign: "center" }}>{offence.criticality}</td>
-                )}
-                {(filter === "" || filter === "Alert Name") && (
-                  <td style={{ padding: "10px", textAlign: "center" }}>{offence.name}</td>
-                )}
-                {(filter === "" || filter === "Date & Time") && (
-                  <td style={{ padding: "10px", textAlign: "center" }}>{offence.time}</td>
-                )}
-                {(filter === "" || filter === "Alert Category") && (
-                  <td style={{ padding: "10px", textAlign: "center" }}>{offence.category}</td>
-                )}
+                <td style={{ padding: "10px", textAlign: "center" }}>{offence.criticality}</td>
+                <td style={{ padding: "10px", textAlign: "center" }}>{offence.name}</td>
+                <td style={{ padding: "10px", textAlign: "center" }}>{offence.time}</td>
+                <td style={{ padding: "10px", textAlign: "center" }}>{offence.category}</td>
                 <td style={{ padding: "10px", textAlign: "center" }}>
                   <button
                     style={{ background: "purple", color: "#fff", padding: "5px 10px", borderRadius: "5px" }}
@@ -931,12 +950,12 @@ const Offences = () => {
 
         {/* Automated Report Form Modal */}
         {showReportForm && (
-  <AutomatedReportForm onClose={handleCloseReportForm} onSubmit={handleSubmitReport} />
-)}
+          <AutomatedReportForm onClose={handleCloseReportForm} onSubmit={handleSubmitReport} />
+        )}
 
-{showGenerateReport && (
-  <GenerateReportModal onClose={handleCloseGenerateReport} onSubmit={handleSubmitGenerateReport} />
-)}
+        {showGenerateReport && (
+          <GenerateReportModal onClose={handleCloseGenerateReport} onSubmit={handleSubmitGenerateReport} />
+        )}
         
       </div>
     </div>

@@ -1,5 +1,8 @@
 "use client"
 import { useNavigate, useLocation } from "react-router-dom"
+import Sidebar from "./Sidebar" // Import the Sidebar component
+
+const userRole = "network-admin"
 
 const Reports = () => {
   const navigate = useNavigate()
@@ -31,132 +34,8 @@ const Reports = () => {
 
   return (
     <div style={{ display: "flex", height: "100vh", background: "#f4f4f4" }}>
-      {/* Sidebar */}
-      <div
-        style={{
-          width: "250px",
-          background: "#222",
-          color: "#fff",
-          padding: "20px",
-          display: "flex",
-          flexDirection: "column",
-        }}
-      >
-        <h2>SecuBoard</h2>
-        <ul style={{ listStyle: "none", padding: 0 }}>
-          <li
-            style={{
-              padding: "10px",
-              background: isActive("/dashboard") ? "#555" : "#333",
-              marginBottom: "5px",
-              display: "flex",
-              alignItems: "center",
-              cursor: "pointer",
-            }}
-            onClick={() => navigate("/dashboard")}
-          >
-            <img
-              src="/images/dashboard-logo.png"
-              alt="Dashboard Logo"
-              style={{ width: "20px", height: "20px", marginRight: "10px" }}
-            />
-            Dashboard
-          </li>
-          <li
-            style={{
-              padding: "10px",
-              background: isActive("/offences") ? "#555" : "#333",
-              marginBottom: "5px",
-              display: "flex",
-              alignItems: "center",
-              cursor: "pointer",
-            }}
-            onClick={() => navigate("/offences")}
-          >
-            <img
-              src="/images/offences-logo.png"
-              alt="Offences Logo"
-              style={{ width: "20px", height: "20px", marginRight: "10px" }}
-            />
-            Offences
-          </li>
-          <li
-            style={{
-              padding: "10px",
-              background: isActive("/event-log") ? "#555" : "#333",
-              marginBottom: "5px",
-              display: "flex",
-              alignItems: "center",
-              cursor: "pointer",
-            }}
-            onClick={() => navigate("/event-log")}
-          >
-            <img
-              src="/images/event-log-logo.png"
-              alt="Event Log Logo"
-              style={{ width: "20px", height: "20px", marginRight: "10px" }}
-            />
-            Event Log Activity
-          </li>
-          <li
-            style={{
-              padding: "10px",
-              background: isActive("/reports") ? "#555" : "#333",
-              marginBottom: "5px",
-              display: "flex",
-              alignItems: "center",
-              cursor: "pointer",
-            }}
-            onClick={() => navigate("/reports")}
-          >
-            <img
-              src="/images/report-logo.png"
-              alt="Reports Logo"
-              style={{ width: "20px", height: "20px", marginRight: "10px" }}
-            />
-            Reports
-          </li>
-          <li
-            style={{
-              padding: "10px",
-              background: isActive("/settings") ? "#555" : "#333",
-              marginBottom: "5px",
-              display: "flex",
-              alignItems: "center",
-              cursor: "pointer",
-            }}
-            onClick={() => navigate("/settings")}
-          >
-            <img
-              src="/images/settings-logo.png"
-              alt="Settings Logo"
-              style={{ width: "20px", height: "20px", marginRight: "10px" }}
-            />
-            Settings
-          </li>
-        </ul>
-        <button
-          onClick={handleLogout}
-          style={{
-            marginTop: "auto",
-            width: "100%",
-            padding: "10px",
-            background: "red",
-            border: "none",
-            color: "#fff",
-            display: "flex",
-            alignItems: "center",
-            cursor: "pointer",
-          }}
-        >
-          <img
-            src="/images/logout-logo.png"
-            alt="Logout Logo"
-            style={{ width: "20px", height: "20px", marginRight: "10px" }}
-          />
-          Logout
-        </button>
-      </div>
+     {/* Use the Sidebar component instead of hardcoded sidebar */}
+      <Sidebar userRole={userRole} />
 
       {/* Main Content */}
       <div style={{ flex: 1, padding: "20px" }}>

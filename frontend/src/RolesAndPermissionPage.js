@@ -2,23 +2,22 @@
 
 import { useState } from "react"
 import { useNavigate, useLocation } from "react-router-dom"
+import Sidebar from "./Sidebar"
 
-const RoleDetailModal = ({ onClose, onConfirm, employee = null }) => {
+const userRole = "organisation-admin"
+
+const RoleDetailModal = ({ onClose, onConfirm, role = null }) => {
   const [formData, setFormData] = useState({
-    employeeId: employee?.employeeId || "",
-    firstName: employee?.name?.split(" ")[0] || "",
-    lastName: employee?.name?.split(" ")[1] || "",
-    role: employee?.role || "Select Role",
-    permissions: [],
+    role: role?.name || "Select Role",
+    permissions: role?.permissions || [],
   })
   const [searchPermissions, setSearchPermissions] = useState("")
 
   const availableRoles = [
     "Select Role",
     "IT Manager",
-    "System Admin",
+    "Organisation Admin",
     "Network Admin",
-    "Cybersecurity Analyst",
     "Data Analyst",
   ]
 
@@ -77,62 +76,12 @@ const RoleDetailModal = ({ onClose, onConfirm, employee = null }) => {
           padding: "24px",
         }}
       >
+        <h2 style={{ margin: "0 0 20px 0" }}>Create Role</h2>
         <div style={{ display: "flex", gap: "24px" }}>
-          {/* Left Side - Role Details */}
+          {/* Left Side - Role Selection */}
           <div style={{ flex: 1 }}>
-            <h2 style={{ margin: "0 0 20px 0" }}>Role Detail</h2>
-
-            <div style={{ marginBottom: "16px" }}>
-              <label style={{ display: "block", marginBottom: "8px" }}>Employee ID</label>
-              <input
-                type="text"
-                value={formData.employeeId}
-                onChange={(e) => setFormData((prev) => ({ ...prev, employeeId: e.target.value }))}
-                style={{
-                  width: "100%",
-                  padding: "8px",
-                  border: "1px solid #ddd",
-                  borderRadius: "4px",
-                  backgroundColor: "#f5f5f5",
-                }}
-                disabled={!!employee}
-              />
-            </div>
-
-            <div style={{ marginBottom: "16px" }}>
-              <label style={{ display: "block", marginBottom: "8px" }}>First Name</label>
-              <input
-                type="text"
-                value={formData.firstName}
-                onChange={(e) => setFormData((prev) => ({ ...prev, firstName: e.target.value }))}
-                style={{
-                  width: "100%",
-                  padding: "8px",
-                  border: "1px solid #ddd",
-                  borderRadius: "4px",
-                  backgroundColor: "#f5f5f5",
-                }}
-              />
-            </div>
-
-            <div style={{ marginBottom: "16px" }}>
-              <label style={{ display: "block", marginBottom: "8px" }}>Last Name</label>
-              <input
-                type="text"
-                value={formData.lastName}
-                onChange={(e) => setFormData((prev) => ({ ...prev, lastName: e.target.value }))}
-                style={{
-                  width: "100%",
-                  padding: "8px",
-                  border: "1px solid #ddd",
-                  borderRadius: "4px",
-                  backgroundColor: "#f5f5f5",
-                }}
-              />
-            </div>
-
             <div>
-              <label style={{ display: "block", marginBottom: "8px" }}>Roles</label>
+              <label style={{ display: "block", marginBottom: "8px" }}>Role</label>
               <select
                 value={formData.role}
                 onChange={(e) => setFormData((prev) => ({ ...prev, role: e.target.value }))}
@@ -240,243 +189,89 @@ const RoleDetailModal = ({ onClose, onConfirm, employee = null }) => {
   )
 }
 
-const DeleteConfirmationModal = ({ onClose, onConfirm }) => {
-  return (
-    <div
-      style={{
-        position: "fixed",
-        top: 0,
-        left: 0,
-        right: 0,
-        bottom: 0,
-        backgroundColor: "rgba(0, 0, 0, 0.5)",
-        display: "flex",
-        justifyContent: "center",
-        alignItems: "center",
-        zIndex: 1000,
-      }}
-    >
-      <div
-        style={{
-          backgroundColor: "white",
-          borderRadius: "8px",
-          width: "90%",
-          maxWidth: "400px",
-          padding: "24px",
-          textAlign: "center",
-        }}
-      >
-        <h3 style={{ marginBottom: "16px" }}>Are you sure you want to delete this user account?</h3>
-        <p style={{ marginBottom: "24px", color: "#666" }}>
-          This action cannot be undone and all your data will be permanently deleted.
-        </p>
-        <div style={{ display: "flex", justifyContent: "center", gap: "16px" }}>
-          <button
-            onClick={onConfirm}
-            style={{
-              padding: "8px 24px",
-              backgroundColor: "#90EE90",
-              border: "none",
-              borderRadius: "4px",
-              cursor: "pointer",
-            }}
-          >
-            Confirm
-          </button>
-          <button
-            onClick={onClose}
-            style={{
-              padding: "8px 24px",
-              backgroundColor: "#ffcccb",
-              border: "none",
-              borderRadius: "4px",
-              cursor: "pointer",
-            }}
-          >
-            Cancel
-          </button>
-        </div>
-      </div>
-    </div>
-  )
-}
-
 const RolesAndPermissionPage = () => {
   const navigate = useNavigate()
   const location = useLocation()
   const [searchQuery, setSearchQuery] = useState("")
   const [showRoleModal, setShowRoleModal] = useState(false)
-  const [selectedEmployee, setSelectedEmployee] = useState(null)
-  const [employees, setEmployees] = useState([
-    { id: 1, employeeId: "SA01", name: "Ryan Atwood", role: "System Admin" },
-    { id: 2, employeeId: "NA01", name: "Seth Cohen", role: "Network Admin" },
-    { id: 3, employeeId: "CA01", name: "Marissa Cooper", role: "Cybersecurity Analyst" },
-    { id: 4, employeeId: "ITM01", name: "Summer Roberts", role: "Network Admin" },
-    { id: 5, employeeId: "SA02", name: "Kirsten Cohen", role: "System Admin" },
-    { id: 6, employeeId: "NA02", name: "Sandy Cohen", role: "Network Admin" },
-    { id: 7, employeeId: "CA02", name: "Julie Cooper", role: "Cybersecurity Analyst" },
-    { id: 8, employeeId: "ITM02", name: "Luke Ward", role: "IT Manager" },
-    { id: 9, employeeId: "CA03", name: "Theresa Diaz", role: "Cybersecurity Analyst" },
-    { id: 10, employeeId: "DA01", name: "Anna Stern", role: "Data Analyst" },
+  const [selectedRole, setSelectedRole] = useState(null)
+  const [roles, setRoles] = useState([
+    {
+      id: 1,
+      name: "Organisation Admin",
+      permissions: ["Blacklist UI", "Summarized Reports", "System Configuration"],
+    },
+    {
+      id: 2,
+      name: "Network Admin",
+      permissions: ["View Audit Logs", "System Configuration"],
+    },
+    {
+      id: 3,
+      name: "Data Analyst",
+      permissions: ["View Audit Logs", "View Audit Logs of users account"],
+    },
+    {
+      id: 4,
+      name: "IT Manager",
+      permissions: ["Approve Changes", "System Configuration"],
+    },
   ])
 
-  const [showDeleteConfirmation, setShowDeleteConfirmation] = useState(false)
-  const [employeeToDelete, setEmployeeToDelete] = useState(null)
+  const [roleFilter, setRoleFilter] = useState("All Roles")
+  const [showRoleFilter, setShowRoleFilter] = useState(false)
 
-  const filteredEmployees = employees.filter(
-    (employee) =>
-      employee.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      employee.employeeId.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      employee.role.toLowerCase().includes(searchQuery.toLowerCase()),
-  )
+  const uniqueRoles = ["All Roles", ...new Set(roles.map((role) => role.name))]
+
+  const filteredRoles = roles.filter((role) => {
+    const matchesSearch = role.name.toLowerCase().includes(searchQuery.toLowerCase())
+    const matchesFilter = roleFilter === "All Roles" || role.name === roleFilter
+    return matchesSearch && matchesFilter
+  })
 
   const handleSearch = (e) => {
     setSearchQuery(e.target.value)
   }
 
-  const handleOpenModal = (employee = null) => {
-    setSelectedEmployee(employee)
+  const handleOpenModal = (role = null) => {
+    setSelectedRole(role)
     setShowRoleModal(true)
   }
 
   const handleConfirmRole = (formData) => {
-    if (selectedEmployee) {
-      // Modify existing employee
-      setEmployees(
-        employees.map((emp) =>
-          emp.id === selectedEmployee.id
+    if (selectedRole) {
+      // Modify existing role
+      setRoles(
+        roles.map((role) =>
+          role.id === selectedRole.id
             ? {
-                ...emp,
-                name: `${formData.firstName} ${formData.lastName}`,
-                role: formData.role,
+                ...role,
+                name: formData.role,
+                permissions: formData.permissions,
               }
-            : emp,
+            : role,
         ),
       )
     } else {
-      // Add new employee
-      const newEmployee = {
-        id: employees.length + 1,
-        employeeId: formData.employeeId,
-        name: `${formData.firstName} ${formData.lastName}`,
-        role: formData.role,
+      // Add new role
+      const newRole = {
+        id: roles.length + 1,
+        name: formData.role,
+        permissions: formData.permissions,
       }
-      setEmployees([...employees, newEmployee])
+      setRoles([...roles, newRole])
     }
     setShowRoleModal(false)
   }
 
-  const handleDeleteClick = (employee) => {
-    setEmployeeToDelete(employee)
-    setShowDeleteConfirmation(true)
-  }
-
-  const handleDeleteConfirm = () => {
-    if (employeeToDelete) {
-      setEmployees(employees.filter((emp) => emp.id !== employeeToDelete.id))
-      setShowDeleteConfirmation(false)
-      setEmployeeToDelete(null)
-    }
-  }
-
-  // Rest of the component remains the same...
   return (
     <div style={{ display: "flex", height: "100vh", background: "#f4f4f4" }}>
-      {/* Sidebar */}
-      <div
-        style={{
-          width: "250px",
-          background: "#222",
-          color: "#fff",
-          padding: "20px",
-          display: "flex",
-          flexDirection: "column",
-        }}
-      >
-        <div style={{ marginBottom: "40px" }}>
-          <h2 style={{ display: "flex", alignItems: "center", gap: "10px", margin: 0 }}>
-            <img src="/images/secuboard-logo.png" alt="SecuBoard" style={{ width: "24px", height: "24px" }} />
-            SecuBoard
-          </h2>
-        </div>
+      <Sidebar userRole={userRole} />
 
-        <ul style={{ listStyle: "none", padding: 0, margin: 0 }}>
-          <li
-            style={{
-              padding: "12px 16px",
-              background: "#333",
-              marginBottom: "8px",
-              borderRadius: "4px",
-              display: "flex",
-              alignItems: "center",
-              gap: "12px",
-              cursor: "pointer",
-            }}
-            onClick={() => navigate("/roles-permission")}
-          >
-            <span style={{ fontSize: "18px" }}>🔒</span>
-            Roles and Permission Management
-          </li>
-          <li
-            style={{
-              padding: "12px 16px",
-              marginBottom: "8px",
-              borderRadius: "4px",
-              display: "flex",
-              alignItems: "center",
-              gap: "12px",
-              cursor: "pointer",
-            }}
-            onClick={() => navigate("/user-management")}
-          >
-            <span style={{ fontSize: "18px" }}>👥</span>
-            User Management
-          </li>
-          <li
-            style={{
-              padding: "12px 16px",
-              marginBottom: "8px",
-              borderRadius: "4px",
-              display: "flex",
-              alignItems: "center",
-              gap: "12px",
-              cursor: "pointer",
-            }}
-          >
-            <span style={{ fontSize: "18px" }}>⚙️</span>
-            Settings
-          </li>
-        </ul>
-
-        <button
-          onClick={() => navigate("/login")}
-          style={{
-            marginTop: "auto",
-            width: "100%",
-            padding: "10px",
-            background: "red",
-            border: "none",
-            color: "#fff",
-            display: "flex",
-            alignItems: "center",
-            cursor: "pointer",
-          }}
-        >
-          <img
-            src="/images/logout-logo.png"
-            alt="Logout Logo"
-            style={{ width: "20px", height: "20px", marginRight: "10px" }}
-          />
-          Logout
-        </button>
-      </div>
-
-      {/* Main Content */}
       <div style={{ flex: 1, padding: "32px" }}>
         <h1 style={{ margin: "0 0 8px 0" }}>Roles & Permission Management</h1>
         <h2 style={{ margin: "0 0 24px 0", fontWeight: "normal", color: "#666" }}>Role Details & Permissions</h2>
 
-        {/* Search and Add Role */}
         <div
           style={{
             display: "flex",
@@ -489,33 +284,115 @@ const RolesAndPermissionPage = () => {
             <button
               onClick={() => handleOpenModal()}
               style={{
+                background: "#90EE90",
+                border: "none",
+                cursor: "pointer",
+                fontSize: "20px",
+                color: "white",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                width: "36px",
+                height: "36px",
+                borderRadius: "50%",
+                boxShadow: "0 2px 4px rgba(0,0,0,0.1)",
+              }}
+            >
+              +
+            </button>
+            Add Role
+          </div>
+          <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+            <button
+              style={{
                 background: "none",
                 border: "none",
                 cursor: "pointer",
-                fontSize: "24px",
+                fontSize: "16px",
                 color: "#666",
-                display: "flex",
-                alignItems: "center",
               }}
             >
-              Roles +
+              🔄
             </button>
+            <div style={{ position: "relative" }}>
+              <button
+                onClick={() => setShowRoleFilter(!showRoleFilter)}
+                style={{
+                  background: "none",
+                  border: "none",
+                  cursor: "pointer",
+                  fontSize: "16px",
+                  color: "#666",
+                }}
+              >
+                🝖
+              </button>
+              {showRoleFilter && (
+                <div
+                  style={{
+                    position: "absolute",
+                    top: "100%",
+                    right: 0,
+                    background: "white",
+                    border: "1px solid #ddd",
+                    borderRadius: "4px",
+                    boxShadow: "0 2px 8px rgba(0,0,0,0.1)",
+                    zIndex: 10,
+                    width: "150px",
+                  }}
+                >
+                  {uniqueRoles.map((role) => (
+                    <div
+                      key={role}
+                      onClick={() => {
+                        setRoleFilter(role)
+                        setShowRoleFilter(false)
+                      }}
+                      style={{
+                        padding: "8px 12px",
+                        cursor: "pointer",
+                        backgroundColor: roleFilter === role ? "#f0f0f0" : "transparent",
+                        borderBottom: "1px solid #eee",
+                      }}
+                    >
+                      {role}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+            <div style={{ position: "relative" }}>
+              <input
+                type="text"
+                placeholder="Search"
+                value={searchQuery}
+                onChange={handleSearch}
+                style={{
+                  padding: "8px 12px",
+                  border: "1px solid #ddd",
+                  borderRadius: "4px",
+                  width: "200px",
+                }}
+              />
+              <button
+                style={{
+                  position: "absolute",
+                  right: "8px",
+                  top: "50%",
+                  transform: "translateY(-50%)",
+                  background: "none",
+                  border: "none",
+                  cursor: "pointer",
+                  fontSize: "16px",
+                  color: "#666",
+                }}
+              >
+                🔍
+              </button>
+            </div>
           </div>
-          <input
-            type="text"
-            placeholder="Search"
-            value={searchQuery}
-            onChange={handleSearch}
-            style={{
-              padding: "8px 12px",
-              border: "1px solid #ddd",
-              borderRadius: "4px",
-              width: "200px",
-            }}
-          />
         </div>
 
-        {/* Table */}
         <div
           style={{
             background: "white",
@@ -528,43 +405,26 @@ const RolesAndPermissionPage = () => {
             <thead>
               <tr style={{ backgroundColor: "#f5f5f5" }}>
                 <th style={{ padding: "16px", textAlign: "left", borderBottom: "1px solid #eee" }}>#</th>
-                <th style={{ padding: "16px", textAlign: "left", borderBottom: "1px solid #eee" }}>Employee ID</th>
-                <th style={{ padding: "16px", textAlign: "left", borderBottom: "1px solid #eee" }}>Name</th>
-                <th style={{ padding: "16px", textAlign: "left", borderBottom: "1px solid #eee" }}>Roles</th>
-                <th style={{ padding: "16px", textAlign: "left", borderBottom: "1px solid #eee" }}>Modify</th>
+                <th style={{ padding: "16px", textAlign: "center", borderBottom: "1px solid #eee" }}>Roles</th>
+                <th style={{ padding: "16px", textAlign: "center", borderBottom: "1px solid #eee" }}>Modify</th>
               </tr>
             </thead>
             <tbody>
-              {filteredEmployees.map((employee) => (
-                <tr key={employee.id} style={{ borderBottom: "1px solid #eee" }}>
-                  <td style={{ padding: "16px" }}>{employee.id}</td>
-                  <td style={{ padding: "16px" }}>{employee.employeeId}</td>
-                  <td style={{ padding: "16px" }}>{employee.name}</td>
-                  <td style={{ padding: "16px" }}>{employee.role}</td>
-                  <td style={{ padding: "16px" }}>
+              {filteredRoles.map((role) => (
+                <tr key={role.id} style={{ borderBottom: "1px solid #eee" }}>
+                  <td style={{ padding: "16px" }}>{role.id}</td>
+                  <td style={{ padding: "16px", textAlign: "center" }}>{role.name}</td>
+                  <td style={{ padding: "16px", textAlign: "center" }}>
                     <button
-                      onClick={() => handleOpenModal(employee)}
+                      onClick={() => handleOpenModal(role)}
                       style={{
                         background: "none",
                         border: "none",
                         cursor: "pointer",
                         fontSize: "16px",
-                        marginRight: "8px",
                       }}
                     >
                       ✎
-                    </button>
-                    <button
-                      onClick={() => handleDeleteClick(employee)}
-                      style={{
-                        background: "none",
-                        border: "none",
-                        cursor: "pointer",
-                        fontSize: "16px",
-                        color: "red",
-                      }}
-                    >
-                      🗑️
                     </button>
                   </td>
                 </tr>
@@ -583,16 +443,8 @@ const RolesAndPermissionPage = () => {
           </div>
         </div>
 
-        {/* Role Detail Modal */}
         {showRoleModal && (
-          <RoleDetailModal
-            employee={selectedEmployee}
-            onClose={() => setShowRoleModal(false)}
-            onConfirm={handleConfirmRole}
-          />
-        )}
-        {showDeleteConfirmation && (
-          <DeleteConfirmationModal onClose={() => setShowDeleteConfirmation(false)} onConfirm={handleDeleteConfirm} />
+          <RoleDetailModal role={selectedRole} onClose={() => setShowRoleModal(false)} onConfirm={handleConfirmRole} />
         )}
       </div>
     </div>
