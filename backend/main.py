@@ -11,13 +11,14 @@ app = FastAPI()
 origins = [
     "http://localhost:3000",
     "http://localhost:3006"  # put Frontend URL here
+    "http://localhost:9600"
 ]
 app.add_middleware(
     CORSMiddleware,
     allow_origins=origins,
     allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],  # Allow Authorization header
+    allow_methods=["GET", "POST", "PUT", "DELETE"],
+    allow_headers=["X-Requested-With", "Content-Type"],  # Allow Authorization header
 )
 
 # Include the routers

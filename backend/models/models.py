@@ -32,3 +32,27 @@ class Journal(Base):
 class BlockedIP(Base):
     __tablename__ = "blocked_ips"
     ip = Column(String, primary_key=True)
+
+    
+class SnortLogs(Base):
+    __tablename__ = 'SnortLogs'
+    id = Column(Integer, primary_key=True, index=True)
+    timestamp = Column(String)
+    priority = Column(Integer)
+    protocol = Column(String)
+    raw = Column(String)
+    length = Column(Integer)
+    direction = Column(String)
+    src_ip = Column(String)
+    src_port = Column(Integer)
+    dest_ip = Column(String)
+    dest_port = Column(Integer)
+    classification = Column(String)
+    action = Column(String)
+    message = Column(String)
+    description = Column(String)
+    host = Column(String)
+
+    class Config:
+        orm_mode = True
+
