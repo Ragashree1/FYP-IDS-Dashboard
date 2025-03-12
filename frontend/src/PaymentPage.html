@@ -1,0 +1,374 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SecuBoard - Payment</title>
+    <style>
+        body {
+            margin: 0;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+            background-color: #f3f4f6;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .payment-container {
+            max-width: 600px;
+            margin: 2rem auto;
+            padding: 2rem;
+            background-color: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        .logo-container {
+            text-align: center;
+            margin-bottom: 1.5rem;
+        }
+
+        .logo {
+            height: 80px;
+            width: auto;
+            margin-bottom: 1rem;
+        }
+
+        h1 {
+            text-align: center;
+            color: #333;
+            font-size: 1.5rem;
+            margin-bottom: 2rem;
+            font-weight: 500;
+        }
+
+        .payment-form {
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+        }
+
+        .form-row {
+            display: flex;
+            gap: 1rem;
+        }
+
+        .form-group {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+        }
+
+            .form-group.small {
+                flex: 0 0 100px;
+            }
+
+            .form-group label {
+                font-weight: 500;
+                margin-bottom: 0.5rem;
+                color: #374151;
+            }
+
+        .subscription-select {
+            margin-bottom: 1rem;
+        }
+
+        select {
+            width: 100%;
+            padding: 0.75rem;
+            border: 1px solid #e5e7eb;
+            border-radius: 6px;
+            background-color: #f3f4f6;
+            font-size: 0.875rem;
+            transition: border-color 0.2s, box-shadow 0.2s;
+            box-sizing: border-box;
+            appearance: none;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23374151' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 0.75rem center;
+            background-size: 1rem;
+        }
+
+            select:focus {
+                outline: none;
+                border-color: #3B82F6;
+                box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+            }
+
+        .total-amount {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            margin-bottom: 1rem;
+        }
+
+            .total-amount label {
+                font-weight: 500;
+            }
+
+        .dollar-sign {
+            font-size: 1rem;
+            color: #374151;
+        }
+
+        input {
+            width: 100%;
+            padding: 0.75rem;
+            border: 1px solid #e5e7eb;
+            border-radius: 6px;
+            background-color: #f3f4f6;
+            font-size: 0.875rem;
+            transition: border-color 0.2s, box-shadow 0.2s;
+            box-sizing: border-box;
+        }
+
+            input:focus {
+                outline: none;
+                border-color: #3B82F6;
+                box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+            }
+
+            input::placeholder {
+                color: #9ca3af;
+            }
+
+        .payment-methods {
+            display: flex;
+            gap: 1rem;
+            margin: 1rem 0;
+            align-items: center;
+        }
+
+        .payment-method {
+            height: 24px;
+            width: auto;
+            opacity: 0.7;
+        }
+
+        .form-actions {
+            display: flex;
+            justify-content: flex-end;
+            margin-top: 1rem;
+        }
+
+        .submit-button {
+            background-color: #10B981;
+            color: white;
+            padding: 0.75rem 2rem;
+            border: none;
+            border-radius: 6px;
+            font-size: 0.875rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+
+            .submit-button:hover {
+                background-color: #059669;
+            }
+
+            .submit-button:focus {
+                outline: none;
+                box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.1);
+            }
+
+        @media (max-width: 640px) {
+            .payment-container {
+                margin: 1rem;
+                padding: 1.5rem;
+            }
+
+            .form-row {
+                flex-direction: column;
+                gap: 1.5rem;
+            }
+
+            .form-group.small {
+                flex: 1;
+            }
+
+            .logo {
+                height: 60px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="payment-container">
+        <div class="logo-container">
+            <img src="https://hebbkx1anhila5yf.public.blob.vercel-storage.com/image-AwHpatwUXOxUSYkvlo8tVkBUyL8vzm.png" alt="SecuBoard Logo" class="logo">
+        </div>
+
+        <h1>Registration</h1>
+
+        <form id="paymentForm" class="payment-form">
+            <div class="form-group subscription-select">
+                <label for="subscription">Subscription Type</label>
+                <select id="subscription" name="subscription" required>
+                    <option value="">Select a subscription plan</option>
+                    <option value="monthly">Monthly Subscription ($50)</option>
+                    <option value="annual">Annual Subscription ($500)</option>
+                </select>
+            </div>
+
+            <div class="total-amount">
+                <label for="total">Total</label>
+                <span class="dollar-sign">$</span>
+                <input type="text"
+                       name="total"
+                       id="total"
+                       readonly
+                       required>
+            </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <input type="text"
+                           name="firstName"
+                           id="firstName"
+                           placeholder="First Name"
+                           required>
+                </div>
+                <div class="form-group">
+                    <input type="text"
+                           name="lastName"
+                           id="lastName"
+                           placeholder="Last Name"
+                           required>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <input type="text"
+                       name="cardNumber"
+                       id="cardNumber"
+                       placeholder="Card Number"
+                       maxlength="19"
+                       required>
+            </div>
+
+            <div class="form-row">
+                <div class="form-group small">
+                    <input type="text"
+                           name="cvv"
+                           id="cvv"
+                           placeholder="CVV"
+                           maxlength="4"
+                           required>
+                </div>
+                <div class="form-group small">
+                    <input type="text"
+                           name="expiry"
+                           id="expiry"
+                           placeholder="MM/YY"
+                           maxlength="5"
+                           required>
+                </div>
+            </div>
+
+            <div class="payment-methods">
+                <img src="https://upload.wikimedia.org/wikipedia/commons/5/5e/Visa_Inc._logo.svg" alt="Visa" class="payment-method">
+                <img src="https://upload.wikimedia.org/wikipedia/commons/2/2a/Mastercard-logo.svg" alt="Mastercard" class="payment-method">
+                <img src="https://upload.wikimedia.org/wikipedia/commons/f/fa/American_Express_logo_%282018%29.svg" alt="American Express" class="payment-method">
+                <img src="https://upload.wikimedia.org/wikipedia/commons/b/b5/PayPal.svg" alt="PayPal" class="payment-method">
+                <img src="https://upload.wikimedia.org/wikipedia/commons/4/46/Bitcoin.svg" alt="Bitcoin" class="payment-method">
+            </div>
+
+            <div class="form-actions">
+                <button type="submit" class="submit-button">
+                    Submit Payment
+                </button>
+            </div>
+        </form>
+    </div>
+
+    <script>
+        // Update total based on subscription selection
+        document.getElementById('subscription').addEventListener('change', function(e) {
+            const totalInput = document.getElementById('total');
+
+            switch(e.target.value) {
+                case 'monthly':
+                    totalInput.value = '50.00';
+                    break;
+                case 'annual':
+                    totalInput.value = '500.00';
+                    break;
+                default:
+                    totalInput.value = '';
+            }
+        });
+
+        // Format card number with spaces
+        document.getElementById('cardNumber').addEventListener('input', function(e) {
+            let value = e.target.value.replace(/\s/g, '');
+            if (value.length > 0) {
+                value = value.match(new RegExp('.{1,4}', 'g')).join(' ');
+            }
+            e.target.value = value;
+        });
+
+        // Format expiry date
+        document.getElementById('expiry').addEventListener('input', function(e) {
+            let value = e.target.value.replace(/\D/g, '');
+            if (value.length >= 2) {
+                value = value.slice(0, 2) + '/' + value.slice(2);
+            }
+            e.target.value = value;
+        });
+
+        // Allow only numbers in CVV
+        document.getElementById('cvv').addEventListener('input', function(e) {
+            e.target.value = e.target.value.replace(/\D/g, '');
+        });
+
+        // Form submission
+        document.getElementById('paymentForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+
+            // Get form values
+            const formData = {
+                subscription: document.getElementById('subscription').value,
+                total: document.getElementById('total').value,
+                firstName: document.getElementById('firstName').value,
+                lastName: document.getElementById('lastName').value,
+                cardNumber: document.getElementById('cardNumber').value,
+                cvv: document.getElementById('cvv').value,
+                expiry: document.getElementById('expiry').value
+            };
+
+            // Validate subscription selection
+            if (!formData.subscription) {
+                alert('Please select a subscription plan');
+                return;
+            }
+
+            // Basic validation
+            if (formData.cardNumber.replace(/\s/g, '').length < 15) {
+                alert('Please enter a valid card number');
+                return;
+            }
+
+            if (formData.cvv.length < 3) {
+                alert('Please enter a valid CVV');
+                return;
+            }
+
+            const [month, year] = formData.expiry.split('/');
+            if (!month || !year || month > 12 || month < 1) {
+                alert('Please enter a valid expiry date');
+                return;
+            }
+
+            // Log form data (in a real app, you would send this to your server)
+            console.log('Payment submitted:', formData);
+
+            // Show success message
+            alert('Payment successful! You have subscribed to the ' +
+                  (formData.subscription === 'monthly' ? 'Monthly' : 'Annual') +
+                  ' plan.');
+        });
+    </script>
+</body>
+</html>
