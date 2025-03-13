@@ -1,72 +1,67 @@
-"use client"
-
-import React, { useState, useMemo } from "react"
+import React, { useState, useMemo, useEffect} from "react"
 import { useNavigate, useLocation } from "react-router-dom"
+import axios from 'axios';
 import Sidebar from "./Sidebar" // Import the Sidebar component
 
 const userRole = "network-admin"
 
 const AutomatedReportForm = ({ onClose, onSubmit }) => {
   const [formData, setFormData] = useState({
-    reportName: "",
-    alertType: "",
-    alertCriticality: "",
-    repeatNumber: "",
-    repeatPeriod: "",
-    startDate: "",
-    endDate: "",
-    reportFormat: "",
-    reportType: "summarized",
-  })
+    reportName: '',
+    alertType: '',
+    alertCriticality: '',
+    repeatNumber: '',
+    repeatPeriod: '',
+    startDate: '',
+    endDate: '',
+    reportFormat: '',
+    reportType: 'summarized'
+  });
 
   const handleChange = (e) => {
-    const { name, value } = e.target
-    setFormData((prev) => ({
+    const { name, value } = e.target;
+    setFormData(prev => ({
       ...prev,
-      [name]: value,
-    }))
-  }
+      [name]: value
+    }));
+  };
 
   const handleSubmit = (e) => {
-    e.preventDefault()
-    onSubmit(formData)
-  }
+    e.preventDefault();
+    onSubmit(formData);
+  };
 
   return (
-    <div
-      style={{
-        position: "fixed",
-        top: 0,
-        left: 0,
-        right: 0,
-        bottom: 0,
-        backgroundColor: "rgba(0, 0, 0, 0.5)",
-        display: "flex",
-        justifyContent: "center",
-        alignItems: "center",
-        zIndex: 1000,
-      }}
-    >
-      <div
-        style={{
-          backgroundColor: "white",
-          padding: "20px",
-          borderRadius: "8px",
-          width: "90%",
-          maxWidth: "600px",
-          maxHeight: "90vh",
-          overflowY: "auto",
-        }}
-      >
-        <div style={{ display: "flex", alignItems: "center", marginBottom: "20px" }}>
+    <div style={{
+      position: 'fixed',
+      top: 0,
+      left: 0,
+      right: 0,
+      bottom: 0,
+      backgroundColor: 'rgba(0, 0, 0, 0.5)',
+      display: 'flex',
+      justifyContent: 'center',
+      alignItems: 'center',
+      zIndex: 1000
+    }}>
+      <div style={{
+        backgroundColor: 'white',
+        padding: '20px',
+        borderRadius: '8px',
+        width: '90%',
+        maxWidth: '600px',
+        maxHeight: '90vh',
+        overflowY: 'auto'
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', marginBottom: '20px' }}>
           <button
             onClick={onClose}
             style={{
-              background: "none",
-              border: "none",
-              fontSize: "24px",
-              cursor: "pointer",
-              marginRight: "10px",
+              background: 'none',
+              border: 'none',
+              fontSize: '24px',
+              cursor: 'pointer',
+              marginRight: '10px'
             }}
           >
             ←
@@ -74,18 +69,16 @@ const AutomatedReportForm = ({ onClose, onSubmit }) => {
           <h2 style={{ margin: 0 }}>Automated Report Cycle:</h2>
         </div>
 
-        <div
-          style={{
-            backgroundColor: "#f5f5f5",
-            padding: "20px",
-            borderRadius: "8px",
-          }}
-        >
+        <div style={{
+          backgroundColor: '#f5f5f5',
+          padding: '20px',
+          borderRadius: '8px'
+        }}>
           <h3 style={{ marginTop: 0 }}>Alert Report Generation:</h3>
 
           <form onSubmit={handleSubmit}>
-            <div style={{ marginBottom: "15px" }}>
-              <label style={{ display: "block", marginBottom: "5px" }}>Report's Name:</label>
+            <div style={{ marginBottom: '15px' }}>
+              <label style={{ display: 'block', marginBottom: '5px' }}>Report's Name:</label>
               <input
                 type="text"
                 name="reportName"
@@ -93,27 +86,25 @@ const AutomatedReportForm = ({ onClose, onSubmit }) => {
                 onChange={handleChange}
                 placeholder="Enter Name"
                 style={{
-                  width: "100%",
-                  padding: "8px",
-                  border: "1px solid #ddd",
-                  borderRadius: "4px",
-                  boxSizing: "border-box", // Added to prevent overflow
+                  width: '100%',
+                  padding: '8px',
+                  border: '1px solid #ddd',
+                  borderRadius: '4px'
                 }}
               />
             </div>
 
-            <div style={{ marginBottom: "15px" }}>
-              <label style={{ display: "block", marginBottom: "5px" }}>Alert Type:</label>
+            <div style={{ marginBottom: '15px' }}>
+              <label style={{ display: 'block', marginBottom: '5px' }}>Alert Type:</label>
               <select
                 name="alertType"
                 value={formData.alertType}
                 onChange={handleChange}
                 style={{
-                  width: "100%",
-                  padding: "8px",
-                  border: "1px solid #ddd",
-                  borderRadius: "4px",
-                  boxSizing: "border-box", // Added to prevent overflow
+                  width: '100%',
+                  padding: '8px',
+                  border: '1px solid #ddd',
+                  borderRadius: '4px'
                 }}
               >
                 <option value="">Select Type</option>
@@ -124,18 +115,17 @@ const AutomatedReportForm = ({ onClose, onSubmit }) => {
               </select>
             </div>
 
-            <div style={{ marginBottom: "15px" }}>
-              <label style={{ display: "block", marginBottom: "5px" }}>Alert Criticality:</label>
+            <div style={{ marginBottom: '15px' }}>
+              <label style={{ display: 'block', marginBottom: '5px' }}>Alert Criticality:</label>
               <select
                 name="alertCriticality"
                 value={formData.alertCriticality}
                 onChange={handleChange}
                 style={{
-                  width: "100%",
-                  padding: "8px",
-                  border: "1px solid #ddd",
-                  borderRadius: "4px",
-                  boxSizing: "border-box", // Added to prevent overflow
+                  width: '100%',
+                  padding: '8px',
+                  border: '1px solid #ddd',
+                  borderRadius: '4px'
                 }}
               >
                 <option value="">Select Criticality</option>
@@ -146,16 +136,9 @@ const AutomatedReportForm = ({ onClose, onSubmit }) => {
               </select>
             </div>
 
-            <div
-              style={{
-                marginBottom: "15px",
-                display: "flex",
-                gap: "10px",
-                flexWrap: "wrap", // Added to prevent overflow on small screens
-              }}
-            >
-              <div style={{ flex: "1 1 150px" }}>
-                <label style={{ display: "block", marginBottom: "5px" }}>Repeat Every:</label>
+            <div style={{ marginBottom: '15px', display: 'flex', gap: '10px' }}>
+              <div style={{ flex: 1 }}>
+                <label style={{ display: 'block', marginBottom: '5px' }}>Repeat Every:</label>
                 <input
                   type="number"
                   name="repeatNumber"
@@ -163,26 +146,24 @@ const AutomatedReportForm = ({ onClose, onSubmit }) => {
                   onChange={handleChange}
                   placeholder="Enter Number"
                   style={{
-                    width: "100%",
-                    padding: "8px",
-                    border: "1px solid #ddd",
-                    borderRadius: "4px",
-                    boxSizing: "border-box", // Added to prevent overflow
+                    width: '100%',
+                    padding: '8px',
+                    border: '1px solid #ddd',
+                    borderRadius: '4px'
                   }}
                 />
               </div>
-              <div style={{ flex: "1 1 150px" }}>
-                <label style={{ display: "block", marginBottom: "5px" }}>&nbsp;</label>
+              <div style={{ flex: 1 }}>
+                <label style={{ display: 'block', marginBottom: '5px' }}>&nbsp;</label>
                 <select
                   name="repeatPeriod"
                   value={formData.repeatPeriod}
                   onChange={handleChange}
                   style={{
-                    width: "100%",
-                    padding: "8px",
-                    border: "1px solid #ddd",
-                    borderRadius: "4px",
-                    boxSizing: "border-box", // Added to prevent overflow
+                    width: '100%',
+                    padding: '8px',
+                    border: '1px solid #ddd',
+                    borderRadius: '4px'
                   }}
                 >
                   <option value="">Select Period</option>
@@ -194,52 +175,49 @@ const AutomatedReportForm = ({ onClose, onSubmit }) => {
               </div>
             </div>
 
-            <div style={{ marginBottom: "15px" }}>
-              <label style={{ display: "block", marginBottom: "5px" }}>Start Date:</label>
+            <div style={{ marginBottom: '15px' }}>
+              <label style={{ display: 'block', marginBottom: '5px' }}>Start Date:</label>
               <input
                 type="date"
                 name="startDate"
                 value={formData.startDate}
                 onChange={handleChange}
                 style={{
-                  width: "100%",
-                  padding: "8px",
-                  border: "1px solid #ddd",
-                  borderRadius: "4px",
-                  boxSizing: "border-box", // Added to prevent overflow
+                  width: '100%',
+                  padding: '8px',
+                  border: '1px solid #ddd',
+                  borderRadius: '4px'
                 }}
               />
             </div>
 
-            <div style={{ marginBottom: "15px" }}>
-              <label style={{ display: "block", marginBottom: "5px" }}>End Date:</label>
+            <div style={{ marginBottom: '15px' }}>
+              <label style={{ display: 'block', marginBottom: '5px' }}>End Date:</label>
               <input
                 type="date"
                 name="endDate"
                 value={formData.endDate}
                 onChange={handleChange}
                 style={{
-                  width: "100%",
-                  padding: "8px",
-                  border: "1px solid #ddd",
-                  borderRadius: "4px",
-                  boxSizing: "border-box", // Added to prevent overflow
+                  width: '100%',
+                  padding: '8px',
+                  border: '1px solid #ddd',
+                  borderRadius: '4px'
                 }}
               />
             </div>
 
-            <div style={{ marginBottom: "15px" }}>
-              <label style={{ display: "block", marginBottom: "5px" }}>Report's Format:</label>
+            <div style={{ marginBottom: '15px' }}>
+              <label style={{ display: 'block', marginBottom: '5px' }}>Report's Format:</label>
               <select
                 name="reportFormat"
                 value={formData.reportFormat}
                 onChange={handleChange}
                 style={{
-                  width: "100%",
-                  padding: "8px",
-                  border: "1px solid #ddd",
-                  borderRadius: "4px",
-                  boxSizing: "border-box", // Added to prevent overflow
+                  width: '100%',
+                  padding: '8px',
+                  border: '1px solid #ddd',
+                  borderRadius: '4px'
                 }}
               >
                 <option value="">Select Type</option>
@@ -248,57 +226,43 @@ const AutomatedReportForm = ({ onClose, onSubmit }) => {
               </select>
             </div>
 
-            <div style={{ marginBottom: "20px" }}>
-              <label style={{ display: "block", marginBottom: "5px" }}>Report Type:</label>
-              <div
-                style={{
-                  display: "flex",
-                  gap: "20px",
-                  flexWrap: "wrap", // Added to prevent overflow on small screens
-                }}
-              >
-                <label style={{ display: "flex", alignItems: "center" }}>
+            <div style={{ marginBottom: '20px' }}>
+              <label style={{ display: 'block', marginBottom: '5px' }}>Report Type:</label>
+              <div style={{ display: 'flex', gap: '20px' }}>
+                <label style={{ display: 'flex', alignItems: 'center' }}>
                   <input
                     type="radio"
                     name="reportType"
                     value="summarized"
-                    checked={formData.reportType === "summarized"}
+                    checked={formData.reportType === 'summarized'}
                     onChange={handleChange}
-                    style={{ marginRight: "5px" }}
+                    style={{ marginRight: '5px' }}
                   />
                   Summarized
                 </label>
-                <label style={{ display: "flex", alignItems: "center" }}>
+                <label style={{ display: 'flex', alignItems: 'center' }}>
                   <input
                     type="radio"
                     name="reportType"
                     value="detailed"
-                    checked={formData.reportType === "detailed"}
+                    checked={formData.reportType === 'detailed'}
                     onChange={handleChange}
-                    style={{ marginRight: "5px" }}
+                    style={{ marginRight: '5px' }}
                   />
                   Detailed
                 </label>
               </div>
             </div>
-
-            <div
-              style={{
-                display: "flex",
-                justifyContent: "flex-end",
-                gap: "10px",
-                flexWrap: "wrap", // Added to prevent overflow on small screens
-              }}
-            >
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
               <button
                 type="submit"
                 style={{
-                  padding: "8px 16px",
-                  backgroundColor: "#4CAF50",
-                  color: "white",
-                  border: "none",
-                  borderRadius: "4px",
-                  cursor: "pointer",
+                  padding: '8px 16px',
+                  backgroundColor: '#4CAF50',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '4px',
+                  cursor: 'pointer'
                 }}
               >
                 Generate
@@ -307,12 +271,12 @@ const AutomatedReportForm = ({ onClose, onSubmit }) => {
                 type="button"
                 onClick={onClose}
                 style={{
-                  padding: "8px 16px",
-                  backgroundColor: "#333",
-                  color: "white",
-                  border: "none",
-                  borderRadius: "4px",
-                  cursor: "pointer",
+                  padding: '8px 16px',
+                  backgroundColor: '#333',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '4px',
+                  cursor: 'pointer'
                 }}
               >
                 Cancel
@@ -322,8 +286,9 @@ const AutomatedReportForm = ({ onClose, onSubmit }) => {
         </div>
       </div>
     </div>
-  )
-}
+  );
+};
+
 
 const GenerateReportModal = ({ onClose, onSubmit }) => {
   const [formData, setFormData] = React.useState({
@@ -417,7 +382,6 @@ const GenerateReportModal = ({ onClose, onSubmit }) => {
                   padding: "8px",
                   border: "1px solid #ddd",
                   borderRadius: "4px",
-                  boxSizing: "border-box", // Added to prevent overflow
                 }}
               />
             </div>
@@ -434,7 +398,6 @@ const GenerateReportModal = ({ onClose, onSubmit }) => {
                   border: "1px solid #ddd",
                   borderRadius: "4px",
                   backgroundColor: "white",
-                  boxSizing: "border-box", // Added to prevent overflow
                 }}
               >
                 <option value="">Select Type</option>
@@ -445,13 +408,7 @@ const GenerateReportModal = ({ onClose, onSubmit }) => {
 
             <div style={{ marginBottom: "30px" }}>
               <label style={{ display: "block", marginBottom: "8px" }}>Report Type:</label>
-              <div
-                style={{
-                  display: "flex",
-                  gap: "20px",
-                  flexWrap: "wrap", // Added to prevent overflow on small screens
-                }}
-              >
+              <div style={{ display: "flex", gap: "20px" }}>
                 <label style={{ display: "flex", alignItems: "center", gap: "8px" }}>
                   <input
                     type="radio"
@@ -475,14 +432,7 @@ const GenerateReportModal = ({ onClose, onSubmit }) => {
               </div>
             </div>
 
-            <div
-              style={{
-                display: "flex",
-                justifyContent: "flex-end",
-                gap: "10px",
-                flexWrap: "wrap", // Added to prevent overflow on small screens
-              }}
-            >
+            <div style={{ display: "flex", justifyContent: "flex-end", gap: "10px" }}>
               <button
                 type="submit"
                 style={{
@@ -525,47 +475,71 @@ const Offences = () => {
   const [selectedOffence, setSelectedOffence] = useState(null)
   const [showReportForm, setShowReportForm] = useState(false)
   const [showGenerateReport, setShowGenerateReport] = useState(false)
-  // Add state to track selected rows
   const [selectedRows, setSelectedRows] = useState([])
   const navigate = useNavigate()
   const location = useLocation()
+  const [logs, setLogs] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [offences, setOffences] = useState([]);
+  const classifications = {
+    "not suspicious": { priority: 3, text: "Not Suspicious Traffic" },
+    "unknown": { priority: 3, text: "Unknown Traffic" },
+    "bad unknown": { priority: 2, text: "Potentially Bad Traffic" },
+    "attempted recon": { priority: 2, text: "Attempted Information Leak" },
+    "successful recon limited": { priority: 2, text: "Information Leak" },
+    "successful recon largescale": { priority: 2, text: "Large Scale Information Leak" },
+    "attempted dos": { priority: 2, text: "Attempted Denial of Service" },
+    "successful dos": { priority: 2, text: "Denial of Service" },
+    "attempted user": { priority: 1, text: "Attempted User Privilege Gain" },
+    "unsuccessful user": { priority: 1, text: "Unsuccessful User Privilege Gain" },
+    "successful user": { priority: 1, text: "Successful User Privilege Gain" },
+    "attempted admin": { priority: 1, text: "Attempted Administrator Privilege Gain" },
+    "successful admin": { priority: 1, text: "Successful Administrator Privilege Gain" },
+    "rpc portmap decode": { priority: 2, text: "Decode of an RPC Query" },
+    "shellcode detect": { priority: 1, text: "Executable code was detected" },
+    "string detect": { priority: 3, text: "A suspicious string was detected" },
+    "suspicious filename detect": { priority: 2, text: "A suspicious filename was detected" },
+    "suspicious login": { priority: 2, text: "An attempted login using a suspicious username was detected" },
+    "system call detect": { priority: 2, text: "A system call was detected" },
+    "tcp connection": { priority: 4, text: "A TCP connection was detected" },
+    "trojan activity": { priority: 1, text: "A Network Trojan was detected" },
+    "unusual client port connection": { priority: 2, text: "A client was using an unusual port" },
+    "network scan": { priority: 3, text: "Detection of a Network Scan" },
+    "denial of service": { priority: 2, text: "Detection of a Denial of Service Attack" },
+    "non standard protocol": { priority: 2, text: "Detection of a non standard protocol or event" },
+    "protocol command decode": { priority: 3, text: "Generic Protocol Command Decode" },
+    "web application activity": { priority: 2, text: "Access to a potentially vulnerable web application" },
+    "web application attack": { priority: 1, text: "Web Application Attack" },
+    "misc activity": { priority: 3, text: "Misc activity" },
+    "misc attack": { priority: 2, text: "Misc Attack" },
+    "icmp event": { priority: 3, text: "Generic ICMP event" },
+    "inappropriate content": { priority: 1, text: "Inappropriate Content was Detected" },
+    "policy violation": { priority: 1, text: "Potential Corporate Privacy Violation" },
+    "default login attempt": { priority: 2, text: "Attempt to login by a default username and password" },
+    "sdf": { priority: 2, text: "Sensitive Data" },
+    "file format": { priority: 1, text: "Known malicious file or file based exploit" },
+    "malware cnc": { priority: 1, text: "Known malware command and control traffic" },
+    "client side exploit": { priority: 1, text: "Known client side exploit attempt" }
+};
 
-  const isActive = (path) => location.pathname.startsWith(path)
 
-  const offences = [
-    { criticality: "Med", name: "Suspicious Activity from user", time: "12:12 PM", category: "Suspicious Activity" },
-    { criticality: "Med", name: "Suspicious Activity from user", time: "12:15 PM", category: "Suspicious Activity" },
-    { criticality: "Med", name: "Suspicious Activity from user", time: "12:17 PM", category: "Suspicious Activity" },
-    { criticality: "High", name: "DDOS Attack", time: "12:20 PM", category: "Known Threat" },
-    {
-      criticality: "Low",
-      name: "Connection Request from untrusted ...",
-      time: "1:00 PM",
-      category: "Suspicious Activity",
-    },
-    { criticality: "High", name: "DDOS Attack", time: "1:05 PM", category: "Known Threat" },
-    {
-      criticality: "High",
-      name: "Connection Request from untrusted ...",
-      time: "1:10 PM",
-      category: "Suspicious Activity",
-    },
-    {
-      criticality: "High",
-      name: "Suspicious changes to system setti...",
-      time: "1:12 PM",
-      category: "Highly Dangerous",
-    },
-    {
-      criticality: "Low",
-      name: "Connection Request from untrusted ...",
-      time: "1:14 PM",
-      category: "Suspicious Activity",
-    },
-
-    { criticality: "Low", name: "Suspicious Activity from user", time: "1:15 PM", category: "Suspicious Activity" },
-  ]
-
+  useEffect(() => {
+    axios.get('http://localhost:8000/logs')
+      .then(response => {
+        setLogs(response.data);
+        setOffences(response.data);
+        console.log(response.data);
+      })
+      .catch(error => {
+        console.error('Error fetching logs:', error);
+        setError('Failed to fetch logs');
+      })
+      .finally(() => {
+        setLoading(false);
+      });
+  }, []);
+  
   // Updated filter logic to filter rows based on both filter type and search query
   const filteredOffences = useMemo(() => {
     if (!filterType && !searchQuery) {
@@ -574,32 +548,47 @@ const Offences = () => {
 
     return offences.filter((offence) => {
       const query = searchQuery.toLowerCase()
-
+      
       // If we have a filter type but no search query, show all logs
       if (filterType && !searchQuery) {
         return true
       }
-
+      
       // If we have a search query but no filter type, search across all fields
       if (searchQuery && !filterType) {
         return (
-          offence.criticality.toLowerCase().includes(query) ||
+          offence.description.toLowerCase().includes(query) ||
           offence.name.toLowerCase().includes(query) ||
-          offence.time.toLowerCase().includes(query) ||
-          offence.category.toLowerCase().includes(query)
+          offence.timestamp.toLowerCase().includes(query) ||
+          offence.category.toLowerCase().includes(query) ||
+          offence.message.toLowerCase().includes(query)  ||
+          offence.timestamp.toLowerCase().includes(query) ||
+          offence.src_ip.toLowerCase().includes(query) ||
+          offence.dest_ip.toLowerCase().includes(query) ||
+          offence.src_port.toLowerCase().includes(query) ||
+          offence.dest_port.toLowerCase().includes(query) ||
+          offence.protocol.toLowerCase().includes(query)
         )
       }
-
+      
       // If we have both filter type and search query, search only in the specified field
       switch (filterType) {
-        case "Alert Criticality":
-          return offence.criticality.toLowerCase().includes(query)
-        case "Alert Name":
-          return offence.name.toLowerCase().includes(query)
-        case "Date & Time":
-          return offence.time.toLowerCase().includes(query)
         case "Alert Category":
-          return offence.category.toLowerCase().includes(query)
+          return offence.description.toLowerCase().includes(query)
+        case "Alert Name":
+          return offence.message.toLowerCase().includes(query)
+        case "Date & Time":
+          return offence.timestamp.toLowerCase().includes(query)
+        case "Source IP":
+          return offence.src_ip.toLowerCase().includes(query)
+        case "Destination IP":
+          return offence.dest_ip.toLowerCase().includes(query)
+        case "Source Port": 
+          return offence.src_port.toLowerCase().includes(query)
+        case "Destination Port":
+          return offence.dest_port.toLowerCase().includes(query)
+        case "Protocol":
+          return offence.protocol.toLowerCase().includes(query)
         default:
           return false
       }
@@ -627,23 +616,50 @@ const Offences = () => {
       }
     } else {
       // Remove this row from selected rows
-      setSelectedRows(selectedRows.filter((rowIndex) => rowIndex !== index))
+      setSelectedRows(selectedRows.filter(rowIndex => rowIndex !== index))
     }
   }
 
   // Check if all filtered rows are selected
   const areAllSelected = filteredOffences.length > 0 && selectedRows.length === filteredOffences.length
+  function getAlertCount() {
+      return offences.length
+    }
+
+  
+  function getHighAlerts() {
+    return offences.map((offence, index) => getPriority(offence.description.toLowerCase().trim() || 'N/A')).filter((val) => val == 1).length;
+  }
+
+  
+  function getMediumAlerts() {
+    return offences.map((offence, index) => getPriority(offence.description.toLowerCase().trim() || 'N/A')).filter((val) => val == 2 || val == 3).length;
+  }
+
+  function getLowAlerts() {
+    return offences.map((offence, index) => getPriority(offence.description.toLowerCase().trim() || 'N/A')).filter((val) => val == 4).length;
+  }
+
+  function getUncategorizedAlerts() {
+    return offences.filter((offence, index) => getPriority(offence.description.toLowerCase().trim() || 'N/A') == 'Unknown').length;
+  }
+
 
   const openModal = (offence) => {
     setSelectedOffence(offence)
     setIsModalOpen(true)
   }
 
+  function getPriority(name) {
+    name = name.trim()
+    return classifications[name] ? classifications[name].priority : 'Unknown'
+  }
+
   const closeModal = () => {
     setIsModalOpen(false)
     setSelectedOffence(null)
   }
-
+  
   const handleLogout = () => {
     navigate("/login")
   }
@@ -675,137 +691,75 @@ const Offences = () => {
   }
 
   return (
-    <div
-      style={{
-        display: "flex",
-        height: "100vh",
-        background: "#f4f4f4",
-        overflow: "hidden", // Added to prevent horizontal scrolling
-      }}
-    >
+    <div style={{ display: "flex", height: "100vh", background: "#f4f4f4" }}>
       {/* Use the Sidebar component */}
       <Sidebar userRole={userRole} />
 
       {/* Main Content */}
-      <div
-        style={{
-          flex: 1,
-          padding: "20px",
-          overflowY: "auto", // Allow vertical scrolling
-          overflowX: "hidden", // Prevent horizontal scrolling
-        }}
-      >
+      <div style={{ flex: 1, padding: "20px" }}>
         <h1>Offences (Alert) Interface:</h1>
 
         {/* Statistics */}
-        <div
-          style={{
-            display: "flex",
-            gap: "10px",
-            marginBottom: "20px",
-            flexWrap: "wrap", // Added to prevent overflow on small screens
-          }}
-        >
-          <div
-            style={{
-              background: "#ddd",
-              padding: "12px 20px",
-              borderRadius: "20px",
-              textAlign: "center",
-              flex: "1 1 150px", // Added to make responsive
-            }}
-          >
+        <div style={{ display: "flex", gap: "10px", marginBottom: "20px" }}>
+          <div style={{ background: "#ddd", padding: "12px 20px", borderRadius: "20px", textAlign: "center" }}>
             <p>Total Alerts</p>
-            <p style={{ fontSize: "20px", fontWeight: "bold" }}>{filteredOffences.length}</p>
+            <p style={{ fontSize: "20px", fontWeight: "bold" }}>{getAlertCount()}</p>
           </div>
-          <div
-            style={{
-              background: "#ddd",
-              padding: "12px 20px",
-              borderRadius: "20px",
-              textAlign: "center",
-              flex: "1 1 150px", // Added to make responsive
-            }}
-          >
+          <div style={{ background: "#ddd", padding: "12px 20px", borderRadius: "20px", textAlign: "center" }}>
             <p>Total High</p>
             <p style={{ fontSize: "20px", fontWeight: "bold" }}>
-              {filteredOffences.filter((o) => o.criticality === "High").length}
+              {getHighAlerts()}
             </p>
           </div>
-          <div
-            style={{
-              background: "#ddd",
-              padding: "12px 20px",
-              borderRadius: "20px",
-              textAlign: "center",
-              flex: "1 1 150px", // Added to make responsive
-            }}
-          >
+          <div style={{ background: "#ddd", padding: "12px 20px", borderRadius: "20px", textAlign: "center" }}>
             <p>Total Med</p>
             <p style={{ fontSize: "20px", fontWeight: "bold" }}>
-              {filteredOffences.filter((o) => o.criticality === "Med").length}
+              {getMediumAlerts()}
             </p>
           </div>
-          <div
-            style={{
-              background: "#ddd",
-              padding: "12px 20px",
-              borderRadius: "20px",
-              textAlign: "center",
-              flex: "1 1 150px", // Added to make responsive
-            }}
-          >
+          <div style={{ background: "#ddd", padding: "12px 20px", borderRadius: "20px", textAlign: "center" }}>
             <p>Total Low</p>
             <p style={{ fontSize: "20px", fontWeight: "bold" }}>
-              {filteredOffences.filter((o) => o.criticality === "Low").length}
+              {getLowAlerts()}
+            </p>
+          </div>
+          <div style={{ background: "#ddd", padding: "12px 20px", borderRadius: "20px", textAlign: "center" }}>
+            <p>Total Uncategorized</p>
+            <p style={{ fontSize: "20px", fontWeight: "bold" }}>
+              {getUncategorizedAlerts()}
             </p>
           </div>
         </div>
 
         {/* Filter and Buttons */}
-        <div
-          style={{
-            display: "flex",
-            justifyContent: "space-between",
-            marginBottom: "20px",
-            flexWrap: "wrap", // Added to prevent overflow on small screens
-            gap: "10px", // Added for spacing when wrapped
-          }}
-        >
-          <div
-            style={{
-              display: "flex",
-              gap: "10px",
-              flex: "1 1 300px",
-              maxWidth: "600px",
-              flexWrap: "wrap", // Added to prevent overflow on small screens
-            }}
-          >
+        <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "20px" }}>
+          <div style={{ display: "flex", gap: "10px", flex: 1, maxWidth: "600px" }}>
             <select
               value={filterType}
               onChange={(e) => setFilterType(e.target.value)}
-              style={{
-                padding: "10px",
+              style={{ 
+                padding: "10px", 
                 border: "1px solid #ccc",
                 borderRadius: "4px",
-                minWidth: "180px",
-                boxSizing: "border-box", // Added to prevent overflow
+                minWidth: "180px"
               }}
             >
               <option value="">Filter By (All Fields)</option>
-              <option value="Alert Criticality">Alert Criticality</option>
               <option value="Alert Category">Alert Category</option>
+              <option value="Source IP">Source IP</option>
+              <option value="Destination IP">Destination IP</option>
+              <option value="Source Port">Source Port</option>
+              <option value="Destination Port">Destination Port</option>
+              <option value="Protocol">Protocol</option>
               <option value="Alert Name">Alert Name</option>
               <option value="Date & Time">Date & Time</option>
             </select>
-
-            <div
-              style={{
-                position: "relative",
-                flex: "1 1 200px",
-                display: "flex",
-              }}
-            >
+            
+            <div style={{ 
+              position: "relative", 
+              flex: 1,
+              display: "flex"
+            }}>
               <input
                 type="text"
                 placeholder={filterType ? `Search by ${filterType}...` : "Search all fields..."}
@@ -815,8 +769,7 @@ const Offences = () => {
                   flex: 1,
                   padding: "10px",
                   border: "1px solid #ccc",
-                  borderRadius: "4px",
-                  boxSizing: "border-box", // Added to prevent overflow
+                  borderRadius: "4px"
                 }}
               />
               <button
@@ -834,26 +787,18 @@ const Offences = () => {
               </button>
             </div>
           </div>
-
-          <div
-            style={{
-              display: "flex",
-              gap: "10px",
-              flexWrap: "wrap", // Added to prevent overflow on small screens
-              flex: "1 1 300px",
-              justifyContent: "flex-end",
-            }}
-          >
+          
+          <div>
             <button
               onClick={handleOpenReportForm}
               style={{
                 background: "green",
                 color: "#fff",
                 padding: "12px 20px",
+                marginRight: "10px",
                 border: "none",
                 borderRadius: "20px",
                 cursor: "pointer",
-                whiteSpace: "nowrap", // Prevent text wrapping
               }}
             >
               Add Automate Report Cycle
@@ -867,7 +812,6 @@ const Offences = () => {
                 border: "none",
                 borderRadius: "20px",
                 cursor: "pointer",
-                whiteSpace: "nowrap", // Prevent text wrapping
               }}
             >
               Generate Report
@@ -877,26 +821,24 @@ const Offences = () => {
 
         {/* Selected rows info */}
         {selectedRows.length > 0 && (
-          <div
-            style={{
-              marginBottom: "10px",
-              padding: "8px 12px",
-              backgroundColor: "#e0f7fa",
-              borderRadius: "4px",
-              display: "flex",
-              justifyContent: "space-between",
-              alignItems: "center",
-            }}
-          >
+          <div style={{ 
+            marginBottom: "10px", 
+            padding: "8px 12px", 
+            backgroundColor: "#e0f7fa", 
+            borderRadius: "4px",
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center"
+          }}>
             <span>{selectedRows.length} offences selected</span>
-            <button
+            <button 
               onClick={() => setSelectedRows([])}
               style={{
                 background: "none",
                 border: "none",
                 color: "#0277bd",
                 cursor: "pointer",
-                fontWeight: "bold",
+                fontWeight: "bold"
               }}
             >
               Clear selection
@@ -905,74 +847,70 @@ const Offences = () => {
         )}
 
         {/* Offences Table */}
-        <div
+        <div style={{ width: "100%", overflowX: "auto", maxHeight: "900px", overflowY: "auto" }}>
+        <table
           style={{
             width: "100%",
-            overflow: "auto", // Changed from "hidden" to "auto" to allow scrolling if needed
-            maxWidth: "100%", // Added to prevent overflow
+            background: "#fff",
+            borderCollapse: "collapse",
+            boxShadow: "0 0 10px rgba(0,0,0,0.1)",
+            minWidth: "800px"
           }}
         >
-          <table
-            style={{
-              width: "100%",
-              background: "#fff",
-              borderCollapse: "collapse",
-              boxShadow: "0 0 10px rgba(0,0,0,0.1)",
-            }}
-          >
-            <thead>
-              <tr style={{ background: "#ccc", borderBottom: "2px solid #aaa" }}>
-                <th style={{ padding: "10px", textAlign: "center", borderRight: "1px solid #aaa" }}>
-                  <input
-                    type="checkbox"
-                    checked={areAllSelected}
-                    onChange={handleSelectAll}
+          <thead style={{ position: "sticky", top: 0, background: "#fff", zIndex: 2, boxShadow: "0 2px 2px rgba(0,0,0,0.1)" }}>
+            <tr style={{ background: "#ccc", borderBottom: "2px solid #aaa" }}>
+              <th style={{ padding: "10px", textAlign: "center", borderRight: "1px solid #aaa" }}>
+                <input 
+                  type="checkbox" 
+                  checked={areAllSelected}
+                  onChange={handleSelectAll}
+                  style={{ cursor: "pointer" }}
+                /> Select
+              </th>
+              <th style={{ padding: "10px", textAlign: "center", borderRight: "1px solid #aaa" }}>
+                  Alert Message
+                </th>
+              <th style={{ padding: "10px", textAlign: "center", borderRight: "1px solid #aaa" }}>Date & Time</th>
+              <th style={{ padding: "10px", textAlign: "center", borderRight: "1px solid #aaa" }}>Protocol</th>
+              <th style={{ padding: "10px", textAlign: "center", borderRight: "1px solid #aaa" }}>Alert Category</th>
+              <th style={{ padding: "10px", textAlign: "center", borderRight: "1px solid #aaa" }}>Severity level (1=High, 4=Low)</th>
+              <th style={{ padding: "10px", textAlign: "center" }}>View</th>
+            </tr>
+          </thead>
+          <tbody>
+            {filteredOffences.map((offence, index) => (
+              <tr 
+                key={index} 
+                style={{ 
+                  borderBottom: "1px solid #ddd",
+                  backgroundColor: selectedRows.includes(index) ? "#f0f7ff" : "inherit"
+                }}
+              >
+                <td style={{ padding: "10px", textAlign: "center" }}>
+                  <input 
+                    type="checkbox" 
+                    checked={selectedRows.includes(index)}
+                    onChange={(e) => handleSelectRow(index, e)}
                     style={{ cursor: "pointer" }}
-                  />{" "}
-                  Select
-                </th>
-                <th style={{ padding: "10px", textAlign: "center", borderRight: "1px solid #aaa" }}>
-                  Alert Criticality
-                </th>
-                <th style={{ padding: "10px", textAlign: "center", borderRight: "1px solid #aaa" }}>Alert Name</th>
-                <th style={{ padding: "10px", textAlign: "center", borderRight: "1px solid #aaa" }}>Date & Time</th>
-                <th style={{ padding: "10px", textAlign: "center", borderRight: "1px solid #aaa" }}>Alert Category</th>
-                <th style={{ padding: "10px", textAlign: "center" }}>View</th>
+                  />
+                </td>
+                <td style={{ padding: "10px", textAlign: "center" }}>{offence.message}</td>
+                <td style={{ padding: "10px", textAlign: "center" }}>{new Date(offence.timestamp).toLocaleString()}</td>
+                <td style={{ padding: "10px", textAlign: "center" }}>{offence.protocol}</td>
+                <td style={{ padding: "10px", textAlign: "center" }}>{offence.description.toLowerCase() || 'N/A'}</td>
+                <td style={{ padding: "10px", textAlign: "center" }}>{getPriority(offence.description.toLowerCase().trim() || 'N/A')}</td>
+                <td style={{ padding: "10px", textAlign: "center" }}>
+                  <button
+                    style={{ background: "purple", color: "#fff", padding: "5px 10px", borderRadius: "5px" }}
+                    onClick={() => openModal(offence)}
+                  >
+                    View
+                  </button>
+                </td>
               </tr>
-            </thead>
-            <tbody>
-              {filteredOffences.map((offence, index) => (
-                <tr
-                  key={index}
-                  style={{
-                    borderBottom: "1px solid #ddd",
-                    backgroundColor: selectedRows.includes(index) ? "#f0f7ff" : "inherit",
-                  }}
-                >
-                  <td style={{ padding: "10px", textAlign: "center" }}>
-                    <input
-                      type="checkbox"
-                      checked={selectedRows.includes(index)}
-                      onChange={(e) => handleSelectRow(index, e)}
-                      style={{ cursor: "pointer" }}
-                    />
-                  </td>
-                  <td style={{ padding: "10px", textAlign: "center" }}>{offence.criticality}</td>
-                  <td style={{ padding: "10px", textAlign: "center" }}>{offence.name}</td>
-                  <td style={{ padding: "10px", textAlign: "center" }}>{offence.time}</td>
-                  <td style={{ padding: "10px", textAlign: "center" }}>{offence.category}</td>
-                  <td style={{ padding: "10px", textAlign: "center" }}>
-                    <button
-                      style={{ background: "purple", color: "#fff", padding: "5px 10px", borderRadius: "5px" }}
-                      onClick={() => openModal(offence)}
-                    >
-                      View
-                    </button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+            ))}
+          </tbody>
+        </table>
         </div>
 
         {/* Modal */}
@@ -988,7 +926,6 @@ const Offences = () => {
               display: "flex",
               justifyContent: "center",
               alignItems: "center",
-              zIndex: 1000,
             }}
             onClick={closeModal}
           >
@@ -997,12 +934,9 @@ const Offences = () => {
                 backgroundColor: "white",
                 padding: "20px",
                 borderRadius: "10px",
-                width: "90%",
-                maxWidth: "800px",
+                width: "800px",
                 boxShadow: "0 0 10px rgba(0, 0, 0, 0.2)",
                 position: "relative",
-                maxHeight: "90vh",
-                overflowY: "auto",
               }}
               onClick={(e) => e.stopPropagation()}
             >
@@ -1024,95 +958,56 @@ const Offences = () => {
                   ×
                 </button>
               </div>
+              
+              
               {selectedOffence && (
-                <div
-                  style={{
-                    display: "grid",
-                    gridTemplateColumns: "1fr 1fr",
-                    gap: "20px",
-                    "@media (max-width: 600px)": {
-                      gridTemplateColumns: "1fr",
-                    },
-                  }}
-                >
-                  <div>
-                    <p style={{ fontWeight: "bold", marginBottom: "5px" }}>Alert Name:</p>
-                    <div style={{ background: "#f0f0f0", padding: "8px", borderRadius: "4px", marginBottom: "15px" }}>
-                      {selectedOffence.name}
-                    </div>
-
-                    <p style={{ fontWeight: "bold", marginBottom: "5px" }}>Date & Time:</p>
-                    <div style={{ background: "#f0f0f0", padding: "8px", borderRadius: "4px", marginBottom: "15px" }}>
-                      {selectedOffence.time}
-                    </div>
-
-                    <p style={{ fontWeight: "bold", marginBottom: "5px" }}>Source IP:</p>
-                    <div style={{ background: "#f0f0f0", padding: "8px", borderRadius: "4px", marginBottom: "15px" }}>
-                      121:121:121:121
-                    </div>
-                  </div>
-
-                  <div>
-                    <p style={{ fontWeight: "bold", marginBottom: "5px" }}>Alert Criticality:</p>
-                    <div style={{ background: "#f0f0f0", padding: "8px", borderRadius: "4px", marginBottom: "15px" }}>
-                      {selectedOffence.criticality}
-                    </div>
-
-                    <p style={{ fontWeight: "bold", marginBottom: "5px" }}>Alert Category:</p>
-                    <div style={{ background: "#f0f0f0", padding: "8px", borderRadius: "4px", marginBottom: "15px" }}>
-                      {selectedOffence.category}
-                    </div>
-
-                    <p style={{ fontWeight: "bold", marginBottom: "5px" }}>Destination IP:</p>
-                    <div style={{ background: "#f0f0f0", padding: "8px", borderRadius: "4px", marginBottom: "15px" }}>
-                      6.66.666.6666
-                    </div>
-                  </div>
-
-                  <div style={{ gridColumn: "1 / -1" }}>
-                    <p style={{ fontWeight: "bold", marginBottom: "5px" }}>Alert Message:</p>
-                    <div
-                      style={{
-                        background: "#f0f0f0",
-                        padding: "8px",
-                        borderRadius: "4px",
-                        marginBottom: "15px",
-                        minHeight: "100px",
-                        position: "relative",
-                      }}
-                    >
-                      Suspicious activity has been detected from user DumbDumb
-                      <button
-                        style={{
-                          position: "absolute",
-                          right: "8px",
-                          top: "8px",
-                          background: "none",
-                          border: "none",
-                          cursor: "pointer",
-                          padding: "0",
-                        }}
-                      >
-                        📋
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              )}
+  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "20px" }}>
+    <div>
+      <p style={{ fontWeight: "bold", marginBottom: "5px" }}>Alert Name:</p>
+      <div style={{ background: "#f0f0f0", padding: "8px", borderRadius: "4px", marginBottom: "15px" }}>
+        {selectedOffence.message || 'N/A'}
+      </div>
+      <p style={{ fontWeight: "bold", marginBottom: "5px" }}>Date & Time:</p>
+      <div style={{ background: "#f0f0f0", padding: "8px", borderRadius: "4px", marginBottom: "15px" }}>
+        {selectedOffence.timestamp ? new Date(selectedOffence.timestamp).toLocaleString() : 'N/A'}
+      </div>
+      <p style={{ fontWeight: "bold", marginBottom: "5px" }}>Source IP:</p>
+      <div style={{ background: "#f0f0f0", padding: "8px", borderRadius: "4px", marginBottom: "15px" }}>
+        {selectedOffence.src_ip || 'N/A'}
+      </div>
+    </div>
+    <div>
+      <p style={{ fontWeight: "bold", marginBottom: "5px" }}>Alert Type:</p>
+      <div style={{ background: "#f0f0f0", padding: "8px", borderRadius: "4px", marginBottom: "15px" }}>
+        {selectedOffence.description || 'N/A'}
+      </div>
+      <p style={{ fontWeight: "bold", marginBottom: "5px" }}>Alert Protocol:</p>
+      <div style={{ background: "#f0f0f0", padding: "8px", borderRadius: "4px", marginBottom: "15px" }}>
+      {selectedOffence.protocol || 'N/A'}
+      </div>
+      <p style={{ fontWeight: "bold", marginBottom: "5px" }}>Destination IP:</p>
+      <div style={{ background: "#f0f0f0", padding: "8px", borderRadius: "4px", marginBottom: "15px" }}>
+        {selectedOffence.dest_ip || 'N/A'}
+      </div>
+    </div>
+  </div>
+)}
             </div>
           </div>
         )}
 
         {/* Automated Report Form Modal */}
-        {showReportForm && <AutomatedReportForm onClose={handleCloseReportForm} onSubmit={handleSubmitReport} />}
+        {showReportForm && (
+          <AutomatedReportForm onClose={handleCloseReportForm} onSubmit={handleSubmitReport} />
+        )}
 
         {showGenerateReport && (
           <GenerateReportModal onClose={handleCloseGenerateReport} onSubmit={handleSubmitGenerateReport} />
         )}
+        
       </div>
     </div>
   )
 }
 
 export default Offences
-
