@@ -12,7 +12,7 @@ import UserManagementPage from "./UserManagementPage"
 import LandingPage from "./LandingPage"
 import RegistrationPage from "./RegistrationPage"
 import PaymentPage from "./PaymentPage"
-//import api from "./api"
+import Sidebar from "./Sidebar"
 
 function App() {
   return (
@@ -25,15 +25,17 @@ function App() {
         <Route path="/login" element={<LoginPage />} />
 		    <Route path="/dashboard" element={<DashboardPage />} />
         <Route path="/offences" element={<OffencesPage />} />
-		    <Route path="/reports" element={<ReportsPage />} />
+        <Route path="/reports" element={<ReportsPage />} />
         <Route path="/event-log" element={<EventLogPage />} />
         <Route path="/system-config" element={<SystemConfigurationPage />} />
         <Route path="/blocklist" element={<BlocklistManagementPage />} />
         <Route path="/roles-permission" element={<RolesAndPermissionPage />} />
         <Route path="/user-management" element={<UserManagementPage />} />
+        <Route path="/Sidebar" element={<Sidebar />} />
       </Routes>
     </Router>
   );
 }
 
 export default App;
+

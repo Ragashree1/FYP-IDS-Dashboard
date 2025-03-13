@@ -1,8 +1,9 @@
-"use client"
-
 import React, { useState, useMemo, useEffect} from "react"
 import { useNavigate, useLocation } from "react-router-dom"
 import axios from 'axios';
+import Sidebar from "./Sidebar" // Import the Sidebar component
+
+const userRole = "network-admin"
 
 const AutomatedReportForm = ({ onClose, onSubmit }) => {
   const [formData, setFormData] = useState({
@@ -468,12 +469,13 @@ const GenerateReportModal = ({ onClose, onSubmit }) => {
 }
 
 const Offences = () => {
-  const [filter, setFilter] = useState("")
+  const [filterType, setFilterType] = useState("")
+  const [searchQuery, setSearchQuery] = useState("")
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [selectedOffence, setSelectedOffence] = useState(null)
   const [showReportForm, setShowReportForm] = useState(false)
   const [showGenerateReport, setShowGenerateReport] = useState(false)
-  const [selectAll, setSelectAll] = useState(false);
+  const [selectedRows, setSelectedRows] = useState([])
   const navigate = useNavigate()
   const location = useLocation()
   const [logs, setLogs] = useState([]);
@@ -538,15 +540,91 @@ const Offences = () => {
       });
   }, []);
   
-  const isActive = (path) => location.pathname.startsWith(path)
-
+  // Updated filter logic to filter rows based on both filter type and search query
   const filteredOffences = useMemo(() => {
-    return offences
-  }, [offences])
+    if (!filterType && !searchQuery) {
+      return offences
+    }
 
-  function getAlertCount() {
-    return offences.length
+    return offences.filter((offence) => {
+      const query = searchQuery.toLowerCase()
+      
+      // If we have a filter type but no search query, show all logs
+      if (filterType && !searchQuery) {
+        return true
+      }
+      
+      // If we have a search query but no filter type, search across all fields
+      if (searchQuery && !filterType) {
+        return (
+          offence.description.toLowerCase().includes(query) ||
+          offence.name.toLowerCase().includes(query) ||
+          offence.timestamp.toLowerCase().includes(query) ||
+          offence.category.toLowerCase().includes(query) ||
+          offence.message.toLowerCase().includes(query)  ||
+          offence.timestamp.toLowerCase().includes(query) ||
+          offence.src_ip.toLowerCase().includes(query) ||
+          offence.dest_ip.toLowerCase().includes(query) ||
+          offence.src_port.toLowerCase().includes(query) ||
+          offence.dest_port.toLowerCase().includes(query) ||
+          offence.protocol.toLowerCase().includes(query)
+        )
+      }
+      
+      // If we have both filter type and search query, search only in the specified field
+      switch (filterType) {
+        case "Alert Category":
+          return offence.description.toLowerCase().includes(query)
+        case "Alert Name":
+          return offence.message.toLowerCase().includes(query)
+        case "Date & Time":
+          return offence.timestamp.toLowerCase().includes(query)
+        case "Source IP":
+          return offence.src_ip.toLowerCase().includes(query)
+        case "Destination IP":
+          return offence.dest_ip.toLowerCase().includes(query)
+        case "Source Port": 
+          return offence.src_port.toLowerCase().includes(query)
+        case "Destination Port":
+          return offence.dest_port.toLowerCase().includes(query)
+        case "Protocol":
+          return offence.protocol.toLowerCase().includes(query)
+        default:
+          return false
+      }
+    })
+  }, [offences, filterType, searchQuery])
+
+  // Function to handle "select all" checkbox
+  const handleSelectAll = (e) => {
+    if (e.target.checked) {
+      // If checked, select all filtered offences
+      const allRowIndexes = filteredOffences.map((_, index) => index)
+      setSelectedRows(allRowIndexes)
+    } else {
+      // If unchecked, clear all selections
+      setSelectedRows([])
+    }
   }
+
+  // Function to handle individual row selection
+  const handleSelectRow = (index, e) => {
+    if (e.target.checked) {
+      // Add this row to selected rows if not already there
+      if (!selectedRows.includes(index)) {
+        setSelectedRows([...selectedRows, index])
+      }
+    } else {
+      // Remove this row from selected rows
+      setSelectedRows(selectedRows.filter(rowIndex => rowIndex !== index))
+    }
+  }
+
+  // Check if all filtered rows are selected
+  const areAllSelected = filteredOffences.length > 0 && selectedRows.length === filteredOffences.length
+  function getAlertCount() {
+      return offences.length
+    }
 
   
   function getHighAlerts() {
@@ -565,6 +643,7 @@ const Offences = () => {
   function getUncategorizedAlerts() {
     return offences.filter((offence, index) => getPriority(offence.description.toLowerCase().trim() || 'N/A') == 'Unknown').length;
   }
+
 
   const openModal = (offence) => {
     setSelectedOffence(offence)
@@ -611,146 +690,10 @@ const Offences = () => {
     setShowGenerateReport(false)
   }
 
-  const handleSelectAll = () => {
-    const newSelectAll = !selectAll;
-    setSelectAll(newSelectAll);
-    setOffences(offences.map(offence => ({ ...offence, selected: newSelectAll })));
-  };
-
-  const handleSelect = (index) => {
-    const updatedOffences = [...offences];
-    updatedOffences[index].selected = !updatedOffences[index].selected;
-    setOffences(updatedOffences);
-  };
-
   return (
     <div style={{ display: "flex", height: "100vh", background: "#f4f4f4" }}>
-      {/* Sidebar */}
-      <div
-        style={{
-          width: "250px",
-          background: "#222",
-          color: "#fff",
-          padding: "20px",
-          display: "flex",
-          flexDirection: "column",
-        }}
-      >
-        <h2>SecuBoard</h2>
-        <ul style={{ listStyle: "none", padding: 0 }}>
-          <li
-            style={{
-              padding: "10px",
-              background: isActive("/dashboard") ? "#555" : "#333",
-              marginBottom: "5px",
-              display: "flex",
-              alignItems: "center",
-              cursor: "pointer",
-            }}
-            onClick={() => navigate("/dashboard")}
-          >
-            <img
-              src="/images/dashboard-logo.png"
-              alt="Dashboard Logo"
-              style={{ width: "20px", height: "20px", marginRight: "10px" }}
-            />
-            Dashboard
-          </li>
-          <li
-            style={{
-              padding: "10px",
-              background: isActive("/offences") ? "#555" : "#333",
-              marginBottom: "5px",
-              display: "flex",
-              alignItems: "center",
-              cursor: "pointer",
-            }}
-            onClick={() => navigate("/offences")}
-          >
-            <img
-              src="/images/offences-logo.png"
-              alt="Offences Logo"
-              style={{ width: "20px", height: "20px", marginRight: "10px" }}
-            />
-            Offences
-          </li>
-          <li
-            style={{
-              padding: "10px",
-              background: isActive("/event-log") ? "#555" : "#333",
-              marginBottom: "5px",
-              display: "flex",
-              alignItems: "center",
-              cursor: "pointer",
-            }}
-            onClick={() => navigate("/event-log")}
-          >
-            <img
-              src="/images/event-log-logo.png"
-              alt="Event Log Logo"
-              style={{ width: "20px", height: "20px", marginRight: "10px" }}
-            />
-            Event Log Activity
-          </li>
-          <li
-            style={{
-              padding: "10px",
-              background: isActive("/reports") ? "#555" : "#333",
-              marginBottom: "5px",
-              display: "flex",
-              alignItems: "center",
-              cursor: "pointer",
-            }}
-            onClick={() => navigate("/reports")}
-          >
-            <img
-              src="/images/report-logo.png"
-              alt="Reports Logo"
-              style={{ width: "20px", height: "20px", marginRight: "10px" }}
-            />
-            Reports
-          </li>
-          <li
-            style={{
-              padding: "10px",
-              background: isActive("/settings") ? "#555" : "#333",
-              marginBottom: "5px",
-              display: "flex",
-              alignItems: "center",
-              cursor: "pointer",
-            }}
-            onClick={() => navigate("/settings")}
-          >
-            <img
-              src="/images/settings-logo.png"
-              alt="Settings Logo"
-              style={{ width: "20px", height: "20px", marginRight: "10px" }}
-            />
-            Settings
-          </li>
-        </ul>
-        <button
-          onClick={handleLogout}
-          style={{
-            marginTop: "auto",
-            width: "100%",
-            padding: "10px",
-            background: "red",
-            border: "none",
-            color: "#fff",
-            display: "flex",
-            alignItems: "center",
-            cursor: "pointer",
-          }}
-        >
-          <img
-            src="/images/logout-logo.png"
-            alt="Logout Logo"
-            style={{ width: "20px", height: "20px", marginRight: "10px" }}
-          />
-          Logout
-        </button>
-      </div>
+      {/* Use the Sidebar component */}
+      <Sidebar userRole={userRole} />
 
       {/* Main Content */}
       <div style={{ flex: 1, padding: "20px" }}>
@@ -759,40 +702,92 @@ const Offences = () => {
         {/* Statistics */}
         <div style={{ display: "flex", gap: "10px", marginBottom: "20px" }}>
           <div style={{ background: "#ddd", padding: "12px 20px", borderRadius: "20px", textAlign: "center" }}>
-            <p>Total Alerts </p>
+            <p>Total Alerts</p>
             <p style={{ fontSize: "20px", fontWeight: "bold" }}>{getAlertCount()}</p>
           </div>
           <div style={{ background: "#ddd", padding: "12px 20px", borderRadius: "20px", textAlign: "center" }}>
             <p>Total High</p>
-            <p style={{ fontSize: "20px", fontWeight: "bold" }}>{getHighAlerts()}</p>
+            <p style={{ fontSize: "20px", fontWeight: "bold" }}>
+              {getHighAlerts()}
+            </p>
           </div>
           <div style={{ background: "#ddd", padding: "12px 20px", borderRadius: "20px", textAlign: "center" }}>
             <p>Total Med</p>
-            <p style={{ fontSize: "20px", fontWeight: "bold" }}>{getMediumAlerts()}</p>
+            <p style={{ fontSize: "20px", fontWeight: "bold" }}>
+              {getMediumAlerts()}
+            </p>
           </div>
           <div style={{ background: "#ddd", padding: "12px 20px", borderRadius: "20px", textAlign: "center" }}>
             <p>Total Low</p>
-            <p style={{ fontSize: "20px", fontWeight: "bold" }}>{getLowAlerts()}</p>
+            <p style={{ fontSize: "20px", fontWeight: "bold" }}>
+              {getLowAlerts()}
+            </p>
           </div>
           <div style={{ background: "#ddd", padding: "12px 20px", borderRadius: "20px", textAlign: "center" }}>
-            <p>Uncategorized Alerts</p>
-            <p style={{ fontSize: "20px", fontWeight: "bold" }}>{getUncategorizedAlerts()}</p>
+            <p>Total Uncategorized</p>
+            <p style={{ fontSize: "20px", fontWeight: "bold" }}>
+              {getUncategorizedAlerts()}
+            </p>
           </div>
         </div>
 
         {/* Filter and Buttons */}
         <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "20px" }}>
-          <select
-            value={filter}
-            onChange={(e) => setFilter(e.target.value)}
-            style={{ padding: "10px", border: "1px solid #ccc" }}
-          >
-            <option value="">Select Filter Type</option>
-            <option value="Alert Criticality">Alert Criticality</option>
-            <option value="Alert Category">Alert Category</option>
-            <option value="Alert Name">Alert Name</option>
-            <option value="Date & Time">Date & Time</option>
-          </select>
+          <div style={{ display: "flex", gap: "10px", flex: 1, maxWidth: "600px" }}>
+            <select
+              value={filterType}
+              onChange={(e) => setFilterType(e.target.value)}
+              style={{ 
+                padding: "10px", 
+                border: "1px solid #ccc",
+                borderRadius: "4px",
+                minWidth: "180px"
+              }}
+            >
+              <option value="">Filter By (All Fields)</option>
+              <option value="Alert Category">Alert Category</option>
+              <option value="Source IP">Source IP</option>
+              <option value="Destination IP">Destination IP</option>
+              <option value="Source Port">Source Port</option>
+              <option value="Destination Port">Destination Port</option>
+              <option value="Protocol">Protocol</option>
+              <option value="Alert Name">Alert Name</option>
+              <option value="Date & Time">Date & Time</option>
+            </select>
+            
+            <div style={{ 
+              position: "relative", 
+              flex: 1,
+              display: "flex"
+            }}>
+              <input
+                type="text"
+                placeholder={filterType ? `Search by ${filterType}...` : "Search all fields..."}
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                style={{
+                  flex: 1,
+                  padding: "10px",
+                  border: "1px solid #ccc",
+                  borderRadius: "4px"
+                }}
+              />
+              <button
+                style={{
+                  position: "absolute",
+                  right: "8px",
+                  top: "50%",
+                  transform: "translateY(-50%)",
+                  background: "none",
+                  border: "none",
+                  cursor: "pointer",
+                }}
+              >
+                🔍
+              </button>
+            </div>
+          </div>
+          
           <div>
             <button
               onClick={handleOpenReportForm}
@@ -809,7 +804,7 @@ const Offences = () => {
               Add Automate Report Cycle
             </button>
             <button
-			onClick={handleOpenGenerateReport}
+              onClick={handleOpenGenerateReport}
               style={{
                 background: "darkgreen",
                 color: "#fff",
@@ -823,6 +818,33 @@ const Offences = () => {
             </button>
           </div>
         </div>
+
+        {/* Selected rows info */}
+        {selectedRows.length > 0 && (
+          <div style={{ 
+            marginBottom: "10px", 
+            padding: "8px 12px", 
+            backgroundColor: "#e0f7fa", 
+            borderRadius: "4px",
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center"
+          }}>
+            <span>{selectedRows.length} offences selected</span>
+            <button 
+              onClick={() => setSelectedRows([])}
+              style={{
+                background: "none",
+                border: "none",
+                color: "#0277bd",
+                cursor: "pointer",
+                fontWeight: "bold"
+              }}
+            >
+              Clear selection
+            </button>
+          </div>
+        )}
 
         {/* Offences Table */}
         <div style={{ width: "100%", overflowX: "auto", maxHeight: "900px", overflowY: "auto" }}>
@@ -838,44 +860,44 @@ const Offences = () => {
           <thead style={{ position: "sticky", top: 0, background: "#fff", zIndex: 2, boxShadow: "0 2px 2px rgba(0,0,0,0.1)" }}>
             <tr style={{ background: "#ccc", borderBottom: "2px solid #aaa" }}>
               <th style={{ padding: "10px", textAlign: "center", borderRight: "1px solid #aaa" }}>
-                <input type="checkbox" checked={selectAll} onChange={handleSelectAll} /> Select
+                <input 
+                  type="checkbox" 
+                  checked={areAllSelected}
+                  onChange={handleSelectAll}
+                  style={{ cursor: "pointer" }}
+                /> Select
               </th>
-              {(filter === "" || filter === "Alert Message") && (
-                <th style={{ padding: "10px", textAlign: "center", borderRight: "1px solid #aaa" }}>
+              <th style={{ padding: "10px", textAlign: "center", borderRight: "1px solid #aaa" }}>
                   Alert Message
                 </th>
-              )}
-              {(filter === "" || filter === "Date & Time") && (
-                <th style={{ padding: "10px", textAlign: "center", borderRight: "1px solid #aaa" }}>Date & Time</th>
-              )}
-              {(filter === "" || filter === "Alert Name") && (
-                <th style={{ padding: "10px", textAlign: "center", borderRight: "1px solid #aaa" }}>Protocol</th>
-              )}
-              {(filter === "" || filter === "Alert Category") && (
-                <th style={{ padding: "10px", textAlign: "center", borderRight: "1px solid #aaa" }}>Alert Category</th>
-              )}
+              <th style={{ padding: "10px", textAlign: "center", borderRight: "1px solid #aaa" }}>Date & Time</th>
+              <th style={{ padding: "10px", textAlign: "center", borderRight: "1px solid #aaa" }}>Protocol</th>
+              <th style={{ padding: "10px", textAlign: "center", borderRight: "1px solid #aaa" }}>Alert Category</th>
               <th style={{ padding: "10px", textAlign: "center", borderRight: "1px solid #aaa" }}>Severity level (1=High, 4=Low)</th>
               <th style={{ padding: "10px", textAlign: "center" }}>View</th>
             </tr>
           </thead>
           <tbody>
-            {offences.map((offence, index) => (
-              <tr key={index} style={{ borderBottom: "1px solid #ddd" }}>
+            {filteredOffences.map((offence, index) => (
+              <tr 
+                key={index} 
+                style={{ 
+                  borderBottom: "1px solid #ddd",
+                  backgroundColor: selectedRows.includes(index) ? "#f0f7ff" : "inherit"
+                }}
+              >
                 <td style={{ padding: "10px", textAlign: "center" }}>
-                  <input type="checkbox" checked={offence.selected || false} onChange={() => handleSelect(index)} />
+                  <input 
+                    type="checkbox" 
+                    checked={selectedRows.includes(index)}
+                    onChange={(e) => handleSelectRow(index, e)}
+                    style={{ cursor: "pointer" }}
+                  />
                 </td>
-                {(filter === "" || filter === "Alert Message") && (
-                  <td style={{ padding: "10px", textAlign: "center" }}>{offence.message || 'N/A'}</td>
-                )}
-                {(filter === "" || filter === "Date & Time") && (
-                  <td style={{ padding: "10px", textAlign: "center" }}>{new Date(offence.timestamp).toLocaleString()}</td>
-                )}
-                {(filter === "" || filter === "Protocol") && (
-                  <td style={{ padding: "10px", textAlign: "center" }}>{offence.protocol || 'N/A'}</td>
-                )}
-                {(filter === "" || filter === "Alert Category") && (
-                  <td style={{ padding: "10px", textAlign: "center" }}>{offence.description.toLowerCase() || 'N/A'}</td>
-                )}
+                <td style={{ padding: "10px", textAlign: "center" }}>{offence.message}</td>
+                <td style={{ padding: "10px", textAlign: "center" }}>{new Date(offence.timestamp).toLocaleString()}</td>
+                <td style={{ padding: "10px", textAlign: "center" }}>{offence.protocol}</td>
+                <td style={{ padding: "10px", textAlign: "center" }}>{offence.description.toLowerCase() || 'N/A'}</td>
                 <td style={{ padding: "10px", textAlign: "center" }}>{getPriority(offence.description.toLowerCase().trim() || 'N/A')}</td>
                 <td style={{ padding: "10px", textAlign: "center" }}>
                   <button
@@ -976,12 +998,12 @@ const Offences = () => {
 
         {/* Automated Report Form Modal */}
         {showReportForm && (
-  <AutomatedReportForm onClose={handleCloseReportForm} onSubmit={handleSubmitReport} />
-)}
+          <AutomatedReportForm onClose={handleCloseReportForm} onSubmit={handleSubmitReport} />
+        )}
 
-{showGenerateReport && (
-  <GenerateReportModal onClose={handleCloseGenerateReport} onSubmit={handleSubmitGenerateReport} />
-)}
+        {showGenerateReport && (
+          <GenerateReportModal onClose={handleCloseGenerateReport} onSubmit={handleSubmitGenerateReport} />
+        )}
         
       </div>
     </div>
