@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect  } from "react";
 import { useNavigate } from "react-router-dom";
 
 const styles = {
@@ -90,18 +90,53 @@ export default function LoginPage() {
   const [error, setError] = useState("");
   const navigate = useNavigate();
 
-  const handleLogin = (e) => {
+  useEffect(() => {
+    const checkToken = async () => {
+      const token = localStorage.getItem("token");
+      if (!token) return; // If no token, do nothing
+  
+      try {
+        const response = await fetch("http://127.0.0.1:8000/login/get_token", {
+          method: "GET",
+          headers: { Authorization: `Bearer ${token}` },
+        });
+  
+        if (response.ok) {
+          navigate("/dashboard"); // Only navigate if the token is valid
+        } else {
+          localStorage.removeItem("token"); // Clear invalid token
+        }
+      } catch (error) {
+        console.error("Token validation failed:", error);
+      }
+    };
+  
+    checkToken();
+  }, [navigate]); 
+  
+  const handleLogin = async (e) => {
     e.preventDefault();
-    if (role === "cybersecurity-analyst" && loginId === "test" && password === "test") {
+    setError("");
+  
+    try {
+      const response = await fetch("http://127.0.0.1:8000/login/token", {
+        method: "POST",
+        headers: { "Content-Type": "application/x-www-form-urlencoded" },
+        body: new URLSearchParams({ username: loginId, password: password,userRole: role}),
+      });
+  
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.detail || "Login failed");
+  
+      localStorage.setItem("token", data.access_token);
       navigate("/dashboard");
-    } else if (role === "network-admin" && loginId === "test" && password === "test") {
-      navigate("/system-config");
-	  } else if (role === "system-admin" && loginId === "test" && password === "test") {
-      navigate("/roles-permission");
-    } else {
-      setError("Invalid credentials");
+      
+    } catch (err) {
+      setError(err.message);
     }
+  
   };
+  
 
   return (
     <div style={styles.loginContainer}>

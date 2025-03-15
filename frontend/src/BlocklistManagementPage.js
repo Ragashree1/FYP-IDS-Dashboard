@@ -3,6 +3,10 @@
 import { useState } from "react"
 import { useNavigate, useLocation } from "react-router-dom"
 
+import Sidebar from "./Sidebar" // Import the Sidebar component
+
+const userRole = "network-admin"
+
 const AddBlocklistModal = ({ onClose, onAdd }) => {
   const [newIP, setNewIP] = useState("")
   const [reason, setReason] = useState("")
@@ -18,7 +22,7 @@ const AddBlocklistModal = ({ onClose, onAdd }) => {
   return (
     <div
       style={{
-        position: "absolute",
+        position: "fixed", // Changed from absolute to fixed
         top: "50%",
         left: "50%",
         transform: "translate(-50%, -50%)",
@@ -123,7 +127,7 @@ const RemoveIPModal = ({ onClose, onRemove, ipToRemove }) => {
   return (
     <div
       style={{
-        position: "absolute",
+        position: "fixed", // Changed from absolute to fixed
         top: "50%",
         left: "50%",
         transform: "translate(-50%, -50%)",
@@ -265,154 +269,26 @@ const BlocklistManagementPage = () => {
   const filteredBlocklist = blocklist.filter((item) => item.ip.toLowerCase().includes(searchQuery.toLowerCase()))
 
   return (
-    <div style={{ display: "flex", height: "100vh", background: "#f4f4f4" }}>
-      {/* Sidebar */}
-      <div
-        style={{
-          width: "250px",
-          background: "#222",
-          color: "#fff",
-          padding: "20px",
-          display: "flex",
-          flexDirection: "column",
-        }}
-      >
-        <h2>SecuBoard</h2>
-        <ul style={{ listStyle: "none", padding: 0 }}>
-          <li
-            style={{
-              padding: "10px",
-              background: isActive("/dashboard") ? "#555" : "#333",
-              marginBottom: "5px",
-              display: "flex",
-              alignItems: "center",
-              cursor: "pointer",
-            }}
-            onClick={() => navigate("/dashboard")}
-          >
-            <img
-              src="/images/dashboard-logo.png"
-              alt="Dashboard Logo"
-              style={{ width: "20px", height: "20px", marginRight: "10px" }}
-            />
-            Dashboard
-          </li>
-          <li
-            style={{
-              padding: "10px",
-              background: isActive("/event-log") ? "#555" : "#333",
-              marginBottom: "5px",
-              display: "flex",
-              alignItems: "center",
-              cursor: "pointer",
-            }}
-            onClick={() => navigate("/event-log")}
-          >
-            <img
-              src="/images/event-log-logo.png"
-              alt="Event Log Logo"
-              style={{ width: "20px", height: "20px", marginRight: "10px" }}
-            />
-            Event Log Activity
-          </li>
-          <li
-            style={{
-              padding: "10px",
-              background: isActive("/reports") ? "#555" : "#333",
-              marginBottom: "5px",
-              display: "flex",
-              alignItems: "center",
-              cursor: "pointer",
-            }}
-            onClick={() => navigate("/reports")}
-          >
-            <img
-              src="/images/report-logo.png"
-              alt="Reports Logo"
-              style={{ width: "20px", height: "20px", marginRight: "10px" }}
-            />
-            Reports
-          </li>
-          <li
-            style={{
-              padding: "10px",
-              background: isActive("/blocklist") ? "#555" : "#333",
-              marginBottom: "5px",
-              display: "flex",
-              alignItems: "center",
-              cursor: "pointer",
-            }}
-            onClick={() => navigate("/blocklist")}
-          >
-            <img
-              src="/images/blocklist-logo.png"
-              alt="Blocklist Logo"
-              style={{ width: "20px", height: "20px", marginRight: "10px" }}
-            />
-            Blocklist Management
-          </li>
-          <li
-            style={{
-              padding: "10px",
-              background: isActive("/system-config") ? "#555" : "#333",
-              marginBottom: "5px",
-              display: "flex",
-              alignItems: "center",
-              cursor: "pointer",
-            }}
-            onClick={() => navigate("/system-config")}
-          >
-            <img
-              src="/images/system-config-logo.png"
-              alt="System Config Logo"
-              style={{ width: "20px", height: "20px", marginRight: "10px" }}
-            />
-            System Configurations
-          </li>
-          <li
-            style={{
-              padding: "10px",
-              background: isActive("/settings") ? "#555" : "#333",
-              marginBottom: "5px",
-              display: "flex",
-              alignItems: "center",
-              cursor: "pointer",
-            }}
-            onClick={() => navigate("/settings")}
-          >
-            <img
-              src="/images/settings-logo.png"
-              alt="Settings Logo"
-              style={{ width: "20px", height: "20px", marginRight: "10px" }}
-            />
-            Settings
-          </li>
-        </ul>
-        <button
-          onClick={handleLogout}
-          style={{
-            marginTop: "auto",
-            width: "100%",
-            padding: "10px",
-            background: "red",
-            border: "none",
-            color: "#fff",
-            display: "flex",
-            alignItems: "center",
-            cursor: "pointer",
-          }}
-        >
-          <img
-            src="/images/logout-logo.png"
-            alt="Logout Logo"
-            style={{ width: "20px", height: "20px", marginRight: "10px" }}
-          />
-          Logout
-        </button>
-      </div>
+    <div
+      style={{
+        display: "flex",
+        height: "100vh",
+        background: "#f4f4f4",
+        overflow: "hidden", // Added to prevent horizontal scrolling
+      }}
+    >
+      {/* Use the Sidebar component instead of hardcoded sidebar */}
+      <Sidebar userRole={userRole} />
 
       {/* Main Content */}
-      <div style={{ flex: 1, padding: "20px" }}>
+      <div
+        style={{
+          flex: 1,
+          padding: "20px",
+          overflowY: "auto", // Allow vertical scrolling
+          overflowX: "hidden", // Prevent horizontal scrolling
+        }}
+      >
         <h1>Blocklist Management</h1>
 
         {/* Search Bar */}
@@ -434,6 +310,7 @@ const BlocklistManagementPage = () => {
               border: "1px solid #ddd",
               fontSize: "14px",
               backgroundColor: "#f5f5f5",
+              boxSizing: "border-box", // Added to prevent overflow
             }}
           />
           <span
@@ -481,7 +358,8 @@ const BlocklistManagementPage = () => {
             style={{
               background: "white",
               borderRadius: "4px",
-              overflow: "hidden",
+              overflow: "auto", // Changed from "hidden" to "auto" to allow scrolling if needed
+              maxWidth: "100%", // Added to prevent overflow
             }}
           >
             <table style={{ width: "100%", borderCollapse: "collapse" }}>
