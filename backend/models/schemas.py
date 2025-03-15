@@ -1,5 +1,6 @@
-from pydantic import BaseModel
-from typing import List
+from pydantic import BaseModel,EmailStr
+from typing import List, Optional
+import datetime
 
 class MeetingMinutesBase(BaseModel):
     date: str
@@ -68,3 +69,46 @@ class SnortLogsOut(BaseModel):
 
     class Config:
         orm_mode = True
+        
+class AccountBase(BaseModel):
+    id: int
+    userid: str
+    userFirstName: str
+    userLastName: str
+    passwd : str
+    userComName : str
+    userEmail : str
+    userPhoneNum : str
+    userRole : str
+
+
+class AccountEdit(BaseModel):
+    id: int
+    userid:  Optional[str] = None
+    userFirstName:  Optional[str] = None
+    userLastName:  Optional[str] = None
+    passwd :  Optional[str] = None
+    userComName :  Optional[str] = None
+    userEmail :  Optional[str] = None
+    userPhoneNum :  Optional[str] = None
+    userRole :  Optional[str] = None
+
+
+class AccountLogin(BaseModel):
+    userid : int
+    userRole : str
+    passwd : str
+
+class CreditCardBase(BaseModel):
+    creditFirstName: str
+    creditLastName: str
+    creditNum: str
+    creditDate: str
+    creditCVV: int
+    subscription: str
+    total: str
+
+
+class Token(BaseModel):
+    access_token: str
+    token_type: str

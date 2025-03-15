@@ -152,18 +152,40 @@ const RegistrationPage = () => {
 
   // Form state
   const [formData, setFormData] = useState({
-    firstName: '',
-    lastName: '',
-    companyName: '',
-    loginId: '',
-    password: '',
-    email: '',
-    phoneNumber: ''
+    userid: "",
+    userFirstName: "",
+    userLastName: "",
+    passwd: "",
+    userComName: "",
+    userEmail: "",
+    userPhoneNum: "",
+    userRole: "",
   });
 
-  // Validation state
-  const [passwordError, setPasswordError] = useState('');
-  const [formSubmitted, setFormSubmitted] = useState(false);
+  const [message, setMessage] = useState("");
+  const [errors, setErrors] = useState({});
+
+  useEffect(() => {
+    document.title = "Registration"; // Set page title
+  }, []);
+
+  const validateForm = () => {
+    let newErrors = {};
+    if (!formData.userEmail.match(/^[^\s@]+@[^\s@]+\.[^\s@]+$/)) {
+      newErrors.userEmail = "Invalid email format.";
+    }
+    if (!formData.userPhoneNum.match(/^\d{10,15}$/)) {
+      newErrors.userPhoneNum = "Phone number should be 10-15 digits.";
+    }
+    if (formData.passwd.length < 6) {
+      newErrors.passwd = "Password must be at least 6 characters long.";
+    }
+
+    console.log(newErrors);
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
 
   // Handle input changes
   const handleChange = (e) => {
@@ -187,30 +209,43 @@ const RegistrationPage = () => {
   };
 
   // Handle form submission
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
+    if (!validateForm()) return;
+
+    console.log('Submitting form...');
     
-    // Validate password
-    if (!validatePassword(formData.password)) {
-      setPasswordError('Password must contain symbols, numbers, and capital letters.');
-      return;
+    try {
+      const response = await fetch("http://127.0.0.1:8000/register/", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(formData),
+      });
+
+      const data = await response.json();
+      if (response.ok) {
+        setMessage("User registered successfully!");
+        setTimeout(() => navigate("/payment"), 2000);
+      } else {
+        setMessage(`Error: ${data.detail || "Registration failed"}`);
+      }
+
+
+      if (response.ok) {
+        setMessage("User registered successfully!");
+        setTimeout(() => navigate("/payment"), 2000);
+      } else {
+        const errorData = await response.json();
+        setMessage(`Error: ${errorData.detail || "Registration failed"}`);
+      }
+    } catch (error) {
+      setMessage("Network error. Please try again.");
+      console.error(error);
     }
-    
-    // Clear any previous errors
-    setPasswordError('');
-    
-    // Log form data (in a real app, you would send this to your server)
-    console.log('Form submitted:', formData);
-    
-    // Set form as submitted
-    setFormSubmitted(true);
-    
-    // Store registration data in sessionStorage to access it in the payment page if needed
-    sessionStorage.setItem('registrationData', JSON.stringify(formData));
-    
-    // Navigate to payment page
-    navigate('/payment');
   };
+
 
   return (
     <div className="registration-page-wrapper">
@@ -230,10 +265,10 @@ const RegistrationPage = () => {
             <div className="form-group">
               <input
                 type="text"
-                name="firstName"
-                id="firstName"
+                name="userFirstName"
+                id="userFirstName"
                 placeholder="First Name"
-                value={formData.firstName}
+                value={formData.userFirstName}
                 onChange={handleChange}
                 required
               />
@@ -241,10 +276,10 @@ const RegistrationPage = () => {
             <div className="form-group">
               <input
                 type="text"
-                name="lastName"
-                id="lastName"
+                name="userLastName"
+                id="userLastName"
                 placeholder="Last Name"
-                value={formData.lastName}
+                value={formData.userLastName}
                 onChange={handleChange}
                 required
               />
@@ -255,10 +290,10 @@ const RegistrationPage = () => {
             <div className="form-group">
               <input
                 type="text"
-                name="companyName"
-                id="companyName"
+                name="userComName"
+                id="userComName"
                 placeholder="Company Name"
-                value={formData.companyName}
+                value={formData.userComName}
                 onChange={handleChange}
                 required
               />
@@ -266,10 +301,10 @@ const RegistrationPage = () => {
             <div className="form-group">
               <input
                 type="text"
-                name="loginId"
-                id="loginId"
+                name="userid"
+                id="userid"
                 placeholder="Login ID"
-                value={formData.loginId}
+                value={formData.userid}
                 onChange={handleChange}
                 required
               />
@@ -279,28 +314,28 @@ const RegistrationPage = () => {
           <div className="form-group">
             <input
               type="password"
-              name="password"
-              id="password"
+              name="passwd"
+              id="passwd"
               placeholder="Password"
-              value={formData.password}
+              value={formData.passwd}
               onChange={handleChange}
               required
             />
             <small className="password-hint">
               Note: Password must contain symbols, numbers and capital letters.
             </small>
-            {passwordError && (
-              <small className="password-hint">{passwordError}</small>
+            {errors.passwd && (
+              <small className="password-hint">{errors.passwd}</small>
             )}
           </div>
 
           <div className="form-group">
             <input
               type="email"
-              name="email"
-              id="email"
+              name="userEmail"
+              id="userEmail"
               placeholder="Email"
-              value={formData.email}
+              value={formData.userEmail}
               onChange={handleChange}
               required
             />
@@ -309,10 +344,10 @@ const RegistrationPage = () => {
           <div className="form-group">
             <input
               type="tel"
-              name="phoneNumber"
-              id="phoneNumber"
+              name="userPhoneNum"
+              id="userPhoneNum"
               placeholder="Phone Number"
-              value={formData.phoneNumber}
+              value={formData.userPhoneNum}
               onChange={handleChange}
               required
             />

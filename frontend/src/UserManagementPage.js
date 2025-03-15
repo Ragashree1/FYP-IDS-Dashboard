@@ -1,6 +1,4 @@
-"use client"
-
-import { useState } from "react"
+import { useState , useEffect} from "react"
 import { useNavigate, useLocation } from "react-router-dom"
 import Sidebar from "./Sidebar"
 
@@ -69,70 +67,74 @@ const DeleteConfirmationModal = ({ onClose, onConfirm }) => {
 
 const NewUserModal = ({ onClose, onConfirm, user = null }) => {
   const [formData, setFormData] = useState({
-    employeeId: user?.employeeId || "",
-    firstName: user?.name?.split(" ")[0] || "",
-    lastName: user?.name?.split(" ")[1] || "",
-    role: user?.role || "",
-    email: user?.email || "",
-    phone: user?.phone || "",
-    password: "",
+
+    id: '',
+    userid: '',
+    userFirstName: '',
+    userLastName: '',
+    passwd: '',
+    userComName: '',
+    userEmail: '',
+    userPhoneNum: '',
+    userRole: '',
+
   })
 
   const [errors, setErrors] = useState({
-    phone: "",
-    password: "",
+    userPhoneNum: "",
+    passwd: "",
   })
 
   const handleInputChange = (e) => {
     const { name, value } = e.target
     setFormData((prev) => ({ ...prev, [name]: value }))
 
-    if (name === "phone") {
+    if (name === "userPhoneNum") {
       validatePhone(value)
-    } else if (name === "password") {
+    } else if (name === "passwd") {
       validatePassword(value)
     }
   }
 
-  const validatePhone = (phone) => {
-    if (user && !phone) {
-      setErrors((prev) => ({ ...prev, phone: "" }))
+  const validatePhone = (userPhoneNum) => {
+    if (user && !userPhoneNum) {
+      setErrors((prev) => ({ ...prev, userPhoneNum: "" }))
       return true
     }
 
     const phoneRegex = /^(\+\d{1,3}\s?)?[0-9]{8,10}$/
 
-    if (!phoneRegex.test(phone)) {
+    if (!phoneRegex.test(userPhoneNum)) {
       setErrors((prev) => ({
         ...prev,
-        phone: "Please enter a valid phone number (8-10 digits with optional country code)",
+        userPhoneNum: "Please enter a valid phone number (8-10 digits with optional country code)",
       }))
       return false
     } else {
-      setErrors((prev) => ({ ...prev, phone: "" }))
+      setErrors((prev) => ({ ...prev, userPhoneNum: "" }))
       return true
     }
   }
 
-  const validatePassword = (password) => {
-    if (user && !password) {
-      setErrors((prev) => ({ ...prev, password: "" }))
+  const validatePassword = (passwd) => {
+    if (user && !passwd) {
+      setErrors((prev) => ({ ...prev, passwd: "" }))
       return true
     }
 
-    if (!user || password) {
-      const hasSymbol = /[!@#$%^&*(),.?":{}|<>]/.test(password)
-      const hasNumber = /\d/.test(password)
-      const hasCapital = /[A-Z]/.test(password)
+    if (!user || passwd) {
+      const hasSymbol = /[!@#$%^&*(),.?":{}|<>]/.test(passwd)
+      const hasNumber = /\d/.test(passwd)
+      const hasCapital = /[A-Z]/.test(passwd)
 
       if (!hasSymbol || !hasNumber || !hasCapital) {
         setErrors((prev) => ({
           ...prev,
-          password: "Password must contain symbols, numbers, and capital letters",
+          passwd: "Password must contain symbols, numbers, and capital letters",
         }))
         return false
       } else {
-        setErrors((prev) => ({ ...prev, password: "" }))
+        setErrors((prev) => ({ ...prev, passwd: "" }))
         return true
       }
     }
@@ -143,8 +145,8 @@ const NewUserModal = ({ onClose, onConfirm, user = null }) => {
   const handleSubmit = (e) => {
     e.preventDefault()
 
-    const isPhoneValid = validatePhone(formData.phone)
-    const isPasswordValid = validatePassword(formData.password)
+    const isPhoneValid = validatePhone(formData.userPhoneNum)
+    const isPasswordValid = validatePassword(formData.passwd)
 
     if (isPhoneValid && isPasswordValid) {
       onConfirm(formData, user?.id)
@@ -196,8 +198,8 @@ const NewUserModal = ({ onClose, onConfirm, user = null }) => {
                 <label style={{ display: "block", marginBottom: "8px" }}>Employee ID (username)</label>
                 <input
                   type="text"
-                  name="employeeId"
-                  value={formData.employeeId}
+                  name="userid"
+                  value={formData.userid}
                   onChange={handleInputChange}
                   style={{
                     width: "100%",
@@ -215,8 +217,8 @@ const NewUserModal = ({ onClose, onConfirm, user = null }) => {
                 <label style={{ display: "block", marginBottom: "8px" }}>First Name</label>
                 <input
                   type="text"
-                  name="firstName"
-                  value={formData.firstName}
+                  name="userFirstName"
+                  value={formData.userFirstName}
                   onChange={handleInputChange}
                   style={{
                     width: "100%",
@@ -233,8 +235,8 @@ const NewUserModal = ({ onClose, onConfirm, user = null }) => {
                 <label style={{ display: "block", marginBottom: "8px" }}>Last Name</label>
                 <input
                   type="text"
-                  name="lastName"
-                  value={formData.lastName}
+                  name="userLastName"
+                  value={formData.userLastName}
                   onChange={handleInputChange}
                   style={{
                     width: "100%",
@@ -250,8 +252,8 @@ const NewUserModal = ({ onClose, onConfirm, user = null }) => {
               <div>
                 <label style={{ display: "block", marginBottom: "8px" }}>Role</label>
                 <select
-                  name="role"
-                  value={formData.role}
+                  name="userRole"
+                  value={formData.userRole}
                   onChange={handleInputChange}
                   style={{
                     width: "100%",
@@ -278,8 +280,8 @@ const NewUserModal = ({ onClose, onConfirm, user = null }) => {
                 <label style={{ display: "block", marginBottom: "8px" }}>Email</label>
                 <input
                   type="email"
-                  name="email"
-                  value={formData.email}
+                  name="userEmail"
+                  value={formData.userEmail}
                   onChange={handleInputChange}
                   style={{
                     width: "100%",
@@ -296,13 +298,13 @@ const NewUserModal = ({ onClose, onConfirm, user = null }) => {
                 <label style={{ display: "block", marginBottom: "8px" }}>Phone</label>
                 <input
                   type="tel"
-                  name="phone"
-                  value={formData.phone}
+                  name="userPhoneNum"
+                  value={formData.userPhoneNum}
                   onChange={handleInputChange}
                   style={{
                     width: "100%",
                     padding: "8px",
-                    border: errors.phone ? "1px solid #ff4d4f" : "1px solid #ddd",
+                    border: errors.userPhoneNum ? "1px solid #ff4d4f" : "1px solid #ddd",
                     borderRadius: "4px",
                     backgroundColor: "#f5f5f5",
                     boxSizing: "border-box", // Added to prevent overflow
@@ -310,21 +312,21 @@ const NewUserModal = ({ onClose, onConfirm, user = null }) => {
                   placeholder="+65 98765432"
                   required
                 />
-                {errors.phone && (
-                  <p style={{ color: "#ff4d4f", fontSize: "12px", margin: "4px 0 0 0" }}>{errors.phone}</p>
+                {errors.userPhoneNum && (
+                  <p style={{ color: "#ff4d4f", fontSize: "12px", margin: "4px 0 0 0" }}>{errors.userPhoneNum}</p>
                 )}
               </div>
               <div>
                 <label style={{ display: "block", marginBottom: "8px" }}>Password</label>
                 <input
                   type="password"
-                  name="password"
-                  value={formData.password}
+                  name="passwd"
+                  value={formData.passwd}
                   onChange={handleInputChange}
                   style={{
                     width: "100%",
                     padding: "8px",
-                    border: errors.password ? "1px solid #ff4d4f" : "1px solid #ddd",
+                    border: errors.passwd ? "1px solid #ff4d4f" : "1px solid #ddd",
                     borderRadius: "4px",
                     backgroundColor: "#f5f5f5",
                     boxSizing: "border-box", // Added to prevent overflow
@@ -332,8 +334,8 @@ const NewUserModal = ({ onClose, onConfirm, user = null }) => {
                   required={!user}
                   placeholder={user ? "Leave blank to keep current password" : ""}
                 />
-                {errors.password && (
-                  <p style={{ color: "#ff4d4f", fontSize: "12px", margin: "4px 0 0 0" }}>{errors.password}</p>
+                {errors.passwd && (
+                  <p style={{ color: "#ff4d4f", fontSize: "12px", margin: "4px 0 0 0" }}>{errors.passwd}</p>
                 )}
                 <p style={{ color: "#666", fontSize: "12px", margin: "4px 0 0 0" }}>
                   Password must contain symbols, numbers, and capital letters.
@@ -453,112 +455,48 @@ const UserManagementPage = () => {
   const location = useLocation()
   const [searchQuery, setSearchQuery] = useState("")
   const [showNewUserModal, setShowNewUserModal] = useState(false)
-  const [users, setUsers] = useState([
-    {
-      id: 1,
-      employeeId: "SA01",
-      name: "Ryan Atwood",
-      role: "Organisation Admin",
-      email: "RyanAtwood@yahoo.com",
-      phone: "98705564",
-      suspended: false,
-    },
-    {
-      id: 2,
-      employeeId: "NA01",
-      name: "Seth Cohen",
-      role: "Network Admin",
-      email: "SethCohen@yahoo.com",
-      phone: "97352790",
-      suspended: false,
-    },
-    {
-      id: 3,
-      employeeId: "CA01",
-      name: "Marissa Cooper",
-      role: "Network Admin",
-      email: "MarissaCoop@gmail.com",
-      phone: "92735234",
-      suspended: true,
-    },
-    {
-      id: 4,
-      employeeId: "ITM01",
-      name: "Summer Roberts",
-      role: "Data Analyst",
-      email: "SummerRob@hotmail.com",
-      phone: "87354723",
-      suspended: false,
-    },
-    {
-      id: 5,
-      employeeId: "SA02",
-      name: "Kirsten Cohen",
-      role: "Organisation Admin",
-      email: "Kirsten@yahoo.com",
-      phone: "93214456",
-      suspended: false,
-    },
-    {
-      id: 6,
-      employeeId: "NA02",
-      name: "Sandy Cohen",
-      role: "Network Admin",
-      email: "SandyCohen@yahoo.com",
-      phone: "87709667",
-      suspended: false,
-    },
-    {
-      id: 7,
-      employeeId: "CA02",
-      name: "Julie Cooper",
-      role: "Network Admin",
-      email: "JulieCooper@gmail.com",
-      phone: "85658203",
-      suspended: false,
-    },
-    {
-      id: 8,
-      employeeId: "ITM02",
-      name: "Luke Ward",
-      role: "IT Manager",
-      email: "LukeW@gmail.com",
-      phone: "96689077",
-      suspended: false,
-    },
-    {
-      id: 9,
-      employeeId: "CA03",
-      name: "Theresa Diaz",
-      role: "IT Manager",
-      email: "Theresa@hotmail.com",
-      phone: "97554211",
-      suspended: false,
-    },
-    {
-      id: 10,
-      employeeId: "DA01",
-      name: "Anna Stern",
-      role: "Network Admin",
-      email: "AnnaSt@yahoo.com",
-      phone: "83314489",
-      suspended: false,
-    },
-  ])
-
+  const [users, setUsers] = useState([])
   const [selectedUser, setSelectedUser] = useState(null)
   const [showDeleteModal, setShowDeleteModal] = useState(false)
   const [userToDelete, setUserToDelete] = useState(null)
+  const [userToEdit, setEditUserIndex] = useState(null)
   const [showSuspendModal, setShowSuspendModal] = useState(false)
   const [userToSuspend, setUserToSuspend] = useState(null)
+  const [loading, setLoading] = useState(true); // Added loading state
+  const [error, setError] = useState(null);
 
-  const filteredUsers = users.filter(
+  const fetchUsers = async () => {
+    try {
+      const response = await fetch ("http://127.0.0.1:8000/user-management/", {
+          method: "GET",
+        });
+
+      if (response.ok) {
+        const data = await response.json();
+        console.log("Fetched users:", data); // Add this line to inspect the fetched data
+        setUsers(data); // Assuming the response is an array of users
+      }else {
+        throw new Error('Failed to fetch users');
+      } 
+    }
+      catch (err) {
+      setError("Failed to fetch users");
+      setLoading(false);
+    }
+  };
+  
+
+  useEffect(() => {
+    fetchUsers();
+  }, []);
+
+  const filteredUsers = (users || []).filter(
     (user) =>
-      user.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      user.employeeId.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      user.role.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      user.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      user.phone.includes(searchQuery),
+      (user.name || "").toLowerCase().includes(searchQuery.toLowerCase()) ||
+      user.userid.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      user.userRole.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      user.userEmail.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      user.userPhoneNum.includes(searchQuery),
   )
 
   const handleSearch = (e) => {
@@ -590,16 +528,61 @@ const UserManagementPage = () => {
     setUserToSuspend(null)
   }
 
+  const handleConfirmSuspend = () => {
+    setUsers(
+      users.map((user) =>
+        user.id === userToSuspend.id
+          ? {
+              ...user,
+              suspended: !user.suspended,
+            }
+          : user,
+      ),
+    )
+    setShowSuspendModal(false)
+    setUserToSuspend(null)
+  }
+
+  const handleCloseSuspendModal = () => {
+    setShowSuspendModal(false)
+    setUserToSuspend(null)
+  }
+
   const handleEdit = (user) => {
-    setSelectedUser(user)
-    setShowNewUserModal(true)
-  }
+      // Set the selected user to be edited
+    setSelectedUser(user);
+    setShowNewUserModal(true); // Open the modal for editing the user
+}
 
+  const updateUser = async (user) => {
+    try {
+      const response = await fetch (`http://127.0.0.1:8000/user-management/${user.id}`, { method: "PUT",
+        body: JSON.stringify(user), // Send userData as the payload to update the user
+      });
+  
+      if (!response.ok) {
+        throw new Error("Failed to update user");
+      }
+  
+      fetchUsers(); // Refresh the user list
+    } catch (err) {
+      setError("Failed to edit user");
+    }
+  };
   const handleDelete = (user) => {
-    setUserToDelete(user)
-    setShowDeleteModal(true)
-  }
+    deleteUser(user.id);
+    fetchUsers();
+  };
 
+  const deleteUser = async (id) => {
+    try {
+      await fetch(`http://127.0.0.1:8000/user-management/${id}`, { method: "DELETE" });
+      fetchUsers()
+    } catch (err) {
+      setError("Failed to delete user");
+    }
+  };
+ 
   const handleConfirmDelete = () => {
     setUsers(users.filter((user) => user.id !== userToDelete.id))
     setShowDeleteModal(false)
@@ -613,27 +596,6 @@ const UserManagementPage = () => {
 
   const handleAddOrUpdateUser = (formData, userId) => {
     if (userId) {
-      setUsers(
-        users.map((user) =>
-          user.id === userId
-            ? {
-                ...user,
-                name: `${formData.firstName} ${formData.lastName}`,
-                role: formData.role,
-                email: formData.email,
-                phone: formData.phone,
-              }
-            : user,
-        ),
-      )
-    } else {
-      const newUser = {
-        id: users.length + 1,
-        employeeId: formData.employeeId,
-        name: `${formData.firstName} ${formData.lastName}`,
-        role: formData.role,
-        email: formData.email,
-        phone: formData.phone,
         suspended: false,
       }
       setUsers([...users, newUser])
@@ -778,11 +740,11 @@ const UserManagementPage = () => {
                   }}
                 >
                   <td style={{ padding: "16px" }}>{user.id}</td>
-                  <td style={{ padding: "16px" }}>{user.employeeId}</td>
+                  <td style={{ padding: "16px" }}>{user.userid}</td>
                   <td style={{ padding: "16px" }}>{user.name}</td>
-                  <td style={{ padding: "16px" }}>{user.role}</td>
-                  <td style={{ padding: "16px" }}>{user.email}</td>
-                  <td style={{ padding: "16px" }}>{user.phone}</td>
+                  <td style={{ padding: "16px" }}>{user.userRole}</td>
+                  <td style={{ padding: "16px" }}>{user.userEmail}</td>
+                  <td style={{ padding: "16px" }}>{user.userPhoneNum}</td>
                   <td style={{ padding: "16px" }}>
                     <span
                       style={{
@@ -875,4 +837,3 @@ const UserManagementPage = () => {
 }
 
 export default UserManagementPage
-
