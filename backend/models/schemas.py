@@ -32,8 +32,44 @@ class MeetingMinutesOut(BaseModel):
     discussion: str
     actions: str
 
+class SnortLogsBase(BaseModel):
+    timestamp: str
+    priority: int
+    protocol: str
+    raw: str
+    length: int
+    direction: str
+    src_ip: str
+    src_port: int
+    dest_ip: str
+    dest_port: int
+    classification: str
+    action: str
+    message: str
+    description: str
+    host: str
 
+class SnortLogsOut(BaseModel):
+    id: int
+    timestamp: str
+    priority: int
+    protocol: str
+    raw: str
+    length: int
+    direction: str
+    src_ip: str
+    src_port: int
+    dest_ip: str
+    dest_port: int
+    classification: str
+    action: str
+    message: str
+    description: str
+    host: str
 
+    class Config:
+        orm_mode = True
+        
 class AccountBase(BaseModel):
     id: int
     userid: str

@@ -67,6 +67,7 @@ const DeleteConfirmationModal = ({ onClose, onConfirm }) => {
 
 const NewUserModal = ({ onClose, onConfirm, user = null }) => {
   const [formData, setFormData] = useState({
+
     id: '',
     userid: '',
     userFirstName: '',
@@ -527,6 +528,26 @@ const UserManagementPage = () => {
     setUserToSuspend(null)
   }
 
+  const handleConfirmSuspend = () => {
+    setUsers(
+      users.map((user) =>
+        user.id === userToSuspend.id
+          ? {
+              ...user,
+              suspended: !user.suspended,
+            }
+          : user,
+      ),
+    )
+    setShowSuspendModal(false)
+    setUserToSuspend(null)
+  }
+
+  const handleCloseSuspendModal = () => {
+    setShowSuspendModal(false)
+    setUserToSuspend(null)
+  }
+
   const handleEdit = (user) => {
       // Set the selected user to be edited
     setSelectedUser(user);
@@ -561,7 +582,7 @@ const UserManagementPage = () => {
       setError("Failed to delete user");
     }
   };
-  
+ 
   const handleConfirmDelete = () => {
     setUsers(users.filter((user) => user.id !== userToDelete.id))
     setShowDeleteModal(false)
@@ -575,16 +596,6 @@ const UserManagementPage = () => {
 
   const handleAddOrUpdateUser = (formData, userId) => {
     if (userId) {
-      // Call updateUser if the user is being edited
-      updateUser({ ...formData, id: userId }); // Ensure the formData has the necessary properties for the update
-    } else {
-      const newUser = {
-        id: formData.id,
-        userid: formData.userid,
-        name: `${formData.userFirstName} ${formData.userLastName}`,
-        userRole: formData.userRole,
-        userEmail: formData.userEmail,
-        userPhoneNum: formData.userPhoneNum,
         suspended: false,
       }
       setUsers([...users, newUser])
