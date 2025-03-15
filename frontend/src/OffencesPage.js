@@ -476,52 +476,67 @@ const Offences = () => {
   const [showReportForm, setShowReportForm] = useState(false)
   const [showGenerateReport, setShowGenerateReport] = useState(false)
   const [selectedRows, setSelectedRows] = useState([])
+  const [hideUncategorized, setHideUncategorized] = useState(false);
   const navigate = useNavigate()
   const location = useLocation()
   const [logs, setLogs] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [offences, setOffences] = useState([]);
-  const classifications = {
-    "not suspicious": { priority: 3, text: "Not Suspicious Traffic" },
-    "unknown": { priority: 3, text: "Unknown Traffic" },
-    "bad unknown": { priority: 2, text: "Potentially Bad Traffic" },
-    "attempted recon": { priority: 2, text: "Attempted Information Leak" },
-    "successful recon limited": { priority: 2, text: "Information Leak" },
-    "successful recon largescale": { priority: 2, text: "Large Scale Information Leak" },
-    "attempted dos": { priority: 2, text: "Attempted Denial of Service" },
-    "successful dos": { priority: 2, text: "Denial of Service" },
-    "attempted user": { priority: 1, text: "Attempted User Privilege Gain" },
-    "unsuccessful user": { priority: 1, text: "Unsuccessful User Privilege Gain" },
-    "successful user": { priority: 1, text: "Successful User Privilege Gain" },
-    "attempted admin": { priority: 1, text: "Attempted Administrator Privilege Gain" },
-    "successful admin": { priority: 1, text: "Successful Administrator Privilege Gain" },
-    "rpc portmap decode": { priority: 2, text: "Decode of an RPC Query" },
-    "shellcode detect": { priority: 1, text: "Executable code was detected" },
-    "string detect": { priority: 3, text: "A suspicious string was detected" },
-    "suspicious filename detect": { priority: 2, text: "A suspicious filename was detected" },
-    "suspicious login": { priority: 2, text: "An attempted login using a suspicious username was detected" },
-    "system call detect": { priority: 2, text: "A system call was detected" },
-    "tcp connection": { priority: 4, text: "A TCP connection was detected" },
-    "trojan activity": { priority: 1, text: "A Network Trojan was detected" },
-    "unusual client port connection": { priority: 2, text: "A client was using an unusual port" },
-    "network scan": { priority: 3, text: "Detection of a Network Scan" },
-    "denial of service": { priority: 2, text: "Detection of a Denial of Service Attack" },
-    "non standard protocol": { priority: 2, text: "Detection of a non standard protocol or event" },
-    "protocol command decode": { priority: 3, text: "Generic Protocol Command Decode" },
-    "web application activity": { priority: 2, text: "Access to a potentially vulnerable web application" },
-    "web application attack": { priority: 1, text: "Web Application Attack" },
-    "misc activity": { priority: 3, text: "Misc activity" },
-    "misc attack": { priority: 2, text: "Misc Attack" },
-    "icmp event": { priority: 3, text: "Generic ICMP event" },
-    "inappropriate content": { priority: 1, text: "Inappropriate Content was Detected" },
-    "policy violation": { priority: 1, text: "Potential Corporate Privacy Violation" },
-    "default login attempt": { priority: 2, text: "Attempt to login by a default username and password" },
-    "sdf": { priority: 2, text: "Sensitive Data" },
-    "file format": { priority: 1, text: "Known malicious file or file based exploit" },
-    "malware cnc": { priority: 1, text: "Known malware command and control traffic" },
-    "client side exploit": { priority: 1, text: "Known client side exploit attempt" }
-};
+  const defaultClassifications = [
+    { name: "not-suspicious", priority: 3, text: "Not Suspicious Traffic" },
+    { name: "unknown", priority: 3, text: "Unknown Traffic" },
+    { name: "bad-unknown", priority: 2, text: "Potentially Bad Traffic" },
+    { name: "attempted-recon", priority: 2, text: "Attempted Information Leak" },
+    { name: "successful-recon-limited", priority: 2, text: "Information Leak" },
+    { name: "successful-recon-largescale", priority: 2, text: "Large Scale Information Leak" },
+    { name: "attempted-dos", priority: 2, text: "Attempted Denial of Service" },
+    { name: "successful-dos", priority: 2, text: "Denial of Service" },
+    { name: "attempted-user", priority: 1, text: "Attempted User Privilege Gain" },
+    { name: "unsuccessful-user", priority: 1, text: "Unsuccessful User Privilege Gain" },
+    { name: "successful-user", priority: 1, text: "Successful User Privilege Gain" },
+    { name: "attempted-admin", priority: 1, text: "Attempted Administrator Privilege Gain" },
+    { name: "successful-admin", priority: 1, text: "Successful Administrator Privilege Gain" },
+    { name: "rpc-portmap-decode", priority: 2, text: "Decode of an RPC Query" },
+    { name: "shellcode-detect", priority: 1, text: "Executable code was detected" },
+    { name: "string-detect", priority: 3, text: "A suspicious string was detected" },
+    { name: "suspicious-filename-detect", priority: 2, text: "A suspicious filename was detected" },
+    { name: "suspicious-login", priority: 2, text: "An attempted login using a suspicious username was detected" },
+    { name: "system-call-detect", priority: 2, text: "A system call was detected" },
+    { name: "tcp-connection", priority: 4, text: "A TCP connection was detected" },
+    { name: "trojan-activity", priority: 1, text: "A Network Trojan was detected" },
+    { name: "unusual-client-port-connection", priority: 2, text: "A client was using an unusual port" },
+    { name: "network-scan", priority: 3, text: "Detection of a Network Scan" },
+    { name: "denial-of-service", priority: 2, text: "Detection of a Denial of Service Attack" },
+    { name: "non-standard-protocol", priority: 2, text: "Detection of a non-standard protocol or event" },
+    { name: "protocol-command-decode", priority: 3, text: "Generic Protocol Command Decode" },
+    { name: "web-application-activity", priority: 2, text: "Access to a potentially vulnerable web application" },
+    { name: "web-application-attack", priority: 1, text: "Web Application Attack" },
+    { name: "misc-activity", priority: 3, text: "Misc activity" },
+    { name: "misc-attack", priority: 2, text: "Misc Attack" },
+    { name: "icmp-event", priority: 3, text: "Generic ICMP event" },
+    { name: "inappropriate-content", priority: 1, text: "Inappropriate Content was Detected" },
+    { name: "policy-violation", priority: 1, text: "Potential Corporate Privacy Violation" },
+    { name: "default-login-attempt", priority: 2, text: "Attempt to login by a default username and password" },
+    { name: "sdf", priority: 2, text: "Sensitive Data" },
+    { name: "file-format", priority: 1, text: "Known malicious file or file based exploit" },
+    { name: "malware-cnc", priority: 1, text: "Known malware command and control traffic" },
+    { name: "client-side-exploit", priority: 1, text: "Known client side exploit attempt" }
+  ];
+  
+  function convertToKeyValuePair(data) {
+    return data.reduce((acc, item) => {
+      acc[item.text.toLowerCase()] = { name: item.name, priority: item.priority };
+      return acc;
+    }, {});
+  }
+  
+  const classifications = convertToKeyValuePair(defaultClassifications);
+
+  function getPriority(name) {
+    name = name.trim()
+    return classifications[name] ? classifications[name].priority : 'Unknown'
+  }
 
 
   useEffect(() => {
@@ -542,58 +557,65 @@ const Offences = () => {
   
   // Updated filter logic to filter rows based on both filter type and search query
   const filteredOffences = useMemo(() => {
-    if (!filterType && !searchQuery) {
-      return offences
+    let filtered = offences;
+
+    if (hideUncategorized) {
+      filtered = filtered.filter(offence => getPriority(offence.description.toLowerCase().trim() || 'N/A') !== 'Unknown');
     }
 
-    return offences.filter((offence) => {
-      const query = searchQuery.toLowerCase()
+    if (!filterType && !searchQuery) {
+      return filtered;
+    }
+
+    return filtered.filter((offence) => {
+      const query = searchQuery.toLowerCase();
       
       // If we have a filter type but no search query, show all logs
       if (filterType && !searchQuery) {
-        return true
+        return true;
       }
       
       // If we have a search query but no filter type, search across all fields
       if (searchQuery && !filterType) {
         return (
           offence.description.toLowerCase().includes(query) ||
-          offence.name.toLowerCase().includes(query) ||
           offence.timestamp.toLowerCase().includes(query) ||
-          offence.category.toLowerCase().includes(query) ||
           offence.message.toLowerCase().includes(query)  ||
           offence.timestamp.toLowerCase().includes(query) ||
           offence.src_ip.toLowerCase().includes(query) ||
           offence.dest_ip.toLowerCase().includes(query) ||
-          offence.src_port.toLowerCase().includes(query) ||
-          offence.dest_port.toLowerCase().includes(query) ||
-          offence.protocol.toLowerCase().includes(query)
-        )
+          offence.src_port.toLocaleString().includes(query) ||
+          offence.dest_port.toLocaleString().toLowerCase().includes(query) ||
+          offence.protocol.toLowerCase().includes(query) ||
+          getPriority(offence.description.toLowerCase()).toLocaleString().includes(query)
+        );
       }
       
       // If we have both filter type and search query, search only in the specified field
       switch (filterType) {
         case "Alert Category":
-          return offence.description.toLowerCase().includes(query)
+          return offence.description.toLowerCase().includes(query);
         case "Alert Name":
-          return offence.message.toLowerCase().includes(query)
+          return offence.message.toLowerCase().includes(query);
         case "Date & Time":
-          return offence.timestamp.toLowerCase().includes(query)
+          return offence.timestamp.toLowerCase().includes(query);
         case "Source IP":
-          return offence.src_ip.toLowerCase().includes(query)
+          return offence.src_ip.toLowerCase().includes(query);
         case "Destination IP":
-          return offence.dest_ip.toLowerCase().includes(query)
+          return offence.dest_ip.toLowerCase().includes(query);
         case "Source Port": 
-          return offence.src_port.toLowerCase().includes(query)
+          return offence.src_port.toLowerCase().includes(query);
         case "Destination Port":
-          return offence.dest_port.toLowerCase().includes(query)
+          return offence.dest_port.toLowerCase().includes(query);
         case "Protocol":
-          return offence.protocol.toLowerCase().includes(query)
+          return offence.protocol.toLowerCase().includes(query);
+        case "Severity":
+          return getPriority(offence.description.toLowerCase()).toLocaleString().includes(query);
         default:
-          return false
+          return false;
       }
-    })
-  }, [offences, filterType, searchQuery])
+    });
+  }, [offences, filterType, searchQuery, hideUncategorized]);
 
   // Function to handle "select all" checkbox
   const handleSelectAll = (e) => {
@@ -650,10 +672,7 @@ const Offences = () => {
     setIsModalOpen(true)
   }
 
-  function getPriority(name) {
-    name = name.trim()
-    return classifications[name] ? classifications[name].priority : 'Unknown'
-  }
+  
 
   const closeModal = () => {
     setIsModalOpen(false)
@@ -732,7 +751,7 @@ const Offences = () => {
         </div>
 
         {/* Filter and Buttons */}
-        <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "20px" }}>
+        <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "20px", flexWrap: "wrap" }}>
           <div style={{ display: "flex", gap: "10px", flex: 1, maxWidth: "600px" }}>
             <select
               value={filterType}
@@ -746,6 +765,7 @@ const Offences = () => {
             >
               <option value="">Filter By (All Fields)</option>
               <option value="Alert Category">Alert Category</option>
+              <option value="Severity">Severity</option>
               <option value="Source IP">Source IP</option>
               <option value="Destination IP">Destination IP</option>
               <option value="Source Port">Source Port</option>
@@ -758,7 +778,8 @@ const Offences = () => {
             <div style={{ 
               position: "relative", 
               flex: 1,
-              display: "flex"
+              display: "flex",
+              minWidth: "200px" // Ensure minimum width to prevent overlap
             }}>
               <input
                 type="text"
@@ -788,7 +809,20 @@ const Offences = () => {
             </div>
           </div>
           
-          <div>
+          <div style={{ display: "flex", gap: "10px", flexWrap: "wrap" }}>
+            <select
+              value={hideUncategorized}
+              onChange={(e) => setHideUncategorized(e.target.value === "true")}
+              style={{
+                padding: "10px",
+                border: "1px solid #ccc",
+                borderRadius: "4px",
+                minWidth: "180px"
+              }}
+            >
+              <option value="false">Show All Alerts</option>
+              <option value="true">Hide Uncategorized Alerts</option>
+            </select>
             <button
               onClick={handleOpenReportForm}
               style={{
@@ -847,70 +881,70 @@ const Offences = () => {
         )}
 
         {/* Offences Table */}
-        <div style={{ width: "100%", overflowX: "auto", maxHeight: "900px", overflowY: "auto" }}>
-        <table
-          style={{
-            width: "100%",
-            background: "#fff",
-            borderCollapse: "collapse",
-            boxShadow: "0 0 10px rgba(0,0,0,0.1)",
-            minWidth: "800px"
-          }}
-        >
-          <thead style={{ position: "sticky", top: 0, background: "#fff", zIndex: 2, boxShadow: "0 2px 2px rgba(0,0,0,0.1)" }}>
-            <tr style={{ background: "#ccc", borderBottom: "2px solid #aaa" }}>
-              <th style={{ padding: "10px", textAlign: "center", borderRight: "1px solid #aaa" }}>
-                <input 
-                  type="checkbox" 
-                  checked={areAllSelected}
-                  onChange={handleSelectAll}
-                  style={{ cursor: "pointer" }}
-                /> Select
-              </th>
-              <th style={{ padding: "10px", textAlign: "center", borderRight: "1px solid #aaa" }}>
-                  Alert Message
-                </th>
-              <th style={{ padding: "10px", textAlign: "center", borderRight: "1px solid #aaa" }}>Date & Time</th>
-              <th style={{ padding: "10px", textAlign: "center", borderRight: "1px solid #aaa" }}>Protocol</th>
-              <th style={{ padding: "10px", textAlign: "center", borderRight: "1px solid #aaa" }}>Alert Category</th>
-              <th style={{ padding: "10px", textAlign: "center", borderRight: "1px solid #aaa" }}>Severity level (1=High, 4=Low)</th>
-              <th style={{ padding: "10px", textAlign: "center" }}>View</th>
-            </tr>
-          </thead>
-          <tbody>
-            {filteredOffences.map((offence, index) => (
-              <tr 
-                key={index} 
-                style={{ 
-                  borderBottom: "1px solid #ddd",
-                  backgroundColor: selectedRows.includes(index) ? "#f0f7ff" : "inherit"
-                }}
-              >
-                <td style={{ padding: "10px", textAlign: "center" }}>
+        <div style={{ width: "100%", maxHeight: "500px", overflowY: "auto" }}>
+          <table
+            style={{
+              width: "100%",
+              background: "#fff",
+              borderCollapse: "collapse",
+              boxShadow: "0 0 10px rgba(0,0,0,0.1)",
+              minWidth: "800px"
+            }}
+          >
+            <thead style={{ position: "sticky", top: 0, background: "#fff", zIndex: 2, boxShadow: "0 2px 2px rgba(0,0,0,0.1)" }}>
+              <tr style={{ background: "#ccc", borderBottom: "2px solid #aaa" }}>
+                <th style={{ padding: "10px", textAlign: "center", borderRight: "1px solid #aaa" }}>
                   <input 
                     type="checkbox" 
-                    checked={selectedRows.includes(index)}
-                    onChange={(e) => handleSelectRow(index, e)}
+                    checked={areAllSelected}
+                    onChange={handleSelectAll}
                     style={{ cursor: "pointer" }}
-                  />
-                </td>
-                <td style={{ padding: "10px", textAlign: "center" }}>{offence.message}</td>
-                <td style={{ padding: "10px", textAlign: "center" }}>{new Date(offence.timestamp).toLocaleString()}</td>
-                <td style={{ padding: "10px", textAlign: "center" }}>{offence.protocol}</td>
-                <td style={{ padding: "10px", textAlign: "center" }}>{offence.description.toLowerCase() || 'N/A'}</td>
-                <td style={{ padding: "10px", textAlign: "center" }}>{getPriority(offence.description.toLowerCase().trim() || 'N/A')}</td>
-                <td style={{ padding: "10px", textAlign: "center" }}>
-                  <button
-                    style={{ background: "purple", color: "#fff", padding: "5px 10px", borderRadius: "5px" }}
-                    onClick={() => openModal(offence)}
-                  >
-                    View
-                  </button>
-                </td>
+                  /> Select
+                </th>
+                <th style={{ padding: "10px", textAlign: "center", borderRight: "1px solid #aaa" }}>
+                  Alert Message
+                </th>
+                <th style={{ padding: "10px", textAlign: "center", borderRight: "1px solid #aaa" }}>Date & Time</th>
+                <th style={{ padding: "10px", textAlign: "center", borderRight: "1px solid #aaa" }}>Protocol</th>
+                <th style={{ padding: "10px", textAlign: "center", borderRight: "1px solid #aaa" }}>Alert Category</th>
+                <th style={{ padding: "10px", textAlign: "center", borderRight: "1px solid #aaa" }}>Severity level (1=High, 4=Low)</th>
+                <th style={{ padding: "10px", textAlign: "center" }}>View</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {filteredOffences.map((offence, index) => (
+                <tr 
+                  key={index} 
+                  style={{ 
+                    borderBottom: "1px solid #ddd",
+                    backgroundColor: selectedRows.includes(index) ? "#f0f7ff" : "inherit"
+                  }}
+                >
+                  <td style={{ padding: "10px", textAlign: "center" }}>
+                    <input 
+                      type="checkbox" 
+                      checked={selectedRows.includes(index)}
+                      onChange={(e) => handleSelectRow(index, e)}
+                      style={{ cursor: "pointer" }}
+                    />
+                  </td>
+                  <td style={{ padding: "10px", textAlign: "center" }}>{offence.message}</td>
+                  <td style={{ padding: "10px", textAlign: "center" }}>{new Date(offence.timestamp).toLocaleString()}</td>
+                  <td style={{ padding: "10px", textAlign: "center" }}>{offence.protocol}</td>
+                  <td style={{ padding: "10px", textAlign: "center" }}>{offence.description.toLowerCase() || 'N/A'}</td>
+                  <td style={{ padding: "10px", textAlign: "center" }}>{getPriority(offence.description.toLowerCase().trim() || 'N/A')}</td>
+                  <td style={{ padding: "10px", textAlign: "center" }}>
+                    <button
+                      style={{ background: "purple", color: "#fff", padding: "5px 10px", borderRadius: "5px" }}
+                      onClick={() => openModal(offence)}
+                    >
+                      View
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
 
         {/* Modal */}
@@ -926,6 +960,7 @@ const Offences = () => {
               display: "flex",
               justifyContent: "center",
               alignItems: "center",
+              zIndex: 3,
             }}
             onClick={closeModal}
           >
