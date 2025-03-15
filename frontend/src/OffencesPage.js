@@ -1,9 +1,286 @@
-import React, { useState, useMemo, useEffect} from "react"
+import React, { useState, useMemo, useEffect } from "react"
 import { useNavigate, useLocation } from "react-router-dom"
 import axios from 'axios';
 import Sidebar from "./Sidebar" // Import the Sidebar component
 
 const userRole = "network-admin"
+
+const FilterModal = ({ onClose, onSubmit }) => {
+  const [formData, setFormData] = useState({
+    startDateTime: '',
+    endDateTime: '',
+    src_ip: '',
+    dest_ip: '',
+    src_port: '',
+    dest_port: '',
+    protocol: '',
+    message: '',
+    description: '',
+    host: ''
+  });
+
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({
+      ...prev,
+      [name]: value
+    }));
+  };
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    onSubmit(formData);
+  };
+
+  return (
+    <div style={{
+      position: 'fixed',
+      top: 0,
+      left: 0,
+      right: 0,
+      bottom: 0,
+      backgroundColor: 'rgba(0, 0, 0, 0.5)',
+      display: 'flex',
+      justifyContent: 'center',
+      alignItems: 'center',
+      zIndex: 1000
+    }}>
+      <div style={{
+        backgroundColor: 'white',
+        padding: '20px',
+        borderRadius: '8px',
+        width: '90%',
+        maxWidth: '600px',
+        maxHeight: '90vh',
+        overflowY: 'auto'
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', marginBottom: '20px' }}>
+          <button
+            onClick={onClose}
+            style={{
+              background: 'none',
+              border: 'none',
+              fontSize: '24px',
+              cursor: 'pointer',
+              marginRight: '10px'
+            }}
+          >
+            ←
+          </button>
+          <h2 style={{ margin: 0 }}>Advanced Filter:</h2>
+        </div>
+
+        <div style={{
+          backgroundColor: '#f5f5f5',
+          padding: '20px',
+          borderRadius: '8px'
+        }}>
+          <h3 style={{ marginTop: 0 }}>Filter Criteria:</h3>
+
+          <form onSubmit={handleSubmit}>
+            <div style={{ marginBottom: '15px' }}>
+              <label style={{ display: 'block', marginBottom: '5px' }}>Start Date:</label>
+              <input
+                type="datetime-local"
+                name="startDateTime"
+                value={formData.startDateTime}
+                onChange={handleChange}
+                style={{
+                  width: '100%',
+                  padding: '8px',
+                  border: '1px solid #ddd',
+                  borderRadius: '4px'
+                }}
+              />
+            </div>
+
+            <div style={{ marginBottom: '15px' }}>
+              <label style={{ display: 'block', marginBottom: '5px' }}>End Date:</label>
+              <input
+                type="datetime-local"
+                name="endDateTime"
+                value={formData.endDateTime}
+                onChange={handleChange}
+                style={{
+                  width: '100%',
+                  padding: '8px',
+                  border: '1px solid #ddd',
+                  borderRadius: '4px'
+                }}
+              />
+            </div>
+
+            <div style={{ marginBottom: '15px' }}>
+              <label style={{ display: 'block', marginBottom: '5px' }}>Source IP:</label>
+              <input
+                type="text"
+                name="src_ip"
+                value={formData.src_ip}
+                onChange={handleChange}
+                placeholder="Enter Source IP"
+                style={{
+                  width: '100%',
+                  padding: '8px',
+                  border: '1px solid #ddd',
+                  borderRadius: '4px'
+                }}
+              />
+            </div>
+
+            <div style={{ marginBottom: '15px' }}>
+              <label style={{ display: 'block', marginBottom: '5px' }}>Destination IP:</label>
+              <input
+                type="text"
+                name="dest_ip"
+                value={formData.dest_ip}
+                onChange={handleChange}
+                placeholder="Enter Destination IP"
+                style={{
+                  width: '100%',
+                  padding: '8px',
+                  border: '1px solid #ddd',
+                  borderRadius: '4px'
+                }}
+              />
+            </div>
+
+            <div style={{ marginBottom: '15px' }}>
+              <label style={{ display: 'block', marginBottom: '5px' }}>Source Port:</label>
+              <input
+                type="text"
+                name="src_port"
+                value={formData.src_port}
+                onChange={handleChange}
+                placeholder="Enter Source Port"
+                style={{
+                  width: '100%',
+                  padding: '8px',
+                  border: '1px solid #ddd',
+                  borderRadius: '4px'
+                }}
+              />
+            </div>
+
+            <div style={{ marginBottom: '15px' }}>
+              <label style={{ display: 'block', marginBottom: '5px' }}>Destination Port:</label>
+              <input
+                type="text"
+                name="dest_port"
+                value={formData.dest_port}
+                onChange={handleChange}
+                placeholder="Enter Destination Port"
+                style={{
+                  width: '100%',
+                  padding: '8px',
+                  border: '1px solid #ddd',
+                  borderRadius: '4px'
+                }}
+              />
+            </div>
+
+            <div style={{ marginBottom: '15px' }}>
+              <label style={{ display: 'block', marginBottom: '5px' }}>Protocol:</label>
+              <input
+                type="text"
+                name="protocol"
+                value={formData.protocol}
+                onChange={handleChange}
+                placeholder="Enter Protocol"
+                style={{
+                  width: '100%',
+                  padding: '8px',
+                  border: '1px solid #ddd',
+                  borderRadius: '4px'
+                }}
+              />
+            </div>
+
+            <div style={{ marginBottom: '15px' }}>
+              <label style={{ display: 'block', marginBottom: '5px' }}>Message:</label>
+              <input
+                type="text"
+                name="message"
+                value={formData.message}
+                onChange={handleChange}
+                placeholder="Enter Message"
+                style={{
+                  width: '100%',
+                  padding: '8px',
+                  border: '1px solid #ddd',
+                  borderRadius: '4px'
+                }}
+              />
+            </div>
+
+            <div style={{ marginBottom: '15px' }}>
+              <label style={{ display: 'block', marginBottom: '5px' }}>Description:</label>
+              <input
+                type="text"
+                name="description"
+                value={formData.description}
+                onChange={handleChange}
+                placeholder="Enter Description"
+                style={{
+                  width: '100%',
+                  padding: '8px',
+                  border: '1px solid #ddd',
+                  borderRadius: '4px'
+                }}
+              />
+            </div>
+
+            <div style={{ marginBottom: '15px' }}>
+              <label style={{ display: 'block', marginBottom: '5px' }}>Host:</label>
+              <input
+                type="text"
+                name="host"
+                value={formData.host}
+                onChange={handleChange}
+                placeholder="Enter Host"
+                style={{
+                  width: '100%',
+                  padding: '8px',
+                  border: '1px solid #ddd',
+                  borderRadius: '4px'
+                }}
+              />
+            </div>
+
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
+              <button
+                type="submit"
+                style={{
+                  padding: '8px 16px',
+                  backgroundColor: '#4CAF50',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '4px',
+                  cursor: 'pointer'
+                }}
+              >
+                Apply Filter
+              </button>
+              <button
+                type="button"
+                onClick={onClose}
+                style={{
+                  padding: '8px 16px',
+                  backgroundColor: '#333',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '4px',
+                  cursor: 'pointer'
+                }}
+              >
+                Cancel
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  );
+};
 
 const AutomatedReportForm = ({ onClose, onSubmit }) => {
   const [formData, setFormData] = useState({
@@ -12,8 +289,6 @@ const AutomatedReportForm = ({ onClose, onSubmit }) => {
     alertCriticality: '',
     repeatNumber: '',
     repeatPeriod: '',
-    startDate: '',
-    endDate: '',
     reportFormat: '',
     reportType: 'summarized'
   });
@@ -173,38 +448,6 @@ const AutomatedReportForm = ({ onClose, onSubmit }) => {
                   <option value="year">Year</option>
                 </select>
               </div>
-            </div>
-
-            <div style={{ marginBottom: '15px' }}>
-              <label style={{ display: 'block', marginBottom: '5px' }}>Start Date:</label>
-              <input
-                type="date"
-                name="startDate"
-                value={formData.startDate}
-                onChange={handleChange}
-                style={{
-                  width: '100%',
-                  padding: '8px',
-                  border: '1px solid #ddd',
-                  borderRadius: '4px'
-                }}
-              />
-            </div>
-
-            <div style={{ marginBottom: '15px' }}>
-              <label style={{ display: 'block', marginBottom: '5px' }}>End Date:</label>
-              <input
-                type="date"
-                name="endDate"
-                value={formData.endDate}
-                onChange={handleChange}
-                style={{
-                  width: '100%',
-                  padding: '8px',
-                  border: '1px solid #ddd',
-                  borderRadius: '4px'
-                }}
-              />
             </div>
 
             <div style={{ marginBottom: '15px' }}>
@@ -477,6 +720,8 @@ const Offences = () => {
   const [showGenerateReport, setShowGenerateReport] = useState(false)
   const [selectedRows, setSelectedRows] = useState([])
   const [hideUncategorized, setHideUncategorized] = useState(false);
+  const [filterCriteria, setFilterCriteria] = useState({});
+  const [isFilterModalOpen, setIsFilterModalOpen] = useState(false);
   const navigate = useNavigate()
   const location = useLocation()
   const [logs, setLogs] = useState([]);
@@ -538,7 +783,6 @@ const Offences = () => {
     return classifications[name] ? classifications[name].priority : 'Unknown'
   }
 
-
   useEffect(() => {
     axios.get('http://localhost:8000/logs')
       .then(response => {
@@ -563,59 +807,46 @@ const Offences = () => {
       filtered = filtered.filter(offence => getPriority(offence.description.toLowerCase().trim() || 'N/A') !== 'Unknown');
     }
 
-    if (!filterType && !searchQuery) {
-      return filtered;
-    }
+    // Advanced filter logic
+    filtered = filtered.filter(offence => {
+      let match = true;
 
-    return filtered.filter((offence) => {
-      const query = searchQuery.toLowerCase();
-      
-      // If we have a filter type but no search query, show all logs
-      if (filterType && !searchQuery) {
-        return true;
+      if (filterCriteria.startDateTime) {
+        match = match && new Date(offence.timestamp) >= new Date(filterCriteria.startDateTime);
       }
-      
-      // If we have a search query but no filter type, search across all fields
-      if (searchQuery && !filterType) {
-        return (
-          offence.description.toLowerCase().includes(query) ||
-          offence.timestamp.toLowerCase().includes(query) ||
-          offence.message.toLowerCase().includes(query)  ||
-          offence.timestamp.toLowerCase().includes(query) ||
-          offence.src_ip.toLowerCase().includes(query) ||
-          offence.dest_ip.toLowerCase().includes(query) ||
-          offence.src_port.toLocaleString().includes(query) ||
-          offence.dest_port.toLocaleString().toLowerCase().includes(query) ||
-          offence.protocol.toLowerCase().includes(query) ||
-          getPriority(offence.description.toLowerCase()).toLocaleString().includes(query)
-        );
+      if (filterCriteria.endDateTime) {
+        match = match && new Date(offence.timestamp) <= new Date(filterCriteria.endDateTime);
       }
-      
-      // If we have both filter type and search query, search only in the specified field
-      switch (filterType) {
-        case "Alert Category":
-          return offence.description.toLowerCase().includes(query);
-        case "Alert Name":
-          return offence.message.toLowerCase().includes(query);
-        case "Date & Time":
-          return offence.timestamp.toLowerCase().includes(query);
-        case "Source IP":
-          return offence.src_ip.toLowerCase().includes(query);
-        case "Destination IP":
-          return offence.dest_ip.toLowerCase().includes(query);
-        case "Source Port": 
-          return offence.src_port.toLowerCase().includes(query);
-        case "Destination Port":
-          return offence.dest_port.toLowerCase().includes(query);
-        case "Protocol":
-          return offence.protocol.toLowerCase().includes(query);
-        case "Severity":
-          return getPriority(offence.description.toLowerCase()).toLocaleString().includes(query);
-        default:
-          return false;
+      if (filterCriteria.src_ip) {
+        match = match && offence.src_ip.toLowerCase().includes(filterCriteria.src_ip.toLowerCase());
       }
+      if (filterCriteria.dest_ip) {
+        match = match && offence.dest_ip.toLowerCase().includes(filterCriteria.dest_ip.toLowerCase());
+      }
+      if (filterCriteria.src_port) {
+        match = match && offence.src_port.toString().includes(filterCriteria.src_port);
+      }
+      if (filterCriteria.dest_port) {
+        match = match && offence.dest_port.toString().includes(filterCriteria.dest_port);
+      }
+      if (filterCriteria.protocol) {
+        match = match && offence.protocol.toLowerCase().includes(filterCriteria.protocol.toLowerCase());
+      }
+      if (filterCriteria.message) {
+        match = match && offence.message.toLowerCase().includes(filterCriteria.message.toLowerCase());
+      }
+      if (filterCriteria.description) {
+        match = match && offence.description.toLowerCase().includes(filterCriteria.description.toLowerCase());
+      }
+       if (filterCriteria.host) {
+         match = match && offence.host.toLowerCase().includes(filterCriteria.host.toLowerCase());
+       }
+
+      return match;
     });
-  }, [offences, filterType, searchQuery, hideUncategorized]);
+
+    return filtered;
+  }, [offences, hideUncategorized, filterCriteria]);
 
   // Function to handle "select all" checkbox
   const handleSelectAll = (e) => {
@@ -709,6 +940,19 @@ const Offences = () => {
     setShowGenerateReport(false)
   }
 
+  const handleOpenFilterModal = () => {
+    setIsFilterModalOpen(true);
+  };
+
+  const handleCloseFilterModal = () => {
+    setIsFilterModalOpen(false);
+  };
+
+  const handleSubmitFilter = (formData) => {
+    setFilterCriteria(formData);
+    setIsFilterModalOpen(false);
+  };
+
   return (
     <div style={{ display: "flex", height: "100vh", background: "#f4f4f4" }}>
       {/* Use the Sidebar component */}
@@ -719,7 +963,7 @@ const Offences = () => {
         <h1>Offences (Alert) Interface:</h1>
 
         {/* Statistics */}
-        <div style={{ display: "flex", gap: "10px", marginBottom: "20px" }}>
+         <div style={{ display: "flex", gap: "10px", marginBottom: "20px" }}>
           <div style={{ background: "#ddd", padding: "12px 20px", borderRadius: "20px", textAlign: "center" }}>
             <p>Total Alerts</p>
             <p style={{ fontSize: "20px", fontWeight: "bold" }}>{getAlertCount()}</p>
@@ -849,6 +1093,19 @@ const Offences = () => {
               }}
             >
               Generate Report
+            </button>
+            <button
+              onClick={handleOpenFilterModal}
+              style={{
+                background: "blue",
+                color: "#fff",
+                padding: "12px 20px",
+                border: "none",
+                borderRadius: "20px",
+                cursor: "pointer",
+              }}
+            >
+              Advanced Filter
             </button>
           </div>
         </div>
@@ -1038,6 +1295,10 @@ const Offences = () => {
 
         {showGenerateReport && (
           <GenerateReportModal onClose={handleCloseGenerateReport} onSubmit={handleSubmitGenerateReport} />
+        )}
+
+        {isFilterModalOpen && (
+          <FilterModal onClose={handleCloseFilterModal} onSubmit={handleSubmitFilter} />
         )}
         
       </div>
