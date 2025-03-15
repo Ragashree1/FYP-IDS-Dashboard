@@ -30,6 +30,28 @@ class Journal(Base):
     class Config:
         orm_mode = True
 
+class SnortLogs(Base):
+    __tablename__ = 'SnortLogs'
+    id = Column(Integer, primary_key=True, index=True)
+    timestamp = Column(String)
+    priority = Column(Integer)
+    protocol = Column(String)
+    raw = Column(String)
+    length = Column(Integer)
+    direction = Column(String)
+    src_ip = Column(String)
+    src_port = Column(Integer)
+    dest_ip = Column(String)
+    dest_port = Column(Integer)
+    classification = Column(String)
+    action = Column(String)
+    message = Column(String)
+    description = Column(String)
+    host = Column(String)
+
+    class Config:
+        orm_mode = True
+
 
 class Account(Base):
     __tablename__= 'Account'
@@ -60,7 +82,6 @@ class CreditCard(Base):
     userid = Column(String, ForeignKey('Account.userid')) #Encountered error while trying to import userid as a foreign key, remember to come back when free and try solve this issue
 
 
-
     class Config:
         orm_mode = True
 
@@ -74,7 +95,6 @@ class Report(Base):
     class Config:
         orm_mode = True
 
-
 class Log(Base):
     __tablename__= 'log'
     id = Column(Integer,primary_key=True, index=True)
@@ -87,8 +107,6 @@ class Log(Base):
 
     class Config:
         orm_mode = True
-
-
 
 class TokenTable(Base):
     __tablename__ = "token"

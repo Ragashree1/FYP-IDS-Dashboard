@@ -599,7 +599,7 @@ const addUser = async (user) => {
       setError("Failed to delete user");
     }
   };
-  
+ 
   const handleConfirmDelete = () => {
     setUsers(users.filter((user) => user.id !== userToDelete.id))
     setShowDeleteModal(false)

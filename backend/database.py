@@ -23,6 +23,5 @@ SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 Base = declarative_base()
 
-import models.models #attempt to fix a circular import error
-
-Base.metadata.create_all(engine)
+# Create all tables in the database
+Base.metadata.create_all(bind=engine)
