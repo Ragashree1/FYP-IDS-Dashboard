@@ -2,6 +2,7 @@ import requests
 from datetime import datetime
 from database import SessionLocal
 from models.models import SnortLogs
+from apscheduler.schedulers.background import BackgroundScheduler
 
 def fetch_logs():
     es_url = "http://localhost:9200/snort-logs-*/_search"
@@ -38,7 +39,7 @@ def preprocess_log(log):
         "dest_port": int(message_parts[7].split(':')[1].strip()),
         "classification": message_parts[8].strip(),
         "action": message_parts[9].strip(),
-        "message": message_parts[10].strip(),
+        "message": message_parts[10].strip().replace('"', ''),
         "description": message_parts[11].strip(),
         "host": log['_source']['host']['ip'][0]
     }
