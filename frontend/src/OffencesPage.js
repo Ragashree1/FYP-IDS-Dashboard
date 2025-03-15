@@ -747,7 +747,7 @@ const Offences = () => {
   }
 
   useEffect(() => {
-    axios.get('http://localhost:8000/logs')
+    axios.get('http://localhost:8000/alerts')
       .then(response => {
         setLogs(response.data);
         setOffences(response.data);

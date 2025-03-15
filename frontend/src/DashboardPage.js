@@ -107,7 +107,7 @@ const Dashboard = () => {
   
 
   useEffect(() => {
-    axios.get('http://localhost:8000/logs')
+    axios.get('http://localhost:8000/alerts')
       .then(response => {
         if (response.data) {
           setLogs(response.data);

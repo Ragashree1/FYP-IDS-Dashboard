@@ -3,9 +3,9 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from controllers.journal_controller import router as journal_router
 from controllers.meeting_minutes_controller import router as meeting_minutes_router
-from controllers.log_controller import router as logs_router
+from controllers.alert_controller import router as alerts_router
 from apscheduler.schedulers.background import BackgroundScheduler
-from services.log_service import update_and_fetch_logs
+from services.alert_service import update_and_fetch_alerts
 
 app = FastAPI()
 
@@ -27,14 +27,14 @@ app.add_middleware(
 # Include the routers
 app.include_router(journal_router)
 app.include_router(meeting_minutes_router)
-app.include_router(logs_router)
+app.include_router(alerts_router)
 
-def fetch_logs_job():
-    update_and_fetch_logs()
+def fetch_alerts_job():
+    update_and_fetch_alerts()
 
 if __name__ == "__main__":
     scheduler = BackgroundScheduler()
-    scheduler.add_job(fetch_logs_job, 'interval', minutes=5)
+    scheduler.add_job(fetch_alerts_job, 'interval', minutes=5)
     scheduler.start()
 
     try:

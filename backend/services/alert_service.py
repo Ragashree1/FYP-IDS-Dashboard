@@ -1,10 +1,10 @@
 import requests
 from datetime import datetime
 from database import SessionLocal
-from models.models import SnortLogs
+from models.models import SnortAlerts
 from apscheduler.schedulers.background import BackgroundScheduler
 
-def fetch_logs():
+def fetch_alerts():
     es_url = "http://localhost:9200/snort-logs-*/_search"
     query = {
         "size": 100,
@@ -14,21 +14,21 @@ def fetch_logs():
     
     headers = {"Content-Type": "application/json"}
     response = requests.get(es_url, json=query, headers=headers)
-    logs = response.json().get('hits', {}).get('hits', [])
+    alerts = response.json().get('hits', {}).get('hits', [])
     
-    return logs
+    return alerts
 
-def get_last_log_time():
+def get_last_alert_time():
     with SessionLocal() as db:
-        last_log = db.query(SnortLogs).order_by(SnortLogs.timestamp.desc()).first()
-        return datetime.strptime(last_log.timestamp, "%Y-%m-%dT%H:%M:%S.%fZ") if last_log else None
+        last_alert = db.query(SnortAlerts).order_by(SnortAlerts.timestamp.desc()).first()
+        return datetime.strptime(last_alert.timestamp, "%Y-%m-%dT%H:%M:%S.%fZ") if last_alert else None
 
-def preprocess_log(log):
+def preprocess_alert(alert):
     try:
-        message_parts = log['_source']['message'].split(',')
-        timestamp = log['_source']['@timestamp']
+        message_parts = alert['_source']['message'].split(',')
+        timestamp = alert['_source']['@timestamp']
         if len(message_parts) < 12:
-            raise ValueError("Log format is incorrect")
+            raise ValueError("Alert format is incorrect")
         return {
             "timestamp": timestamp,
             "priority": int(message_parts[1].strip()),
@@ -44,32 +44,32 @@ def preprocess_log(log):
             "action": message_parts[9].strip(),
             "message": message_parts[10].strip().replace('"', ''),
             "description": message_parts[11].strip(),
-            "host": log['_source']['host']['ip'][0]
+            "host": alert['_source']['host']['ip'][0]
         }
     except (IndexError, ValueError, KeyError) as e:
-        print(f"Skipping log due to error: {e}")
+        print(f"Skipping alert due to error: {e}")
         return None
 
-def save_logs(logs):
+def save_alerts(alerts):
     with SessionLocal() as db:
-        for log in logs:
-            preprocessed_log = preprocess_log(log)
-            if preprocessed_log:
-                db_log = SnortLogs(**preprocessed_log)
-                db.add(db_log)
+        for alerts in alerts:
+            preprocessed_alert = preprocess_alert(alerts)
+            if preprocessed_alert:
+                db_alert = SnortAlerts(**preprocessed_alert)
+                db.add(db_alert)
         db.commit()
 
-def update_and_fetch_logs():
-    last_log_time = get_last_log_time()
-    logs = fetch_logs()
+def update_and_fetch_alerts():
+    last_alert_time = get_last_alert_time()
+    alerts = fetch_alerts()
     
-    new_logs = []
-    for log in logs:
-        log_time = datetime.strptime(log['_source']['@timestamp'], "%Y-%m-%dT%H:%M:%S.%fZ")
-        if not last_log_time or log_time > last_log_time:
-            new_logs.append(log)
+    new_alerts = []
+    for alert in alerts:
+        alert_time = datetime.strptime(alert['_source']['@timestamp'], "%Y-%m-%dT%H:%M:%S.%fZ")
+        if not last_alert_time or alert_time > last_alert_time:
+            new_alerts.append(alert)
     
-    save_logs(new_logs)
+    save_alerts(new_alerts)
     
     with SessionLocal() as db:
-        return db.query(SnortLogs).all()
+        return db.query(SnortAlerts).all()
