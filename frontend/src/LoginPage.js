@@ -116,8 +116,7 @@ export default function LoginPage() {
   
   const handleLogin = async (e) => {
     e.preventDefault();
-    setError("");
-  
+    
     try {
       const response = await fetch("http://127.0.0.1:8000/login/token", {
         method: "POST",
@@ -129,7 +128,12 @@ export default function LoginPage() {
       if (!response.ok) throw new Error(data.detail || "Login failed");
   
       localStorage.setItem("token", data.access_token);
-      navigate("/dashboard");
+      
+      if (role === "network-admin") {
+        navigate("/dashboard");
+      } else if (role === "organisation-admin") {
+        navigate("/roles-permission");
+      } 
       
     } catch (err) {
       setError(err.message);
@@ -138,13 +142,20 @@ export default function LoginPage() {
   };
   
 
-  return (
-    <div style={styles.loginContainer}>
-      <div style={styles.loginForm}>
-        <div style={styles.logoContainer}>
-          <img src="/images/secuboard.png" alt="SecuBoard Logo" style={styles.logo} />
-          <h1 style={styles.title}>SecuBoard</h1>
-        </div>
+ return (
+  <div style={styles.loginContainer}>
+    <div style={styles.loginForm}>
+      <div style={styles.logoContainer}>
+	        <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>  
+        <img 
+          src="https://hebbkx1anhila5yf.public.blob.vercel-storage.com/image-AwHpatwUXOxUSYkvlo8tVkBUyL8vzm.png" 
+          alt="SecuBoard Logo" 
+          className="logo" 
+          style={{ width: "70px", height: "70px"}} // Adjust width as needed
+        />
+        <h1 style={styles.title}>SecuBoard</h1>
+      </div>
+	     </div>
 
         <form onSubmit={handleLogin}>
           <div style={styles.formGroup}>
@@ -154,9 +165,8 @@ export default function LoginPage() {
               style={styles.selectInput}
             >
               <option value="" disabled>Select role</option>
-              <option value="system-admin">System Admin</option>
+              <option value="organisation-admin">Organisation Admin</option>
               <option value="network-admin">Network Admin</option>
-              <option value="cybersecurity-analyst">Cybersecurity Analyst</option>
               <option value="it-manager">IT Manager</option>
               <option value="data-analyst">Data Analyst</option>
             </select>

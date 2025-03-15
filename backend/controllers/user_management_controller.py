@@ -1,6 +1,6 @@
 from fastapi import APIRouter, HTTPException
 from starlette import status
-from models.schemas import AccountBase,AccountEdit
+from models.schemas import AccountBase
 from services import user_management_service
 from typing import List
 
@@ -24,8 +24,8 @@ def remove_user(account_id: int):
         raise HTTPException(status_code=404, detail="User not found.")
     return {"message": "User deleted successfully"}
 
-@router.put("/{account_id}", response_model=AccountEdit)
-def modify_journal(account_id: int, update_data: AccountEdit):
+@router.put("/{account_id}", response_model=AccountBase)
+def modify_account(account_id: int, update_data: AccountBase):
     updated_account = user_management_service.update_account(account_id=account_id, update_data=update_data)
     if not updated_account:
         raise HTTPException(status_code=404, detail="User not found")

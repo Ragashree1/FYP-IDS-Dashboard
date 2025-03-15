@@ -42,6 +42,7 @@ class Account(Base):
     userEmail = Column(String)
     userPhoneNum = Column(String)
     userRole = Column(String)
+    userSuspend = Column(Boolean)
     
     class Config:
         orm_mode = True

@@ -1,6 +1,6 @@
 from database import SessionLocal
 from models.models import Account
-from models.schemas import AccountBase,AccountEdit
+from models.schemas import AccountBase
 from typing import List, Optional, Annotated
 from passlib.context import CryptContext
 from datetime import timedelta, timezone, datetime
@@ -23,7 +23,7 @@ def add_user(user_particulars: AccountBase):
         user_data = user_particulars.model_dump()
         user_data.pop("passwd", None)
         user_data.pop("userRole", None)
-        create_user = Account(**user_data,passwd=hashed_password,userRole ="system-admin")# Ragashree asked for default value as 'organizational-admin', putting system-admin, if wrong rmb to change
+        create_user = Account(**user_data,passwd=hashed_password,userRole ="organisation-admin",userSuspend = False)# Ragashree asked for default value as 'organizational-admin', putting system-admin, if wrong rmb to change
         db.add(create_user)
         db.commit()
         db.refresh(create_user)
@@ -45,12 +45,12 @@ def get_all_users() -> List[AccountBase]:
         return [AccountBase.model_validate(user, from_attributes=True) for user in users]
     
 
-def update_account(account_id: int, update_data: AccountEdit):
+def update_account(account_id: int, update_data: AccountBase):
     with SessionLocal() as db:  
         account = db.query(Account).filter(Account.id == account_id).first()
      # Check if the password,user company name & user role is provided, if not, keep the existing ones
     if update_data.passwd:
-        account.passwd = update_data.passwd
+        account.passwd = bcrypt_context.hash(update_data.passwd)
 
     if update_data.userComName:
         account.userComName = update_data.userComName
@@ -60,18 +60,29 @@ def update_account(account_id: int, update_data: AccountEdit):
         account.userRole = update_data.userRole
     
     # Update other fields
-    account.userFirstName = update_data.userFirstName
-    account.userLastName = update_data.userLastName
-    account.userEmail = update_data.userEmail
-    account.userPhoneNum = update_data.userPhoneNum
-    account.userRole = update_data.userRole
+    if update_data.userFirstName:
+        account.userFirstName = update_data.userFirstName
+
+    if update_data.userLastName:
+        account.userLastName = update_data.userLastName
+
+    if update_data.userEmail:
+        account.userEmail = update_data.userEmail
+
+    if update_data.userPhoneNum:
+        account.userPhoneNum = update_data.userPhoneNum
+
+    if update_data.userSuspend:
+        account.userSuspend = update_data.userSuspend
+
     if not account:
             return None
 
-
+    db.add(account) 
     db.commit()
     db.refresh(account)
-    return AccountEdit.model_validate(account)
+    updated_account = AccountBase(**account.__dict__)
+    return AccountBase.model_validate(updated_account)
 
 
 

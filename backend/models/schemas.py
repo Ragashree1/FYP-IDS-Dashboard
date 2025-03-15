@@ -35,19 +35,7 @@ class MeetingMinutesOut(BaseModel):
 
 
 class AccountBase(BaseModel):
-    id: int
-    userid: str
-    userFirstName: str
-    userLastName: str
-    passwd : str
-    userComName : str
-    userEmail : str
-    userPhoneNum : str
-    userRole : str
-
-
-class AccountEdit(BaseModel):
-    id: int
+    id: Optional[int] = None
     userid:  Optional[str] = None
     userFirstName:  Optional[str] = None
     userLastName:  Optional[str] = None
@@ -56,6 +44,9 @@ class AccountEdit(BaseModel):
     userEmail :  Optional[str] = None
     userPhoneNum :  Optional[str] = None
     userRole :  Optional[str] = None
+    userSuspend :  Optional[bool] = None   
+
+
 
 
 class AccountLogin(BaseModel):

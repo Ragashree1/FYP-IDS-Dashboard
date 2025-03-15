@@ -67,7 +67,6 @@ const DeleteConfirmationModal = ({ onClose, onConfirm }) => {
 
 const NewUserModal = ({ onClose, onConfirm, user = null }) => {
   const [formData, setFormData] = useState({
-    id: '',
     userid: '',
     userFirstName: '',
     userLastName: '',
@@ -76,6 +75,7 @@ const NewUserModal = ({ onClose, onConfirm, user = null }) => {
     userEmail: '',
     userPhoneNum: '',
     userRole: '',
+    userSuspend: false,
 
   })
 
@@ -265,10 +265,10 @@ const NewUserModal = ({ onClose, onConfirm, user = null }) => {
                   required
                 >
                   <option value="">Select Role</option>
-                  <option value="Organisation Admin">Organisation Admin</option>
-                  <option value="Network Admin">Network Admin</option>
-                  <option value="IT Manager">IT Manager</option>
-                  <option value="Data Analyst">Data Analyst</option>
+                  <option value="organisation-admin">Organisation Admin</option>
+                  <option value="network-admin">Network Admin</option>
+                  <option value="it-manager">IT Manager</option>
+                  <option value="data-analyst">Data Analyst</option>
                 </select>
               </div>
             </div>
@@ -410,8 +410,8 @@ const SuspendConfirmationModal = ({ onClose, onConfirm, user, isSuspending }) =>
       >
         <h3 style={{ marginTop: 0, marginBottom: "16px" }}>
           {isSuspending
-            ? `Are you sure you want to suspend ${user.name}?`
-            : `Are you sure you want to reactivate ${user.name}?`}
+            ? `Are you sure you want to suspend ${user.userFirstName || ''} ${user.userLastName || ''}?`
+            : `Are you sure you want to reactivate ${user.userFirstName || ''} ${user.userLastName || ''}?`}
         </h3>
         <p style={{ marginBottom: "24px", color: "#666" }}>
           {isSuspending
@@ -504,22 +504,18 @@ const UserManagementPage = () => {
 
   const handleSuspend = (user) => {
     setUserToSuspend(user)
-    setShowSuspendModal(true)
+    setShowSuspendModal(user)
   }
 
   const handleConfirmSuspend = () => {
-    setUsers(
-      users.map((user) =>
-        user.id === userToSuspend.id
-          ? {
-              ...user,
-              suspended: !user.suspended,
-            }
-          : user,
-      ),
-    )
-    setShowSuspendModal(false)
-    setUserToSuspend(null)
+    const updatedUser = {
+      ...userToSuspend,
+      suspended: userToSuspend.userSuspend ? false : true,
+    };
+  
+    updateUserSuspend(updatedUser); // Update user suspend status in the backend
+    setShowSuspendModal(false);
+    setUserToSuspend(null);
   }
 
   const handleCloseSuspendModal = () => {
@@ -527,15 +523,57 @@ const UserManagementPage = () => {
     setUserToSuspend(null)
   }
 
+  const updateUserSuspend = async (user) => {
+    try {
+      const response = await fetch(`http://127.0.0.1:8000/user-management/${user.id}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ userSuspend: !user.userSuspend }), // Only send the suspended status
+      });
+  
+      if (response.ok) {
+        fetchUsers(); // Refresh the user list to reflect the updated status
+      } else {
+        throw new Error("Failed to update user suspend status");
+      }
+    } catch (err) {
+      setError("Failed to update suspend status");
+    }
+  };
+
+  const handleAdd = (user) => {
+    // Set the selected user to be edited
+  setSelectedUser(user);
+  setShowNewUserModal(true); 
+}
+
+const addUser = async (user) => {
+  try {
+    await fetch(`http://127.0.0.1:8000/user-management/`, { method: "POST" , headers: {
+      "Content-Type": "application/json", // Add this header to indicate the body is JSON
+    },
+      body: JSON.stringify(user), // Send userData as the payload to add the user
+    });
+    fetchUsers() 
+  } catch (err) {
+    setError("Failed to add user");
+  }
+};
+
+
   const handleEdit = (user) => {
       // Set the selected user to be edited
     setSelectedUser(user);
-    setShowNewUserModal(true); // Open the modal for editing the user
+    setShowNewUserModal(true); 
 }
 
   const updateUser = async (user) => {
     try {
-      const response = await fetch (`http://127.0.0.1:8000/user-management/${user.id}`, { method: "PUT",
+      const response = await fetch (`http://127.0.0.1:8000/user-management/${user.id}`, { method: "PUT", headers: {
+        "Content-Type": "application/json", // Add this header to indicate the body is JSON
+      },
         body: JSON.stringify(user), // Send userData as the payload to update the user
       });
   
@@ -548,8 +586,8 @@ const UserManagementPage = () => {
       setError("Failed to edit user");
     }
   };
-  const handleDelete = (user) => {
-    deleteUser(user.id);
+  const handleDelete = async (user) => {
+    await deleteUser(user.id);
     fetchUsers();
   };
 
@@ -579,15 +617,15 @@ const UserManagementPage = () => {
       updateUser({ ...formData, id: userId }); // Ensure the formData has the necessary properties for the update
     } else {
       const newUser = {
-        id: formData.id,
         userid: formData.userid,
         name: `${formData.userFirstName} ${formData.userLastName}`,
         userRole: formData.userRole,
         userEmail: formData.userEmail,
         userPhoneNum: formData.userPhoneNum,
-        suspended: false,
+        passwd: formData.passwd,
+        userSuspend: false,
       }
-      setUsers([...users, newUser])
+      addUser(newUser)
     }
     setShowNewUserModal(false)
     setSelectedUser(null)
@@ -654,6 +692,7 @@ const UserManagementPage = () => {
           </div>
           <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
             <button
+            onClick={() => fetchUsers()}
               style={{
                 background: "none",
                 border: "none",
@@ -725,12 +764,12 @@ const UserManagementPage = () => {
                   key={user.id}
                   style={{
                     borderBottom: "1px solid #eee",
-                    backgroundColor: user.suspended ? "#fff5f5" : "inherit",
+                    backgroundColor: user.userSuspend ? "#fff5f5" : "inherit",
                   }}
                 >
                   <td style={{ padding: "16px" }}>{user.id}</td>
                   <td style={{ padding: "16px" }}>{user.userid}</td>
-                  <td style={{ padding: "16px" }}>{user.name}</td>
+                  <td style={{ padding: "16px" }}>{user.name || `${user.userFirstName || ''} ${user.userLastName || ''}`.trim()}</td>
                   <td style={{ padding: "16px" }}>{user.userRole}</td>
                   <td style={{ padding: "16px" }}>{user.userEmail}</td>
                   <td style={{ padding: "16px" }}>{user.userPhoneNum}</td>
@@ -742,11 +781,11 @@ const UserManagementPage = () => {
                         borderRadius: "4px",
                         fontSize: "12px",
                         fontWeight: "bold",
-                        backgroundColor: user.suspended ? "#ffcccb" : "#90EE90",
-                        color: user.suspended ? "#d32f2f" : "#2e7d32",
+                        backgroundColor: user.userSuspend  ? "#ffcccb" : "#90EE90",
+                        color: user.userSuspend ? "#d32f2f" : "#2e7d32",
                       }}
                     >
-                      {user.suspended ? "Suspended" : "Active"}
+                      {user.userSuspend ? "Suspended" : "Active"}
                     </span>
                   </td>
                   <td style={{ padding: "16px", textAlign: "center" }}>
@@ -758,11 +797,11 @@ const UserManagementPage = () => {
                           border: "none",
                           cursor: "pointer",
                           fontSize: "16px",
-                          color: user.suspended ? "#2e7d32" : "#d32f2f",
+                          color: user.userSuspend ? "#2e7d32" : "#d32f2f",
                         }}
-                        title={user.suspended ? "Reactivate User" : "Suspend User"}
+                        title={user.userSuspend ? "Reactivate User" : "Suspend User"}
                       >
-                        {user.suspended ? "❌" : "✅"}
+                        {user.userSuspend ? "❌" : "✅"}
                       </button>
                       <button
                         onClick={() => handleEdit(user)}
@@ -815,7 +854,7 @@ const UserManagementPage = () => {
         {showSuspendModal && (
           <SuspendConfirmationModal
             user={userToSuspend}
-            isSuspending={!userToSuspend.suspended}
+            isSuspending={!userToSuspend.userSuspend}
             onClose={handleCloseSuspendModal}
             onConfirm={handleConfirmSuspend}
           />
