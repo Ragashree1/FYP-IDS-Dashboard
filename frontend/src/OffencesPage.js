@@ -216,7 +216,7 @@ const FilterModal = ({ onClose, onSubmit , initialValues}) => {
             </div>
 
             <div style={{ marginBottom: '15px' }}>
-              <label style={{ display: 'block', marginBottom: '5px' }}>Description:</label>
+              <label style={{ display: 'block', marginBottom: '5px' }}>Category:</label>
               <input
                 type="text"
                 name="description"
@@ -1147,7 +1147,7 @@ const Offences = () => {
         )}
 
         {/* Offences Table */}
-        <div style={{ width: "100%", maxHeight: "500px", overflowY: "auto" }}>
+        <div style={{ width: "100%", maxHeight: "700px", overflowY: "auto" }}>
           <table
             style={{
               width: "100%",
