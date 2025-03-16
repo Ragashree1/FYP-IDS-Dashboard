@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 "use client"
 import { useNavigate, useLocation } from "react-router-dom"
 
@@ -294,3 +295,301 @@ const Sidebar = ({ userRole }) => {
 
 export default Sidebar
 
+=======
+"use client"
+import { useNavigate, useLocation } from "react-router-dom"
+
+const Sidebar = ({ userRole }) => {
+  const navigate = useNavigate()
+  const location = useLocation()
+
+  const isActive = (path) => location.pathname.startsWith(path)
+
+  const handleLogout = () => {
+    navigate("/login")
+  }
+
+  // Updated sidebar container styles
+  const sidebarContainerStyle = {
+    width: "250px",
+    background: "#222",
+    color: "#fff",
+    position: "fixed",
+    top: 0,
+    left: 0,
+    bottom: 0,
+    display: "flex",
+    flexDirection: "column",
+  }
+
+  // Style for the scrollable content area
+  const contentAreaStyle = {
+    padding: "20px",
+    flex: 1,
+    overflowY: "auto",
+    display: "flex",
+    flexDirection: "column",
+  }
+
+  // Style for the fixed logout button container
+  const logoutContainerStyle = {
+    padding: "20px",
+    background: "#222",
+    borderTop: "1px solid #333",
+  }
+
+  // Common logout button styles
+  const logoutButtonStyle = {
+    width: "100%",
+    padding: "10px",
+    background: "red",
+    border: "none",
+    color: "#fff",
+    display: "flex",
+    alignItems: "center",
+    cursor: "pointer",
+  }
+
+  // Common logout icon styles
+  const logoutIconStyle = {
+    width: "20px",
+    height: "20px",
+    marginRight: "10px",
+  }
+
+  // Spacer div style
+  const spacerStyle = {
+    width: "250px",
+    flexShrink: 0,
+  }
+
+  // Render Organisation Admin sidebar
+  if (userRole === "organisation-admin") {
+    return (
+      <div style={{ display: "flex" }}>
+        <div style={spacerStyle} />
+        <div style={sidebarContainerStyle}>
+          <div style={contentAreaStyle}>
+            <div style={{ marginBottom: "40px" }}>
+              <h2 style={{ display: "flex", alignItems: "center", gap: "10px", margin: 0 }}>
+                <img
+                  src="https://hebbkx1anhila5yf.public.blob.vercel-storage.com/image-AwHpatwUXOxUSYkvlo8tVkBUyL8vzm.png"
+                  alt="SecuBoard"
+                  style={{ width: "24px", height: "24px" }}
+                />{" "}
+                SecuBoard
+              </h2>
+            </div>
+
+            <ul style={{ listStyle: "none", padding: 0, margin: 0 }}>
+              <li
+                style={{
+                  padding: "12px 16px",
+                  background: isActive("/roles-permission") ? "#555" : "#333",
+                  marginBottom: "8px",
+                  borderRadius: "4px",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "12px",
+                  cursor: "pointer",
+                }}
+                onClick={() => navigate("/roles-permission")}
+              >
+                <span style={{ fontSize: "18px" }}>🔒</span>
+                Roles and Permission Management
+              </li>
+              <li
+                style={{
+                  padding: "12px 16px",
+                  background: isActive("/user-management") ? "#555" : "#333",
+                  marginBottom: "8px",
+                  borderRadius: "4px",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "12px",
+                  cursor: "pointer",
+                }}
+                onClick={() => navigate("/user-management")}
+              >
+                <span style={{ fontSize: "18px" }}>👥</span>
+                User Management
+              </li>
+              <li
+                style={{
+                  padding: "12px 16px",
+                  background: isActive("/settings") ? "#555" : "#333",
+                  marginBottom: "8px",
+                  borderRadius: "4px",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "12px",
+                  cursor: "pointer",
+                }}
+                onClick={() => navigate("/settings")}
+              >
+                <span style={{ fontSize: "18px" }}>⚙️</span>
+                Settings
+              </li>
+            </ul>
+          </div>
+          <div style={logoutContainerStyle}>
+            <button onClick={() => navigate("/login")} style={logoutButtonStyle}>
+              <span style={{ fontSize: "18px" }}>🚪</span>
+              Logout
+            </button>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  // Render Network Admin sidebar
+  if (userRole === "network-admin") {
+    return (
+      <div style={{ display: "flex" }}>
+        <div style={spacerStyle} />
+        <div style={sidebarContainerStyle}>
+          <div style={contentAreaStyle}>
+            <div style={{ marginBottom: "40px" }}>
+              <h2 style={{ display: "flex", alignItems: "center", gap: "10px", margin: 0 }}>
+                <img
+                  src="https://hebbkx1anhila5yf.public.blob.vercel-storage.com/image-AwHpatwUXOxUSYkvlo8tVkBUyL8vzm.png"
+                  alt="SecuBoard"
+                  style={{ width: "24px", height: "24px" }}
+                />{" "}
+                SecuBoard
+              </h2>
+            </div>
+            <ul style={{ listStyle: "none", padding: 0, margin: 0 }}>
+              <li
+                style={{
+                  padding: "12px 16px",
+                  background: isActive("/roles-permission") ? "#555" : "#333",
+                  marginBottom: "8px",
+                  borderRadius: "4px",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "12px",
+                  cursor: "pointer",
+                }}
+                onClick={() => navigate("/dashboard")}
+              >
+                <span style={{ fontSize: "18px" }}>📊</span>
+                Dashboard
+              </li>
+              <li
+                style={{
+                  padding: "12px 16px",
+                  background: isActive("/roles-permission") ? "#555" : "#333",
+                  marginBottom: "8px",
+                  borderRadius: "4px",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "12px",
+                  cursor: "pointer",
+                }}
+                onClick={() => navigate("/offences")}
+              >
+                <span style={{ fontSize: "18px" }}>🚨</span>
+                Offences
+              </li>
+              <li
+                style={{
+                  padding: "12px 16px",
+                  background: isActive("/roles-permission") ? "#555" : "#333",
+                  marginBottom: "8px",
+                  borderRadius: "4px",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "12px",
+                  cursor: "pointer",
+                }}
+                onClick={() => navigate("/event-log")}
+              >
+                <span style={{ fontSize: "18px" }}>📝</span>
+                Event Log Activity
+              </li>
+              <li
+                style={{
+                  padding: "12px 16px",
+                  background: isActive("/roles-permission") ? "#555" : "#333",
+                  marginBottom: "8px",
+                  borderRadius: "4px",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "12px",
+                  cursor: "pointer",
+                }}
+                onClick={() => navigate("/reports")}
+              >
+                <span style={{ fontSize: "18px" }}>📄</span>
+                Reports
+              </li>
+              <li
+                style={{
+                  padding: "12px 16px",
+                  background: isActive("/roles-permission") ? "#555" : "#333",
+                  marginBottom: "8px",
+                  borderRadius: "4px",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "12px",
+                  cursor: "pointer",
+                }}
+                onClick={() => navigate("/blocklist")}
+              >
+                 <span style={{ fontSize: "18px" }}>🚫</span>
+                Blocklist Management
+              </li>
+              <li
+                style={{
+                  padding: "12px 16px",
+                  background: isActive("/roles-permission") ? "#555" : "#333",
+                  marginBottom: "8px",
+                  borderRadius: "4px",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "12px",
+                  cursor: "pointer",
+                }}
+                onClick={() => navigate("/system-config")}
+              >
+                <span style={{ fontSize: "18px" }}>🔧</span>
+                System Configurations
+              </li>
+              <li
+                style={{
+                  padding: "12px 16px",
+                  background: isActive("/roles-permission") ? "#555" : "#333",
+                  marginBottom: "8px",
+                  borderRadius: "4px",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "12px",
+                  cursor: "pointer",
+                }}
+                onClick={() => navigate("/settings")}
+              >
+                <span style={{ fontSize: "18px" }}>⚙️</span>
+                Settings
+              </li>
+            </ul>
+          </div>
+          <div style={logoutContainerStyle}>
+            <button onClick={handleLogout} style={logoutButtonStyle}>
+              <span style={{ fontSize: "18px" }}>🚪</span>
+              Logout
+            </button>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  // Return null for any other user role
+  return null
+}
+
+export default Sidebar
+
+>>>>>>> origin

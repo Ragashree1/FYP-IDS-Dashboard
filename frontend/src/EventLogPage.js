@@ -1,7 +1,6 @@
-"use client"
-
 import { useState, useMemo } from "react"
 import { useNavigate, useLocation } from "react-router-dom"
+import Sidebar from "./Sidebar" // Import the Sidebar component
 
 const EventLogPage = () => {
   const navigate = useNavigate()
@@ -9,11 +8,8 @@ const EventLogPage = () => {
   const [filterType, setFilterType] = useState("")
   const [searchQuery, setSearchQuery] = useState("")
 
-  const isActive = (path) => location.pathname.startsWith(path)
-
-  const handleLogout = () => {
-    navigate("/login")
-  }
+  // Determine the user role - this could come from your auth context or localStorage
+  const userRole = "network-admin"
 
   const logs = [
     {
@@ -108,174 +104,77 @@ const EventLogPage = () => {
     },
   ]
 
-  // Filter logs based on search query
-  const searchedLogs = useMemo(() => {
-    if (!searchQuery) return logs;
-    return logs.filter((log) => {
-      const query = searchQuery.toLowerCase();
-      return (
-        log.type.toLowerCase().includes(query) ||
-        log.name.toLowerCase().includes(query) ||
-        log.dateTime.toLowerCase().includes(query) ||
-        log.sourceIP.toLowerCase().includes(query) ||
-        log.destinationIP.toLowerCase().includes(query) ||
-        log.logSource.toLowerCase().includes(query)
-      );
-    });
-  }, [searchQuery, logs]); // Add logs here
-  
 
-  // Get visible columns based on filter type
-  const getVisibleColumns = () => {
-    switch (filterType.toLowerCase()) {
-      case "type":
-        return ["type"]
-      case "name":
-        return ["name"]
-      case "date & time":
-        return ["dateTime"]
-      case "source ip":
-        return ["sourceIP"]
-      case "destination ip":
-        return ["destinationIP"]
-      default:
-        return ["type", "name", "dateTime", "logSource", "sourceIP", "destinationIP", "eventCount"]
+  // Updated filter logic to filter rows based on both filter type and search query
+  const filteredLogs = useMemo(() => {
+    if (!filterType && !searchQuery) {
+      return logs
     }
-  }
 
-  const visibleColumns = getVisibleColumns()
+    return logs.filter((log) => {
+      const query = searchQuery.toLowerCase()
+
+      // If we have a filter type but no search query, show all logs
+      if (filterType && !searchQuery) {
+        return true
+      }
+
+      // If we have a search query but no filter type, search across all fields
+      if (searchQuery && !filterType) {
+        return (
+          log.type.toLowerCase().includes(query) ||
+          log.name.toLowerCase().includes(query) ||
+          log.dateTime.toLowerCase().includes(query) ||
+          log.sourceIP.toLowerCase().includes(query) ||
+          log.destinationIP.toLowerCase().includes(query) ||
+          (log.logSource && log.logSource.toLowerCase().includes(query))
+        )
+      }
+
+      // If we have both filter type and search query, search only in the specified field
+      switch (filterType.toLowerCase()) {
+        case "type":
+          return log.type.toLowerCase().includes(query)
+        case "name":
+          return log.name.toLowerCase().includes(query)
+        case "date & time":
+          return log.dateTime.toLowerCase().includes(query)
+        case "source ip":
+          return log.sourceIP.toLowerCase().includes(query)
+        case "destination ip":
+          return log.destinationIP.toLowerCase().includes(query)
+        case "log source":
+          return log.logSource && log.logSource.toLowerCase().includes(query)
+        default:
+          return false
+      }
+    })
+  }, [logs, filterType, searchQuery])
+
+  // Always show all columns
+  const allColumns = ["type", "name", "dateTime", "logSource", "sourceIP", "destinationIP", "eventCount"]
 
   return (
-    <div style={{ display: "flex", height: "100vh", background: "#f4f4f4" }}>
-      {/* Sidebar */}
-      <div
-        style={{
-          width: "250px",
-          background: "#222",
-          color: "#fff",
-          padding: "20px",
-          display: "flex",
-          flexDirection: "column",
-        }}
-      >
-        <h2>SecuBoard</h2>
-        <ul style={{ listStyle: "none", padding: 0 }}>
-          <li
-            style={{
-              padding: "10px",
-              background: isActive("/dashboard") ? "#555" : "#333",
-              marginBottom: "5px",
-              display: "flex",
-              alignItems: "center",
-              cursor: "pointer",
-            }}
-            onClick={() => navigate("/dashboard")}
-          >
-            <img
-              src="/images/dashboard-logo.png"
-              alt="Dashboard Logo"
-              style={{ width: "20px", height: "20px", marginRight: "10px" }}
-            />
-            Dashboard
-          </li>
-          <li
-            style={{
-              padding: "10px",
-              background: isActive("/offences") ? "#555" : "#333",
-              marginBottom: "5px",
-              display: "flex",
-              alignItems: "center",
-              cursor: "pointer",
-            }}
-            onClick={() => navigate("/offences")}
-          >
-            <img
-              src="/images/offences-logo.png"
-              alt="Offences Logo"
-              style={{ width: "20px", height: "20px", marginRight: "10px" }}
-            />
-            Offences
-          </li>
-          <li
-            style={{
-              padding: "10px",
-              background: isActive("/event-log") ? "#555" : "#333",
-              marginBottom: "5px",
-              display: "flex",
-              alignItems: "center",
-              cursor: "pointer",
-            }}
-            onClick={() => navigate("/event-log")}
-          >
-            <img
-              src="/images/event-log-logo.png"
-              alt="Event Log Logo"
-              style={{ width: "20px", height: "20px", marginRight: "10px" }}
-            />
-            Event Log Activity
-          </li>
-          <li
-            style={{
-              padding: "10px",
-              background: isActive("/reports") ? "#555" : "#333",
-              marginBottom: "5px",
-              display: "flex",
-              alignItems: "center",
-              cursor: "pointer",
-            }}
-            onClick={() => navigate("/reports")}
-          >
-            <img
-              src="/images/report-logo.png"
-              alt="Reports Logo"
-              style={{ width: "20px", height: "20px", marginRight: "10px" }}
-            />
-            Reports
-          </li>
-          <li
-            style={{
-              padding: "10px",
-              background: isActive("/settings") ? "#555" : "#333",
-              marginBottom: "5px",
-              display: "flex",
-              alignItems: "center",
-              cursor: "pointer",
-            }}
-            onClick={() => navigate("/settings")}
-          >
-            <img
-              src="/images/settings-logo.png"
-              alt="Settings Logo"
-              style={{ width: "20px", height: "20px", marginRight: "10px" }}
-            />
-            Settings
-          </li>
-        </ul>
-        <button
-          onClick={handleLogout}
-          style={{
-            marginTop: "auto",
-            width: "100%",
-            padding: "10px",
-            background: "red",
-            border: "none",
-            color: "#fff",
-            display: "flex",
-            alignItems: "center",
-            cursor: "pointer",
-          }}
-        >
-          <img
-            src="/images/logout-logo.png"
-            alt="Logout Logo"
-            style={{ width: "20px", height: "20px", marginRight: "10px" }}
-          />
-          Logout
-        </button>
-      </div>
+    <div
+      style={{
+        display: "flex",
+        height: "100vh",
+        background: "#f4f4f4",
+        overflow: "hidden", // Added to prevent horizontal scrolling
+      }}
+    >
+      {/* Use the Sidebar component */}
+      <Sidebar userRole={userRole} />
 
       {/* Main Content */}
-      <div style={{ flex: 1, padding: "20px" }}>
+      <div
+        style={{
+          flex: 1,
+          padding: "20px",
+          overflowY: "auto", // Allow vertical scrolling
+          overflowX: "hidden", // Prevent horizontal scrolling
+        }}
+      >
         <h1>Logs Interface</h1>
 
         {/* Statistics */}
@@ -290,7 +189,7 @@ const EventLogPage = () => {
           }}
         >
           <p style={{ margin: 0 }}>Total Logs:</p>
-          <p style={{ margin: 0, fontSize: "24px", fontWeight: "bold" }}>{searchedLogs.length}</p>
+          <p style={{ margin: 0, fontSize: "24px", fontWeight: "bold" }}>{filteredLogs.length}</p>
         </div>
 
         {/* Search and Filter */}
@@ -300,6 +199,7 @@ const EventLogPage = () => {
             gap: "10px",
             marginBottom: "20px",
             alignItems: "stretch",
+            flexWrap: "wrap", // Added to prevent overflow on small screens
           }}
         >
           <select
@@ -310,12 +210,14 @@ const EventLogPage = () => {
               borderRadius: "4px",
               border: "1px solid #ddd",
               minWidth: "150px",
+              boxSizing: "border-box", // Added to prevent overflow
             }}
           >
-            <option value="">Select Filter Type</option>
+            <option value="">Filter By (All Fields)</option>
             <option value="Type">Type</option>
             <option value="Name">Name</option>
             <option value="Date & Time">Date & Time</option>
+            <option value="Log Source">Log Source</option>
             <option value="Source IP">Source IP</option>
             <option value="Destination IP">Destination IP</option>
           </select>
@@ -325,11 +227,12 @@ const EventLogPage = () => {
               display: "flex",
               position: "relative",
               maxWidth: "400px",
+              boxSizing: "border-box", // Added to prevent overflow
             }}
           >
             <input
               type="text"
-              placeholder="Enter search"
+              placeholder={filterType ? `Search by ${filterType}...` : "Search all fields..."}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               style={{
@@ -337,6 +240,7 @@ const EventLogPage = () => {
                 padding: "8px 12px",
                 borderRadius: "4px",
                 border: "1px solid #ddd",
+                boxSizing: "border-box", // Added to prevent overflow
               }}
             />
             <button
@@ -360,67 +264,40 @@ const EventLogPage = () => {
           style={{
             background: "white",
             borderRadius: "8px",
-            overflow: "hidden",
+            overflow: "auto", // Changed from "hidden" to "auto" to allow scrolling if needed
             boxShadow: "0 1px 3px rgba(0,0,0,0.1)",
+            maxWidth: "100%", // Added to prevent overflow
           }}
         >
           <table style={{ width: "100%", borderCollapse: "collapse" }}>
             <thead>
               <tr style={{ backgroundColor: "#f5f5f5" }}>
-                {visibleColumns.includes("type") && (
-                  <th style={{ padding: "12px", textAlign: "left", borderBottom: "1px solid #eee" }}>Type</th>
-                )}
-                {visibleColumns.includes("name") && (
-                  <th style={{ padding: "12px", textAlign: "left", borderBottom: "1px solid #eee" }}>Name</th>
-                )}
-                {visibleColumns.includes("dateTime") && (
-                  <th style={{ padding: "12px", textAlign: "left", borderBottom: "1px solid #eee" }}>Date & Time</th>
-                )}
-                {visibleColumns.includes("logSource") && (
-                  <th style={{ padding: "12px", textAlign: "left", borderBottom: "1px solid #eee" }}>Log Source</th>
-                )}
-                {visibleColumns.includes("sourceIP") && (
-                  <th style={{ padding: "12px", textAlign: "left", borderBottom: "1px solid #eee" }}>Source IP</th>
-                )}
-                {visibleColumns.includes("destinationIP") && (
-                  <th style={{ padding: "12px", textAlign: "left", borderBottom: "1px solid #eee" }}>Destination IP</th>
-                )}
-                {visibleColumns.includes("eventCount") && (
-                  <th style={{ padding: "12px", textAlign: "center", borderBottom: "1px solid #eee" }}>Event Count</th>
-                )}
+                <th style={{ padding: "12px", textAlign: "left", borderBottom: "1px solid #eee" }}>Type</th>
+                <th style={{ padding: "12px", textAlign: "left", borderBottom: "1px solid #eee" }}>Name</th>
+                <th style={{ padding: "12px", textAlign: "left", borderBottom: "1px solid #eee" }}>Date & Time</th>
+                <th style={{ padding: "12px", textAlign: "left", borderBottom: "1px solid #eee" }}>Log Source</th>
+                <th style={{ padding: "12px", textAlign: "left", borderBottom: "1px solid #eee" }}>Source IP</th>
+                <th style={{ padding: "12px", textAlign: "left", borderBottom: "1px solid #eee" }}>Destination IP</th>
+                <th style={{ padding: "12px", textAlign: "center", borderBottom: "1px solid #eee" }}>Event Count</th>
               </tr>
             </thead>
             <tbody>
-              {searchedLogs.map((log, index) => (
+              {filteredLogs.map((log, index) => (
                 <tr
                   key={index}
                   style={{
                     backgroundColor: index % 2 === 0 ? "#fff" : "#f9f9f9",
                   }}
                 >
-                  {visibleColumns.includes("type") && (
-                    <td style={{ padding: "12px", borderBottom: "1px solid #eee" }}>{log.type}</td>
-                  )}
-                  {visibleColumns.includes("name") && (
-                    <td style={{ padding: "12px", borderBottom: "1px solid #eee" }}>{log.name}</td>
-                  )}
-                  {visibleColumns.includes("dateTime") && (
-                    <td style={{ padding: "12px", borderBottom: "1px solid #eee" }}>{log.dateTime}</td>
-                  )}
-                  {visibleColumns.includes("logSource") && (
-                    <td style={{ padding: "12px", borderBottom: "1px solid #eee" }}>{log.logSource}</td>
-                  )}
-                  {visibleColumns.includes("sourceIP") && (
-                    <td style={{ padding: "12px", borderBottom: "1px solid #eee" }}>{log.sourceIP}</td>
-                  )}
-                  {visibleColumns.includes("destinationIP") && (
-                    <td style={{ padding: "12px", borderBottom: "1px solid #eee" }}>{log.destinationIP}</td>
-                  )}
-                  {visibleColumns.includes("eventCount") && (
-                    <td style={{ padding: "12px", textAlign: "center", borderBottom: "1px solid #eee" }}>
-                      {log.eventCount}
-                    </td>
-                  )}
+                  <td style={{ padding: "12px", borderBottom: "1px solid #eee" }}>{log.type}</td>
+                  <td style={{ padding: "12px", borderBottom: "1px solid #eee" }}>{log.name}</td>
+                  <td style={{ padding: "12px", borderBottom: "1px solid #eee" }}>{log.dateTime}</td>
+                  <td style={{ padding: "12px", borderBottom: "1px solid #eee" }}>{log.logSource}</td>
+                  <td style={{ padding: "12px", borderBottom: "1px solid #eee" }}>{log.sourceIP}</td>
+                  <td style={{ padding: "12px", borderBottom: "1px solid #eee" }}>{log.destinationIP}</td>
+                  <td style={{ padding: "12px", textAlign: "center", borderBottom: "1px solid #eee" }}>
+                    {log.eventCount}
+                  </td>
                 </tr>
               ))}
             </tbody>
