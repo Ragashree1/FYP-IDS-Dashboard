@@ -37,18 +37,18 @@ async def block_ip_middleware(request: Request, call_next):
     
     # **🛠️ Print Client IP and Headers for Debugging**
     print(f"\n🔍 Middleware detected client IP: {client_ip}")
-    print(f"📝 Request Headers: {request.headers}")  
+    print(f"Request Headers: {request.headers}")  
 
     # Fetch blocked IPs from database
     with SessionLocal() as db:
         blocked_ips = db.query(BlockedIP.ip).all()
         blocked_ip_list = [str(ip[0]).strip().lower() for ip in blocked_ips]  # Normalize IPs
 
-    print(f"🚨 Blocked IPs list: {blocked_ip_list}")
+    print(f"Blocked IPs list: {blocked_ip_list}")
 
     # Block the IP if it exists in the blocked list
     if client_ip.lower() in blocked_ip_list:
-        print(f"⛔ Blocking IP: {client_ip}")
+        print(f"Blocking IP: {client_ip}")
         return JSONResponse(status_code=403, content={"detail": "Your IP is blocked."})
 
     return await call_next(request)

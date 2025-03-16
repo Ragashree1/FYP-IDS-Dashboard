@@ -51,11 +51,11 @@ def block_ip_api(ip_data: IPAddressSchema, db: Session = Depends(get_db)):
 def check_my_ip(request: Request, db: Session = Depends(get_db)):
     client_ip = get_client_ip(request)
 
-    print(f"🔍 Detected Client IP: {client_ip}")  # Debugging Output
+    print(f"Detected Client IP: {client_ip}")  # Debugging Output
 
     blocked_ip = db.query(BlockedIP).filter(BlockedIP.ip == client_ip.lower()).first()
     if blocked_ip:
-        print(f"🚨 Blocked IP Detected: {client_ip}")  # Debugging Output
+        print(f"Blocked IP Detected: {client_ip}")  # Debugging Output
         raise HTTPException(status_code=403, detail="Your IP is blocked.")
 
     return {"message": "Your IP is not blocked", "ip": client_ip}
