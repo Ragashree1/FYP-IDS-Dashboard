@@ -1,27 +1,27 @@
 import json
-from sqlalchemy import Column, ForeignKey, Integer, String, ARRAY
+from sqlalchemy import Column, ForeignKey, Integer, String, ARRAY, DateTime, func
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import validates
 from database import Base
+from datetime import datetime
 
 class MeetingMinutes(Base):
     __tablename__= 'Meeting'
-    id = Column(Integer,primary_key=True, index=True)
+    id = Column(Integer, primary_key=True, index=True)
     date = Column(String)
     startTime = Column(String)
     endTime = Column(String)
-    pplpresent= Column(ARRAY(String))
-    agenda =  Column(String)
+    pplpresent = Column(ARRAY(String))
+    agenda = Column(String)
     discussion = Column(String)
     actions = Column(String)
 
     class Config:
         orm_mode = True  
 
-
 class Journal(Base):
     __tablename__= 'Journal'
-    id = Column(Integer,primary_key=True, index=True)
+    id = Column(Integer, primary_key=True, index=True)
     jName = Column(String, index=True)
     jDescription = Column(String)
     jWeek = Column(String)
@@ -31,9 +31,12 @@ class Journal(Base):
 
 class BlockedIP(Base):
     __tablename__ = "blocked_ips"
-    ip = Column(String, primary_key=True)
 
-    
+    id = Column(Integer, primary_key=True, index=True)
+    ip = Column(String, unique=True, nullable=False)
+    reason = Column(String, nullable=False)  # Store reason
+    created_at = Column(DateTime, server_default=func.now())
+
 class SnortLogs(Base):
     __tablename__ = 'SnortLogs'
     id = Column(Integer, primary_key=True, index=True)

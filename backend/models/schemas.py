@@ -32,4 +32,5 @@ class MeetingMinutesOut(BaseModel):
     actions: str
 
 class IPAddressSchema(BaseModel):
-    ip: IPvAnyAddress
+    ip: str
+    reason : str
