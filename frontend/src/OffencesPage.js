@@ -805,11 +805,57 @@ const Offences = () => {
          match = match && offence.host.toLowerCase().includes(filterCriteria.host.toLowerCase());
        }
 
+       if (searchQuery && !filterType){
+          match = match && (
+            offence.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
+            offence.src_ip.toLowerCase().includes(searchQuery.toLowerCase()) ||
+            offence.dest_ip.toLowerCase().includes(searchQuery.toLowerCase()) ||
+            offence.src_port.toString().includes(searchQuery) ||
+            offence.dest_port.toString().includes(searchQuery) ||
+            offence.protocol.toLowerCase().includes(searchQuery.toLowerCase()) ||
+            offence.message.toLowerCase().includes(searchQuery.toLowerCase()) ||
+            (new Date(offence.timestamp).toLocaleString()).toLowerCase().includes(searchQuery.toLowerCase()) ||
+            offence.host.toLowerCase().includes(searchQuery.toLowerCase())
+          )
+       }else if (searchQuery && filterType){
+          switch (filterType.toLowerCase()) {
+            case "alert category":
+              match = match && offence.description.toLowerCase().includes(searchQuery.toLowerCase());
+              break;
+            case "severity":
+              match = match && String(getPriority(offence.description.toLowerCase().trim() || 'N/A')).toLowerCase().includes(searchQuery.toLowerCase());
+              break;
+            case "source ip":
+              match = match && offence.src_ip.toLowerCase().includes(searchQuery.toLowerCase());
+              break;
+            case "destination ip":
+              match = match && offence.dest_ip.toLowerCase().includes(searchQuery.toLowerCase());
+              break;
+            case "source port":
+              match = match && offence.src_port.toString().includes(searchQuery);
+              break;
+            case "destination port":
+              match = match && offence.dest_port.toString().includes(searchQuery);
+              break;
+            case "protocol":
+              match = match && offence.protocol.toLowerCase().includes(searchQuery.toLowerCase());
+              break;
+            case "alert name":
+              match = match && offence.message.toLowerCase().includes(searchQuery.toLowerCase());
+              break;
+            case "date & time":
+              match = match && (new Date(offence.timestamp).toLocaleString()).includes(searchQuery.toLowerCase());
+              break;
+            default:
+              break;
+          }
+       }
+
       return match;
     });
 
     return filtered;
-  }, [offences, hideUncategorized, filterCriteria]);
+  }, [offences, hideUncategorized, filterCriteria, searchQuery, filterType]);
 
   // Function to handle "select all" checkbox
   const handleSelectAll = (e) => {
@@ -1148,7 +1194,7 @@ const Offences = () => {
                       style={{ cursor: "pointer" }}
                     />
                   </td>
-                  <td style={{ padding: "10px", textAlign: "center" }}>{offence.message}</td>
+                  <td style={{ padding: "10px", textAlign: "center" }}>{offence.message.replace(/^"|"$/g, '')}</td>
                   <td style={{ padding: "10px", textAlign: "center" }}>{new Date(offence.timestamp).toLocaleString()}</td>
                   <td style={{ padding: "10px", textAlign: "center" }}>{offence.protocol}</td>
                   <td style={{ padding: "10px", textAlign: "center" }}>{offence.description.toLowerCase() || 'N/A'}</td>
