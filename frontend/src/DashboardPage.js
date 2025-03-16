@@ -333,7 +333,7 @@ const Dashboard = () => {
               minWidth: "250px", // Minimum width to ensure the pie chart is visible
             }}
           >
-            <h3>Types of Attack over the last month</h3>
+            <h3>Types of Attack Over Past 30 days</h3>
             <div style={{ width: "100%", height: "300px", display: "flex", justifyContent: "center" }}>
               <ResponsiveContainer width="100%" height="100%">
                 <PieChart>
