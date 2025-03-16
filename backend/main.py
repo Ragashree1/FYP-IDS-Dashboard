@@ -35,8 +35,8 @@ async def block_ip_middleware(request: Request, call_next):
 
     client_ip = get_client_ip(request)
     
-    # **🛠️ Print Client IP and Headers for Debugging**
-    print(f"\n🔍 Middleware detected client IP: {client_ip}")
+    # ** Print Client IP and Headers for Debugging**
+    print(f"Middleware detected client IP: {client_ip}")
     print(f"Request Headers: {request.headers}")  
 
     # Fetch blocked IPs from database

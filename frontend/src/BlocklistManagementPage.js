@@ -13,7 +13,7 @@ const fetchBlockedIPs = async (setBlocklist) => {
   try {
     const response = await fetch(`${API_URL}/blocked-ips/`);
     if (response.status === 403) {
-      alert("🚫 Access denied: Your IP is blocked.");
+      alert("Access denied: Your IP is blocked.");
       return;
     }
     if (!response.ok) {
@@ -21,22 +21,22 @@ const fetchBlockedIPs = async (setBlocklist) => {
     }
 
     const data = await response.json();
-    console.log("Fetched Blocked IPs:", data);  // ✅ Debugging log
+    console.log("Fetched Blocked IPs:", data);  // Debugging log
 
     // Ensure data.blocked_ips is an array of objects before mapping
     if (!Array.isArray(data.blocked_ips)) {
       throw new Error("Invalid API response: expected an array of objects");
     }
 
-    // ✅ Fix: Extract both IP and reason correctly
+    // Fix: Extract both IP and reason correctly
     setBlocklist(data.blocked_ips.map(({ ip, reason }) => ({
       ip,
       reason: reason || "No reason provided"  // Use actual reason, fallback if missing
     })));
   } catch (error) {
-    console.error("❌ Error fetching blocked IPs:", error);
+    console.error("Error fetching blocked IPs:", error);
     if (error.message.includes("Failed to fetch")) {
-      alert("⚠️ Could not connect to the server. Ensure backend is running.");
+      alert("Could not connect to the server. Ensure backend is running.");
     }
   }
 };
@@ -46,11 +46,11 @@ const checkUserIP = async (navigate) => {
   try {
     const response = await fetch(`${API_URL}/check-my-ip/`);
     if (response.status === 403) {
-      alert("🚫 Your IP is blocked.");
+      alert("Your IP is blocked.");
       navigate("/access-denied");
     }
   } catch (error) {
-    console.error("❌ Error checking user IP:", error);
+    console.error("Error checking user IP:", error);
   }
 };
 
@@ -307,7 +307,7 @@ const BlocklistManagementPage = () => {
   
       if (!response.ok) throw new Error("Failed to remove IP");
   
-      setBlocklist((prevBlocklist) => prevBlocklist.filter((item) => item.ip !== ip)); // ✅ Correct state update
+      setBlocklist((prevBlocklist) => prevBlocklist.filter((item) => item.ip !== ip)); //Correct state update
     } catch (error) {
       console.error("Error removing IP:", error);
     }
@@ -315,7 +315,7 @@ const BlocklistManagementPage = () => {
 
   const handleAddIP = async (ip, reason) => {
     if (!ip.trim() || !reason.trim()) {
-      alert("⚠️ IP and reason are required!");
+      alert("IP and reason are required!");
       return;
     }
   
