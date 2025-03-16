@@ -4,6 +4,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from controllers.journal_controller import router as journal_router
 from controllers.meeting_minutes_controller import router as meeting_minutes_router
 from controllers.alert_controller import router as alerts_router
+from controllers.log_controller import router as logs_router
 from apscheduler.schedulers.background import BackgroundScheduler
 from services.alert_service import update_and_fetch_alerts
 
@@ -28,6 +29,7 @@ app.add_middleware(
 app.include_router(journal_router)
 app.include_router(meeting_minutes_router)
 app.include_router(alerts_router)
+app.include_router(logs_router)
 
 def fetch_alerts_job():
     update_and_fetch_alerts()
