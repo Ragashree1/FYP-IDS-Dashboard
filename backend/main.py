@@ -10,12 +10,14 @@ from models.models import BlockedIP  # Ensure correct import
 from starlette.responses import JSONResponse
 from controllers.journal_controller import router as journal_router
 from controllers.meeting_minutes_controller import router as meeting_minutes_router
+from controllers.alert_controller import router as alerts_router
 from controllers.log_controller import router as logs_router
 from controllers.ip_blocking_controller import router as ip_blocking_router
-
-load_dotenv()
+from apscheduler.schedulers.background import BackgroundScheduler
+from services.alert_service import update_and_fetch_alerts
 
 app = FastAPI()
+load_dotenv()
 
 @app.middleware("http")
 async def block_ip_middleware(request: Request, call_next):
@@ -57,7 +59,7 @@ async def block_ip_middleware(request: Request, call_next):
 origins = [
     "http://localhost:3000",
     "http://localhost:3006",  # put Frontend URL here
-    "http://localhost:9600"
+    "http://localhost:9600",
 ]
 app.add_middleware(
     CORSMiddleware,
@@ -70,8 +72,23 @@ app.add_middleware(
 # Include the routers
 app.include_router(journal_router)
 app.include_router(meeting_minutes_router)
+app.include_router(alerts_router)
 app.include_router(logs_router)
 app.include_router(ip_blocking_router)
 
+def fetch_alerts_job():
+    update_and_fetch_alerts()
+
 if __name__ == "__main__":
+    scheduler = BackgroundScheduler()
+    scheduler.add_job(fetch_alerts_job, 'interval', minutes=5)
+    scheduler.start()
+
+    try:
+        # Keep the main thread alive
+        while True:
+            pass
+    except (KeyboardInterrupt, SystemExit):
+        scheduler.shutdown()
+
     uvicorn.run(app, host="0.0.0.0", port=8000, reload=True)
