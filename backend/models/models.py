@@ -1,36 +1,43 @@
 import json
-from sqlalchemy import Column, ForeignKey, Integer, String, ARRAY, TIMESTAMP, JSON
+from sqlalchemy import Column, ForeignKey, Integer, String, ARRAY, TIMESTAMP, JSON, DateTime, func
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import validates
-from database import Base
+from database import Base, datetime
 import datetime
 
 Base = declarative_base()
 
 class MeetingMinutes(Base):
     __tablename__= 'Meeting'
-    id = Column(Integer,primary_key=True, index=True)
+    id = Column(Integer, primary_key=True, index=True)
     date = Column(String)
     startTime = Column(String)
     endTime = Column(String)
-    pplpresent= Column(ARRAY(String))
-    agenda =  Column(String)
+    pplpresent = Column(ARRAY(String))
+    agenda = Column(String)
     discussion = Column(String)
     actions = Column(String)
 
     class Config:
         orm_mode = True  
 
-
 class Journal(Base):
     __tablename__= 'Journal'
-    id = Column(Integer,primary_key=True, index=True)
+    id = Column(Integer, primary_key=True, index=True)
     jName = Column(String, index=True)
     jDescription = Column(String)
     jWeek = Column(String)
 
     class Config:
         orm_mode = True
+
+class BlockedIP(Base):
+    __tablename__ = "blocked_ips"
+
+    id = Column(Integer, primary_key=True, index=True)
+    ip = Column(String, unique=True, nullable=False)
+    reason = Column(String, nullable=False)  # Store reason
+    created_at = Column(DateTime, server_default=func.now())
 
 class SnortAlerts(Base):
     __tablename__ = 'SnortAlerts'
