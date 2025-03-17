@@ -13,6 +13,8 @@ import LandingPage from "./LandingPage"
 import RegistrationPage from "./RegistrationPage"
 import PaymentPage from "./PaymentPage"
 import Sidebar from "./Sidebar"
+import TrainModelPage from "./TrainModelPage"
+import TrainedModelsPage from "./TrainedModelsPage"
 
 function App() {
   return (
@@ -32,6 +34,8 @@ function App() {
 		<Route path="/roles-permission" element={<RolesAndPermissionPage />} />
 		<Route path="/user-management" element={<UserManagementPage />} />
 		<Route path="/Sidebar" element={<Sidebar />} />
+		<Route path="/train-model" element={<TrainModelPage />} />
+		<Route path="/trained-models" element={<TrainedModelsPage />} />
       </Routes>
     </Router>
   );
