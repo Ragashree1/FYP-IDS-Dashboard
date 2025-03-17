@@ -1,10 +1,12 @@
 import requests
 from datetime import datetime
 from database import SessionLocal
-from models.models import SnortLogs
+from models.models import Logs
+from apscheduler.schedulers.background import BackgroundScheduler
 
 def fetch_logs():
-    es_url = "http://localhost:9200/snort-logs-*/_search"
+    print('bef fetch logs')
+    es_url = "http://localhost:9200/apache-*/_search"
     query = {
         "size": 100,
         "query": {"match_all": {}},
@@ -18,40 +20,49 @@ def fetch_logs():
     return logs
 
 def get_last_log_time():
+    print('bef get last log time')
     with SessionLocal() as db:
-        last_log = db.query(SnortLogs).order_by(SnortLogs.timestamp.desc()).first()
-        return datetime.strptime(last_log.timestamp, "%Y-%m-%dT%H:%M:%S.%fZ") if last_log else None
+        last_log = db.query(Logs).order_by(Logs.timestamp.desc()).first()
+        return last_log.timestamp if last_log else None
 
 def preprocess_log(log):
-    message_parts = log['_source']['message'].split(',')
-    timestamp = log['_source']['@timestamp']
-    return {
-        "timestamp": timestamp,
-        "priority": int(message_parts[1].strip()),
-        "protocol": message_parts[2].strip(),
-        "raw": message_parts[3].strip(),
-        "length": int(message_parts[4].strip()),
-        "direction": message_parts[5].strip(),
-        "src_ip": message_parts[6].split(':')[0].strip(),
-        "src_port": int(message_parts[6].split(':')[1].strip()),
-        "dest_ip": message_parts[7].split(':')[0].strip(),
-        "dest_port": int(message_parts[7].split(':')[1].strip()),
-        "classification": message_parts[8].strip(),
-        "action": message_parts[9].strip(),
-        "message": message_parts[10].strip(),
-        "description": message_parts[11].strip(),
-        "host": log['_source']['host']['ip'][0]
-    }
+    print('bef preprocess log')
+    print(log['_source'])
+    try:
+        source = log['_source']
+        return {
+            "timestamp": source['@timestamp'],
+            "log_type": source['fields']['log_type'],
+            "source_ip": source['source']['address'],
+            "host": source['host']['ip'][0],
+            "message": source['message'],
+            "event_data": {
+                "original": source['event']['original'],
+                "os": source['host']['os'],
+                "hostname": source['host']['hostname']
+            },
+            "http_method": source['http']['request']['method'],
+            "http_status": source['http']['response']['status_code'],
+            "url": source['url']['original'],
+            "user_agent": source['user_agent']['original'],
+            "log_path": source['log']['file']['path']
+        }
+    except (KeyError, IndexError) as e:
+        print(f"Skipping log due to error: {e}")
+        return None
 
 def save_logs(logs):
+    print('bef save logs')
     with SessionLocal() as db:
         for log in logs:
             preprocessed_log = preprocess_log(log)
-            db_log = SnortLogs(**preprocessed_log)
-            db.add(db_log)
+            if preprocessed_log:
+                db_log = Logs(**preprocessed_log)
+                db.add(db_log)
         db.commit()
 
 def update_and_fetch_logs():
+    print('bef update and fetch logs')
     last_log_time = get_last_log_time()
     logs = fetch_logs()
     
@@ -64,4 +75,4 @@ def update_and_fetch_logs():
     save_logs(new_logs)
     
     with SessionLocal() as db:
-        return db.query(SnortLogs).all()
+        return db.query(Logs).all()

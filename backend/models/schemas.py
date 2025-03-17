@@ -31,7 +31,7 @@ class MeetingMinutesOut(BaseModel):
     discussion: str
     actions: str
 
-class SnortLogsBase(BaseModel):
+class SnortAlertsBase(BaseModel):
     timestamp: str
     priority: int
     protocol: str
@@ -48,7 +48,7 @@ class SnortLogsBase(BaseModel):
     description: str
     host: str
 
-class SnortLogsOut(BaseModel):
+class SnortAlertsOut(BaseModel):
     id: int
     timestamp: str
     priority: int
