@@ -1,4 +1,4 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, IPvAnyAddress
 from typing import List
 
 class MeetingMinutesBase(BaseModel):
@@ -98,3 +98,6 @@ class LogsOut(BaseModel):
 
     class Config:
         orm_mode = True
+class IPAddressSchema(BaseModel):
+    ip: str
+    reason : str

@@ -96,6 +96,8 @@ export default function LoginPage() {
       navigate("/dashboard");
     } else if (role === "organisation-admin" && loginId === "test" && password === "test") {
       navigate("/roles-permission");
+	  } else if (role === "data-analyst" && loginId === "test" && password === "test") {
+      navigate("/train-model");
     } else {
       setError("Invalid credentials");
     }
@@ -169,3 +171,5 @@ export default function LoginPage() {
     </div>
   );
 }
+
+//

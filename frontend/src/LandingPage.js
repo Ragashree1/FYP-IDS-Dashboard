@@ -1,4 +1,6 @@
-﻿import { useEffect, useRef } from "react"
+"use client"
+
+import { useEffect, useRef, useState } from "react"
 import { useNavigate } from "react-router-dom"
 import Chart from "chart.js/auto"
 
@@ -7,6 +9,7 @@ const LandingPage = () => {
   const barChartRef = useRef(null)
   const lineChartRef = useRef(null)
   const pieChartRef = useRef(null)
+  const [windowWidth, setWindowWidth] = useState(typeof window !== "undefined" ? window.innerWidth : 1200)
 
   const handleSignIn = () => {
     navigate("/login")
@@ -15,6 +18,16 @@ const LandingPage = () => {
   const handleRegister = () => {
     navigate("/register")
   }
+
+  // Handle window resize
+  useEffect(() => {
+    const handleResize = () => {
+      setWindowWidth(window.innerWidth)
+    }
+
+    window.addEventListener("resize", handleResize)
+    return () => window.removeEventListener("resize", handleResize)
+  }, [])
 
   useEffect(() => {
     const charts = []
@@ -62,6 +75,13 @@ const LandingPage = () => {
               x: {
                 grid: {
                   display: false,
+                },
+                ticks: {
+                  // Adjust font size based on screen width
+                  font: {
+                    size: windowWidth < 768 ? 8 : 12,
+                  },
+                  maxRotation: windowWidth < 768 ? 45 : 0,
                 },
               },
             },
@@ -111,6 +131,12 @@ const LandingPage = () => {
                 grid: {
                   display: false,
                 },
+                ticks: {
+                  // Adjust font size based on screen width
+                  font: {
+                    size: windowWidth < 768 ? 8 : 12,
+                  },
+                },
               },
             },
           },
@@ -135,7 +161,13 @@ const LandingPage = () => {
             maintainAspectRatio: false,
             plugins: {
               legend: {
-                position: "right",
+                position: windowWidth < 768 ? "bottom" : "right",
+                labels: {
+                  font: {
+                    size: windowWidth < 768 ? 10 : 12,
+                  },
+                  boxWidth: windowWidth < 768 ? 10 : 15,
+                },
               },
             },
           },
@@ -147,7 +179,7 @@ const LandingPage = () => {
     return () => {
       charts.forEach((chart) => chart.destroy())
     }
-  }, [])
+  }, [windowWidth])
 
   return (
     <div
@@ -156,6 +188,8 @@ const LandingPage = () => {
         fontFamily:
           "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif",
         backgroundColor: "#f3f4f6",
+        width: "100%",
+        overflowX: "hidden", // Prevent horizontal scrolling
       }}
     >
       <header
@@ -163,26 +197,33 @@ const LandingPage = () => {
           display: "flex",
           justifyContent: "space-between",
           alignItems: "center",
-          padding: "1rem",
+          padding: windowWidth < 640 ? "0.75rem" : "1rem",
           backgroundColor: "black",
           boxShadow: "0 1px 2px rgba(0, 0, 0, 0.05)",
           color: "white",
+          width: "100%",
+          boxSizing: "border-box", // Ensure padding is included in width
         }}
       >
         <div className="logo" style={{ display: "flex", alignItems: "center" }}>
           <img
             src="https://hebbkx1anhila5yf.public.blob.vercel-storage.com/image-Y8LDecX2cddd1SDl4hHq0tDECwe50j.png"
             alt="SecuBoard Logo"
-            style={{ height: "80px", width: "auto", marginRight: "1rem" }}
+            style={{
+              height: windowWidth < 640 ? "50px" : "80px",
+              width: "auto",
+              marginRight: windowWidth < 640 ? "0.5rem" : "1rem",
+            }}
           />
+          {windowWidth > 480 && <span style={{ fontSize: windowWidth < 640 ? "1.25rem" : "1.5rem" }}>SecuBoard</span>}
         </div>
         <div>
           <button
             onClick={handleRegister}
             style={{
-              padding: "0.5rem 1rem",
+              padding: windowWidth < 640 ? "0.4rem 0.75rem" : "0.5rem 1rem",
               borderRadius: "9999px",
-              fontSize: "0.875rem",
+              fontSize: windowWidth < 640 ? "0.75rem" : "0.875rem",
               fontWeight: 500,
               cursor: "pointer",
               backgroundColor: "white",
@@ -196,9 +237,9 @@ const LandingPage = () => {
           <button
             onClick={handleSignIn}
             style={{
-              padding: "0.5rem 1rem",
+              padding: windowWidth < 640 ? "0.4rem 0.75rem" : "0.5rem 1rem",
               borderRadius: "9999px",
-              fontSize: "0.875rem",
+              fontSize: windowWidth < 640 ? "0.75rem" : "0.875rem",
               fontWeight: 500,
               cursor: "pointer",
               backgroundColor: "#3B82F6",
@@ -211,12 +252,38 @@ const LandingPage = () => {
         </div>
       </header>
 
-      <main style={{ maxWidth: "1200px", margin: "0 auto", padding: "2rem 1rem" }}>
-        <div style={{ maxWidth: "48rem", marginBottom: "3rem" }}>
-          <h1 style={{ fontSize: "1.875rem", fontWeight: "bold", marginBottom: "1rem" }}>
+      <main
+        style={{
+          maxWidth: "1200px",
+          margin: "0 auto",
+          padding: windowWidth < 640 ? "1rem 0.75rem" : "2rem 1rem",
+          boxSizing: "border-box", // Ensure padding is included in width
+          width: "100%",
+        }}
+      >
+        <div
+          style={{
+            maxWidth: "48rem",
+            marginBottom: "3rem",
+            width: "100%",
+          }}
+        >
+          <h1
+            style={{
+              fontSize: windowWidth < 640 ? "1.5rem" : "1.875rem",
+              fontWeight: "bold",
+              marginBottom: "1rem",
+            }}
+          >
             Welcome to SecuBoard – The Future of Intrusion Detection
           </h1>
-          <h2 style={{ fontSize: "1.25rem", color: "#4b5563", marginBottom: "1.5rem" }}>
+          <h2
+            style={{
+              fontSize: windowWidth < 640 ? "1.125rem" : "1.25rem",
+              color: "#4b5563",
+              marginBottom: "1.5rem",
+            }}
+          >
             Protect Your Network with AI-Powered Threat Detection
           </h2>
           <p style={{ color: "#4b5563", marginBottom: "1.5rem" }}>
@@ -233,22 +300,38 @@ const LandingPage = () => {
         <div
           style={{
             display: "grid",
-            gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))",
+            gridTemplateColumns:
+              windowWidth < 768
+                ? "1fr"
+                : windowWidth < 1024
+                  ? "repeat(2, 1fr)"
+                  : "repeat(auto-fit, minmax(300px, 1fr))",
             gap: "1.5rem",
+            width: "100%",
+            boxSizing: "border-box", // Ensure content fits within container
           }}
         >
           <div
             style={{
               backgroundColor: "white",
               borderRadius: "0.5rem",
-              padding: "1.5rem",
+              padding: windowWidth < 640 ? "1rem" : "1.5rem",
               boxShadow: "0 1px 3px rgba(0, 0, 0, 0.1)",
               display: "flex",
               flexDirection: "column",
+              width: "100%",
+              boxSizing: "border-box", // Ensure padding is included in width
             }}
           >
             <h3 style={{ fontWeight: 500, marginBottom: "1rem", textAlign: "left" }}>Alerts each month</h3>
-            <div style={{ flexGrow: 1, position: "relative", height: "300px", width: "100%" }}>
+            <div
+              style={{
+                flexGrow: 1,
+                position: "relative",
+                height: windowWidth < 640 ? "200px" : "300px",
+                width: "100%",
+              }}
+            >
               <canvas ref={barChartRef}></canvas>
             </div>
           </div>
@@ -257,14 +340,23 @@ const LandingPage = () => {
             style={{
               backgroundColor: "white",
               borderRadius: "0.5rem",
-              padding: "1.5rem",
+              padding: windowWidth < 640 ? "1rem" : "1.5rem",
               boxShadow: "0 1px 3px rgba(0, 0, 0, 0.1)",
               display: "flex",
               flexDirection: "column",
+              width: "100%",
+              boxSizing: "border-box", // Ensure padding is included in width
             }}
           >
             <h3 style={{ fontWeight: 500, marginBottom: "1rem", textAlign: "left" }}>Real-time network Traffic</h3>
-            <div style={{ flexGrow: 1, position: "relative", height: "300px", width: "100%" }}>
+            <div
+              style={{
+                flexGrow: 1,
+                position: "relative",
+                height: windowWidth < 640 ? "200px" : "300px",
+                width: "100%",
+              }}
+            >
               <canvas ref={lineChartRef}></canvas>
             </div>
           </div>
@@ -273,40 +365,283 @@ const LandingPage = () => {
             style={{
               backgroundColor: "white",
               borderRadius: "0.5rem",
-              padding: "1.5rem",
+              padding: windowWidth < 640 ? "1rem" : "1.5rem",
               boxShadow: "0 1px 3px rgba(0, 0, 0, 0.1)",
               display: "flex",
               flexDirection: "column",
-              gridColumn: "span 2",
+              gridColumn: windowWidth < 768 ? "span 1" : "span 2",
+              width: "100%",
+              boxSizing: "border-box", // Ensure padding is included in width
             }}
           >
             <h3 style={{ fontWeight: 500, marginBottom: "1rem", textAlign: "left" }}>Types of Attack over the month</h3>
-            <div style={{ flexGrow: 1, position: "relative", height: "300px", width: "100%" }}>
+            <div
+              style={{
+                flexGrow: 1,
+                position: "relative",
+                height: windowWidth < 640 ? "250px" : "300px",
+                width: "100%",
+              }}
+            >
               <canvas ref={pieChartRef}></canvas>
             </div>
           </div>
         </div>
 
-        <div style={{ height: "1px", backgroundColor: "#e5e7eb", margin: "2rem 0" }}></div>
-
-        <div style={{ marginTop: "2rem" }}>
-          <h2 style={{ fontSize: "1.5rem", fontWeight: 600, marginBottom: "1.5rem" }}>Customer Testimonials</h2>
+        {/* Key Features Section */}
+        <div
+          style={{
+            marginTop: "3rem",
+            marginBottom: "3rem",
+            width: "100%",
+            boxSizing: "border-box", // Ensure content fits within container
+          }}
+        >
+          <h2
+            style={{
+              fontSize: windowWidth < 640 ? "1.25rem" : "1.5rem",
+              fontWeight: 600,
+              marginBottom: "1.5rem",
+            }}
+          >
+            Key Features
+          </h2>
 
           <div
             style={{
               backgroundColor: "white",
               borderRadius: "0.5rem",
-              padding: "1.5rem",
+              padding: windowWidth < 640 ? "1rem" : "1.5rem",
+              boxShadow: "0 1px 3px rgba(0, 0, 0, 0.1)",
+              width: "100%",
+              boxSizing: "border-box", // Ensure padding is included in width
+            }}
+          >
+            <ul
+              style={{
+                listStyleType: "none",
+                padding: 0,
+                margin: 0,
+                display: "grid",
+                gridTemplateColumns:
+                  windowWidth < 640
+                    ? "1fr"
+                    : windowWidth < 1024
+                      ? "repeat(2, 1fr)"
+                      : "repeat(auto-fit, minmax(300px, 1fr))",
+                gap: windowWidth < 640 ? "1rem" : "1.5rem",
+                width: "100%",
+              }}
+            >
+              <li>
+                <h3
+                  style={{
+                    fontSize: windowWidth < 640 ? "1rem" : "1.125rem",
+                    fontWeight: 600,
+                    marginBottom: "0.5rem",
+                    display: "flex",
+                    alignItems: "center",
+                  }}
+                >
+                  <span style={{ marginRight: "0.5rem", color: "#3B82F6" }}>•</span>
+                  Prioritized Threat Alerts
+                </h3>
+                <p
+                  style={{
+                    marginLeft: "1rem",
+                    color: "#4b5563",
+                    fontSize: windowWidth < 640 ? "0.875rem" : "1rem",
+                  }}
+                >
+                  Receive real-time security notifications based on criticality.
+                </p>
+              </li>
+
+              <li>
+                <h3
+                  style={{
+                    fontSize: windowWidth < 640 ? "1rem" : "1.125rem",
+                    fontWeight: 600,
+                    marginBottom: "0.5rem",
+                    display: "flex",
+                    alignItems: "center",
+                  }}
+                >
+                  <span style={{ marginRight: "0.5rem", color: "#3B82F6" }}>•</span>
+                  Smart Blacklisting & Traffic Filtering
+                </h3>
+                <p
+                  style={{
+                    marginLeft: "1rem",
+                    color: "#4b5563",
+                    fontSize: windowWidth < 640 ? "0.875rem" : "1rem",
+                  }}
+                >
+                  Easily add/remove IP addresses and filter network activity.
+                </p>
+              </li>
+
+              <li>
+                <h3
+                  style={{
+                    fontSize: windowWidth < 640 ? "1rem" : "1.125rem",
+                    fontWeight: 600,
+                    marginBottom: "0.5rem",
+                    display: "flex",
+                    alignItems: "center",
+                  }}
+                >
+                  <span style={{ marginRight: "0.5rem", color: "#3B82F6" }}>•</span>
+                  AI-Powered Threat Detection
+                </h3>
+                <p
+                  style={{
+                    marginLeft: "1rem",
+                    color: "#4b5563",
+                    fontSize: windowWidth < 640 ? "0.875rem" : "1rem",
+                  }}
+                >
+                  Utilizes Machine Learning models for anomaly detection.
+                </p>
+              </li>
+
+              <li>
+                <h3
+                  style={{
+                    fontSize: windowWidth < 640 ? "1rem" : "1.125rem",
+                    fontWeight: 600,
+                    marginBottom: "0.5rem",
+                    display: "flex",
+                    alignItems: "center",
+                  }}
+                >
+                  <span style={{ marginRight: "0.5rem", color: "#3B82F6" }}>•</span>
+                  Custom Security Rules & Policies
+                </h3>
+                <p
+                  style={{
+                    marginLeft: "1rem",
+                    color: "#4b5563",
+                    fontSize: windowWidth < 640 ? "0.875rem" : "1rem",
+                  }}
+                >
+                  Define organization-specific security rules.
+                </p>
+              </li>
+
+              <li>
+                <h3
+                  style={{
+                    fontSize: windowWidth < 640 ? "1rem" : "1.125rem",
+                    fontWeight: 600,
+                    marginBottom: "0.5rem",
+                    display: "flex",
+                    alignItems: "center",
+                  }}
+                >
+                  <span style={{ marginRight: "0.5rem", color: "#3B82F6" }}>•</span>
+                  Advanced Reporting & Insights
+                </h3>
+                <p
+                  style={{
+                    marginLeft: "1rem",
+                    color: "#4b5563",
+                    fontSize: windowWidth < 640 ? "0.875rem" : "1rem",
+                  }}
+                >
+                  Generate detailed security reports for decision-making.
+                </p>
+              </li>
+
+              <li>
+                <h3
+                  style={{
+                    fontSize: windowWidth < 640 ? "1rem" : "1.125rem",
+                    fontWeight: 600,
+                    marginBottom: "0.5rem",
+                    display: "flex",
+                    alignItems: "center",
+                  }}
+                >
+                  <span style={{ marginRight: "0.5rem", color: "#3B82F6" }}>•</span>
+                  User Access Management
+                </h3>
+                <p
+                  style={{
+                    marginLeft: "1rem",
+                    color: "#4b5563",
+                    fontSize: windowWidth < 640 ? "0.875rem" : "1rem",
+                  }}
+                >
+                  Multi-role authentication for Network Admins, IT Managers, Analysts, etc.
+                </p>
+              </li>
+
+              <li>
+                <h3
+                  style={{
+                    fontSize: windowWidth < 640 ? "1rem" : "1.125rem",
+                    fontWeight: 600,
+                    marginBottom: "0.5rem",
+                    display: "flex",
+                    alignItems: "center",
+                  }}
+                >
+                  <span style={{ marginRight: "0.5rem", color: "#3B82F6" }}>•</span>
+                  Seamless API Integration
+                </h3>
+                <p
+                  style={{
+                    marginLeft: "1rem",
+                    color: "#4b5563",
+                    fontSize: windowWidth < 640 ? "0.875rem" : "1rem",
+                  }}
+                >
+                  Connect with external security tools for enhanced protection.
+                </p>
+              </li>
+            </ul>
+          </div>
+        </div>
+
+        <div style={{ height: "1px", backgroundColor: "#e5e7eb", margin: "2rem 0", width: "100%" }}></div>
+
+        <div
+          style={{
+            marginTop: "2rem",
+            width: "100%",
+            boxSizing: "border-box", // Ensure content fits within container
+          }}
+        >
+          <h2
+            style={{
+              fontSize: windowWidth < 640 ? "1.25rem" : "1.5rem",
+              fontWeight: 600,
+              marginBottom: "1.5rem",
+            }}
+          >
+            Customer Testimonials
+          </h2>
+
+          <div
+            style={{
+              backgroundColor: "white",
+              borderRadius: "0.5rem",
+              padding: windowWidth < 640 ? "1rem" : "1.5rem",
               boxShadow: "0 1px 3px rgba(0, 0, 0, 0.1)",
               marginBottom: "1.5rem",
+              width: "100%",
+              boxSizing: "border-box", // Ensure padding is included in width
             }}
           >
             <div
               style={{
                 display: "flex",
+                flexDirection: windowWidth < 480 ? "column" : "row",
                 justifyContent: "space-between",
-                alignItems: "flex-start",
+                alignItems: windowWidth < 480 ? "flex-start" : "flex-start",
                 marginBottom: "1rem",
+                gap: windowWidth < 480 ? "0.5rem" : "0",
               }}
             >
               <div style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}>
@@ -358,9 +693,23 @@ const LandingPage = () => {
                   </div>
                 </div>
               </div>
-              <span style={{ color: "#6b7280", fontSize: "0.875rem" }}>A month ago</span>
+              <span
+                style={{
+                  color: "#6b7280",
+                  fontSize: "0.875rem",
+                  marginTop: windowWidth < 480 ? "0.25rem" : "0",
+                }}
+              >
+                A month ago
+              </span>
             </div>
-            <p style={{ color: "#374151", lineHeight: 1.5 }}>
+            <p
+              style={{
+                color: "#374151",
+                lineHeight: 1.5,
+                fontSize: windowWidth < 640 ? "0.875rem" : "1rem",
+              }}
+            >
               We've been using SecuBoard IDS for a few months now, and it has completely transformed our network
               security. The real-time threat detection is incredibly accurate, and the system quickly identifies and
               mitigates potential attacks before they become serious issues.
@@ -371,16 +720,20 @@ const LandingPage = () => {
             style={{
               backgroundColor: "white",
               borderRadius: "0.5rem",
-              padding: "1.5rem",
+              padding: windowWidth < 640 ? "1rem" : "1.5rem",
               boxShadow: "0 1px 3px rgba(0, 0, 0, 0.1)",
+              width: "100%",
+              boxSizing: "border-box", // Ensure padding is included in width
             }}
           >
             <div
               style={{
                 display: "flex",
+                flexDirection: windowWidth < 480 ? "column" : "row",
                 justifyContent: "space-between",
-                alignItems: "flex-start",
+                alignItems: windowWidth < 480 ? "flex-start" : "flex-start",
                 marginBottom: "1rem",
+                gap: windowWidth < 480 ? "0.5rem" : "0",
               }}
             >
               <div style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}>
@@ -432,9 +785,23 @@ const LandingPage = () => {
                   </div>
                 </div>
               </div>
-              <span style={{ color: "#6b7280", fontSize: "0.875rem" }}>3 months ago</span>
+              <span
+                style={{
+                  color: "#6b7280",
+                  fontSize: "0.875rem",
+                  marginTop: windowWidth < 480 ? "0.25rem" : "0",
+                }}
+              >
+                3 months ago
+              </span>
             </div>
-            <p style={{ color: "#374151", lineHeight: 1.5 }}>
+            <p
+              style={{
+                color: "#374151",
+                lineHeight: 1.5,
+                fontSize: windowWidth < 640 ? "0.875rem" : "1rem",
+              }}
+            >
               Highly recommend SecuBoard IDS for businesses looking for a powerful, efficient, and user-friendly
               intrusion detection system!
             </p>
