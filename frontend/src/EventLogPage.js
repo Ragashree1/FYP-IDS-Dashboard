@@ -1,5 +1,3 @@
-"use client"
-
 import { useState, useMemo } from "react"
 import { useNavigate, useLocation } from "react-router-dom"
 import Sidebar from "./Sidebar" // Import the Sidebar component
@@ -105,6 +103,7 @@ const EventLogPage = () => {
       eventCount: 1,
     },
   ]
+
 
   // Updated filter logic to filter rows based on both filter type and search query
   const filteredLogs = useMemo(() => {
