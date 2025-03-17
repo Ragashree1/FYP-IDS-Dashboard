@@ -15,6 +15,7 @@ import PaymentPage from "./PaymentPage";
 import Sidebar from "./Sidebar";
 import TrainModelPage from "./TrainModelPage";
 import TrainedModelsPage from "./TrainedModelsPage";
+import PlayBooksPage from "./PlayBooksPage";
 
 function App() {
   return (
@@ -36,6 +37,7 @@ function App() {
         <Route path="/sidebar" element={<Sidebar />} />
         <Route path="/train-model" element={<TrainModelPage />} />
         <Route path="/trained-models" element={<TrainedModelsPage />} />
+		<Route path="/playbooks" element={<PlayBooksPage />} />
       </Routes>
     </Router>
   );

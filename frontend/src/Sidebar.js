@@ -193,6 +193,22 @@ const Sidebar = ({ userRole }) => {
               <li
                 style={{
                   padding: "12px 16px",
+                  background: isActive("/playbooks") ? "#555" : "#333",
+                  marginBottom: "8px",
+                  borderRadius: "4px",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "12px",
+                  cursor: "pointer",
+                }}
+                onClick={() => navigate("/playbooks")}
+              >
+                <span style={{ fontSize: "18px" }}>📚</span>
+                Playbooks
+              </li>
+              <li
+                style={{
+                  padding: "12px 16px",
                   background: isActive("/event-log") ? "#555" : "#333",
                   marginBottom: "8px",
                   borderRadius: "4px",
@@ -283,8 +299,8 @@ const Sidebar = ({ userRole }) => {
     )
   }
 
-  // Render Data Analyst sidebar
-  if (userRole === "data-analyst") {
+  // Render Platform Administrator sidebar
+  if (userRole === "platform-admin") {
     return (
       <div style={{ display: "flex" }}>
         <div style={spacerStyle} />
@@ -304,7 +320,7 @@ const Sidebar = ({ userRole }) => {
               <li
                 style={{
                   padding: "12px 16px",
-                  background: isActive("/train-model") ? "#555" : "#333",
+                  background: isActive("/organization-requests") ? "#555" : "#333",
                   marginBottom: "8px",
                   borderRadius: "4px",
                   display: "flex",
@@ -312,15 +328,15 @@ const Sidebar = ({ userRole }) => {
                   gap: "12px",
                   cursor: "pointer",
                 }}
-                onClick={() => navigate("/train-model")}
+                onClick={() => navigate("/organization-requests")}
               >
-                <span style={{ fontSize: "18px" }}>🧠</span>
-                Train Model
+                <span style={{ fontSize: "18px" }}>🏢</span>
+                Organization Requests
               </li>
               <li
                 style={{
                   padding: "12px 16px",
-                  background: isActive("/trained-models") ? "#555" : "#333",
+                  background: isActive("/organization-management") ? "#555" : "#333",
                   marginBottom: "8px",
                   borderRadius: "4px",
                   display: "flex",
@@ -328,15 +344,31 @@ const Sidebar = ({ userRole }) => {
                   gap: "12px",
                   cursor: "pointer",
                 }}
-                onClick={() => navigate("/trained-models")}
+                onClick={() => navigate("/organization-management")}
+              >
+                <span style={{ fontSize: "18px" }}>🔧</span>
+                Organization Management
+              </li>
+              <li
+                style={{
+                  padding: "12px 16px",
+                  background: isActive("/log-forwarding") ? "#555" : "#333",
+                  marginBottom: "8px",
+                  borderRadius: "4px",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "12px",
+                  cursor: "pointer",
+                }}
+                onClick={() => navigate("/log-forwarding")}
               >
                 <span style={{ fontSize: "18px" }}>📊</span>
-                Trained Models
+                Log Forwarding
               </li>
               <li
                 style={{
                   padding: "12px 16px",
-                  background: isActive("/settings") ? "#555" : "#333",
+                  background: isActive("/api-access") ? "#555" : "#333",
                   marginBottom: "8px",
                   borderRadius: "4px",
                   display: "flex",
@@ -344,10 +376,26 @@ const Sidebar = ({ userRole }) => {
                   gap: "12px",
                   cursor: "pointer",
                 }}
-                onClick={() => navigate("/settings")}
+                onClick={() => navigate("/api-access")}
+              >
+                <span style={{ fontSize: "18px" }}>🔑</span>
+                API Access Management
+              </li>
+              <li
+                style={{
+                  padding: "12px 16px",
+                  background: isActive("/platform-settings") ? "#555" : "#333",
+                  marginBottom: "8px",
+                  borderRadius: "4px",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "12px",
+                  cursor: "pointer",
+                }}
+                onClick={() => navigate("/platform-settings")}
               >
                 <span style={{ fontSize: "18px" }}>⚙️</span>
-                Settings
+                Platform Settings
               </li>
             </ul>
           </div>
@@ -367,5 +415,4 @@ const Sidebar = ({ userRole }) => {
 }
 
 export default Sidebar
-//
 
