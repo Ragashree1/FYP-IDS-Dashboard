@@ -3,6 +3,7 @@ from sqlalchemy.orm import Session
 from database import get_db
 from models.models import BlockedIP
 from models.schemas import IPAddressSchema
+from services import ip_blocking_service
 import re
 
 router = APIRouter(prefix="/ip-blocking", tags=["ip-blocking"])
@@ -31,55 +32,42 @@ def validate_ip(ip: str):
     if not ip_pattern.match(ip):
         raise HTTPException(status_code=400, detail="Invalid IP format")
 
-@router.post("/block-ip/")
-def block_ip_api(ip_data: IPAddressSchema, db: Session = Depends(get_db)):
-    ip = ip_data.ip.strip().lower()
-    validate_ip(ip)  # Ensure it's a valid IP
 
-    existing_ip = db.query(BlockedIP).filter_by(ip=ip).first()
-    if existing_ip:
-        raise HTTPException(status_code=400, detail="IP is already blocked.")
+@router.post("/block-ip/", response_model=IPAddressSchema)
+def block_ip_api(ip_data: IPAddressSchema):
+    message = ip_blocking_service.block_ip(ip_data)
+    if message.get("message") == "IP is already blocked":
+        raise HTTPException(status_code=400, detail="IP is already blocked")
 
-    new_ip = BlockedIP(ip=ip, reason=ip_data.reason)
-    db.add(new_ip)
-    db.commit()
-    db.refresh(new_ip)
-
-    return {"message": "IP Blocked Successfully", "ip": new_ip.ip, "reason": new_ip.reason}
+    return message
 
 @router.get("/check-my-ip/")
 def check_my_ip(request: Request, db: Session = Depends(get_db)):
     client_ip = get_client_ip(request)
 
     print(f"Detected Client IP: {client_ip}")  # Debugging Output
+    message = ip_blocking_service.check_ip_blocked(client_ip)
+    if message.get("message") == "IP is blocked":
+        raise HTTPException(status_code=403, detail="IP is blocked")
 
-    blocked_ip = db.query(BlockedIP).filter(BlockedIP.ip == client_ip.lower()).first()
-    if blocked_ip:
-        print(f"Blocked IP Detected: {client_ip}")  # Debugging Output
-        raise HTTPException(status_code=403, detail="Your IP is blocked.")
-
-    return {"message": "Your IP is not blocked", "ip": client_ip}
+    return message
 
 @router.get("/blocked-ips/")
-def get_blocked_ips_with_reasons(db: Session = Depends(get_db)):
+def get_blocked_ips_with_reasons():
     """Returns blocked IPs with their reasons for the frontend"""
-    blocked_ips = db.query(BlockedIP.ip, BlockedIP.reason).all()
-    return {"blocked_ips": [{"ip": ip, "reason": reason} for ip, reason in blocked_ips]}
+    blocked_ips = ip_blocking_service.get_blocked_ips()
+    return blocked_ips
 
 @router.get("/blocked-ips-list/")
 def get_blocked_ips_list(db: Session = Depends(get_db)):
     """Returns only a list of blocked IPs for the cron job"""
-    blocked_ips = db.query(BlockedIP.ip).all()
-    return {"blocked_ips": [ip[0] for ip in blocked_ips]}
+    blocked_ips_list = ip_blocking_service.get_blocked_ips_list()
+    return blocked_ips_list
 
 @router.delete("/unblock-ip/{ip}")
 def unblock_ip_api(ip: str, db: Session = Depends(get_db)):
-    ip = ip.strip().lower()  # Normalize input
-    blocked_ip = db.query(BlockedIP).filter_by(ip=ip).first()
-
-    if not blocked_ip:
-        raise HTTPException(status_code=404, detail="IP not found")
-
-    db.delete(blocked_ip)
-    db.commit()
-    return {"message": "IP Unblocked Successfully", "ip": ip}
+    message = ip_blocking_service.unblock_ip(ip)
+    if message.get("message") == "IP not found":
+        raise HTTPException(status_code=400, detail="IP not found")
+    
+    return message
