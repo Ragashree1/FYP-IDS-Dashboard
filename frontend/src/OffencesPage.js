@@ -17,7 +17,7 @@ const FilterModal = ({ onClose, onSubmit , initialValues}) => {
     dest_port: initialValues?.dest_port || '',
     protocol: initialValues?.protocol || '',
     message: initialValues?.message || '',
-    description: initialValues?.description || '',
+    classification: initialValues?.classification || '',
     host: initialValues?.host || '',
   }));
 
@@ -219,10 +219,10 @@ const FilterModal = ({ onClose, onSubmit , initialValues}) => {
               <label style={{ display: 'block', marginBottom: '5px' }}>Category:</label>
               <input
                 type="text"
-                name="description"
-                value={formData.description}
+                name="classification"
+                value={formData.classification}
                 onChange={handleChange}
-                placeholder="Enter Description"
+                placeholder="Enter classification"
                 style={{
                   width: '100%',
                   padding: '8px',
@@ -767,7 +767,7 @@ const Offences = () => {
     let filtered = offences;
 
     if (hideUncategorized) {
-      filtered = filtered.filter(offence => getPriority(offence.description.toLowerCase().trim() || 'N/A') !== 'Unknown');
+      filtered = filtered.filter(offence => getPriority(offence.classification.toLowerCase().trim() || 'N/A') !== 'Unknown');
     }
 
     // Advanced filter logic
@@ -798,8 +798,8 @@ const Offences = () => {
       if (filterCriteria.message) {
         match = match && offence.message.toLowerCase().includes(filterCriteria.message.toLowerCase());
       }
-      if (filterCriteria.description) {
-        match = match && offence.description.toLowerCase().includes(filterCriteria.description.toLowerCase());
+      if (filterCriteria.classification) {
+        match = match && offence.classification.toLowerCase().includes(filterCriteria.classification.toLowerCase());
       }
        if (filterCriteria.host) {
          match = match && offence.host.toLowerCase().includes(filterCriteria.host.toLowerCase());
@@ -807,7 +807,7 @@ const Offences = () => {
 
        if (searchQuery && !filterType){
           match = match && (
-            offence.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
+            offence.classification.toLowerCase().includes(searchQuery.toLowerCase()) ||
             offence.src_ip.toLowerCase().includes(searchQuery.toLowerCase()) ||
             offence.dest_ip.toLowerCase().includes(searchQuery.toLowerCase()) ||
             offence.src_port.toString().includes(searchQuery) ||
@@ -820,10 +820,10 @@ const Offences = () => {
        }else if (searchQuery && filterType){
           switch (filterType.toLowerCase()) {
             case "alert category":
-              match = match && offence.description.toLowerCase().includes(searchQuery.toLowerCase());
+              match = match && offence.classification.toLowerCase().includes(searchQuery.toLowerCase());
               break;
             case "severity":
-              match = match && String(getPriority(offence.description.toLowerCase().trim() || 'N/A')).toLowerCase().includes(searchQuery.toLowerCase());
+              match = match && String(getPriority(offence.classification.toLowerCase().trim() || 'N/A')).toLowerCase().includes(searchQuery.toLowerCase());
               break;
             case "source ip":
               match = match && offence.src_ip.toLowerCase().includes(searchQuery.toLowerCase());
@@ -856,6 +856,13 @@ const Offences = () => {
 
     return filtered;
   }, [offences, hideUncategorized, filterCriteria, searchQuery, filterType]);
+
+  const resetFilters = () => {
+    setFilterType("");
+    setSearchQuery("");
+    setHideUncategorized(false);
+    setFilterCriteria({});
+  }
 
   // Function to handle "select all" checkbox
   const handleSelectAll = (e) => {
@@ -890,20 +897,20 @@ const Offences = () => {
 
   
   function getHighAlerts() {
-    return offences.map((offence, index) => getPriority(offence.description.toLowerCase().trim() || 'N/A')).filter((val) => val == 1).length;
+    return offences.map((offence, index) => getPriority(offence.classification.toLowerCase().trim() || 'N/A')).filter((val) => val == 1).length;
   }
 
   
   function getMediumAlerts() {
-    return offences.map((offence, index) => getPriority(offence.description.toLowerCase().trim() || 'N/A')).filter((val) => val == 2 || val == 3).length;
+    return offences.map((offence, index) => getPriority(offence.classification.toLowerCase().trim() || 'N/A')).filter((val) => val == 2 || val == 3).length;
   }
 
   function getLowAlerts() {
-    return offences.map((offence, index) => getPriority(offence.description.toLowerCase().trim() || 'N/A')).filter((val) => val == 4).length;
+    return offences.map((offence, index) => getPriority(offence.classification.toLowerCase().trim() || 'N/A')).filter((val) => val == 4).length;
   }
 
   function getUncategorizedAlerts() {
-    return offences.filter((offence, index) => getPriority(offence.description.toLowerCase().trim() || 'N/A') == 'Unknown').length;
+    return offences.filter((offence, index) => getPriority(offence.classification.toLowerCase().trim() || 'N/A') == 'Unknown').length;
   }
 
 
@@ -1005,7 +1012,21 @@ const Offences = () => {
 
         {/* Filter and Buttons */}
         <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "20px", flexWrap: "wrap" }}>
+        
           <div style={{ display: "flex", gap: "10px", flex: 1, maxWidth: "600px" }}>
+          <select
+              value={hideUncategorized}
+              onChange={(e) => setHideUncategorized(e.target.value === "true")}
+              style={{
+                padding: "10px",
+                border: "1px solid #ccc",
+                borderRadius: "4px",
+                minWidth: "180px"
+              }}
+            >
+              <option value="false">Show All Alerts</option>
+              <option value="true">Hide Uncategorized Alerts</option>
+            </select>
             <select
               value={filterType}
               onChange={(e) => setFilterType(e.target.value)}
@@ -1063,26 +1084,39 @@ const Offences = () => {
           </div>
           
           <div style={{ display: "flex", gap: "10px", flexWrap: "wrap" }}>
-            <select
-              value={hideUncategorized}
-              onChange={(e) => setHideUncategorized(e.target.value === "true")}
+            
+            <button
+              onClick={resetFilters}
               style={{
-                padding: "10px",
-                border: "1px solid #ccc",
-                borderRadius: "4px",
-                minWidth: "180px"
+                background: "grey",
+                color: "#fff",
+                padding: "12px 20px",
+                border: "none",
+                borderRadius: "20px",
+                cursor: "pointer",
               }}
             >
-              <option value="false">Show All Alerts</option>
-              <option value="true">Hide Uncategorized Alerts</option>
-            </select>
+              Reset Filters
+            </button>
+            <button
+              onClick={handleOpenFilterModal}
+              style={{
+                background: "blue",
+                color: "#fff",
+                padding: "12px 20px",
+                border: "none",
+                borderRadius: "20px",
+                cursor: "pointer",
+              }}
+            >
+              Advanced Filter
+            </button>
             <button
               onClick={handleOpenReportForm}
               style={{
                 background: "green",
                 color: "#fff",
                 padding: "12px 20px",
-                marginRight: "10px",
                 border: "none",
                 borderRadius: "20px",
                 cursor: "pointer",
@@ -1103,19 +1137,7 @@ const Offences = () => {
             >
               Generate Report
             </button>
-            <button
-              onClick={handleOpenFilterModal}
-              style={{
-                background: "blue",
-                color: "#fff",
-                padding: "12px 20px",
-                border: "none",
-                borderRadius: "20px",
-                cursor: "pointer",
-              }}
-            >
-              Advanced Filter
-            </button>
+            
           </div>
         </div>
 
@@ -1197,8 +1219,8 @@ const Offences = () => {
                   <td style={{ padding: "10px", textAlign: "center" }}>{offence.message.replace(/^"|"$/g, '')}</td>
                   <td style={{ padding: "10px", textAlign: "center" }}>{new Date(offence.timestamp).toLocaleString()}</td>
                   <td style={{ padding: "10px", textAlign: "center" }}>{offence.protocol}</td>
-                  <td style={{ padding: "10px", textAlign: "center" }}>{offence.description.toLowerCase() || 'N/A'}</td>
-                  <td style={{ padding: "10px", textAlign: "center" }}>{getPriority(offence.description.toLowerCase().trim() || 'N/A')}</td>
+                  <td style={{ padding: "10px", textAlign: "center" }}>{offence.classification.toLowerCase() || 'N/A'}</td>
+                  <td style={{ padding: "10px", textAlign: "center" }}>{getPriority(offence.classification.toLowerCase().trim() || 'N/A')}</td>
                   <td style={{ padding: "10px", textAlign: "center" }}>
                     <button
                       style={{ background: "purple", color: "#fff", padding: "5px 10px", borderRadius: "5px" }}
@@ -1264,7 +1286,7 @@ const Offences = () => {
               {selectedOffence && (
   <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "20px" }}>
     <div>
-      <p style={{ fontWeight: "bold", marginBottom: "5px" }}>Alert Name:</p>
+      <p style={{ fontWeight: "bold", marginBottom: "5px" }}>Alert Message:</p>
       <div style={{ background: "#f0f0f0", padding: "8px", borderRadius: "4px", marginBottom: "15px" }}>
         {selectedOffence.message || 'N/A'}
       </div>
@@ -1272,24 +1294,45 @@ const Offences = () => {
       <div style={{ background: "#f0f0f0", padding: "8px", borderRadius: "4px", marginBottom: "15px" }}>
         {selectedOffence.timestamp ? new Date(selectedOffence.timestamp).toLocaleString() : 'N/A'}
       </div>
+      <p style={{ fontWeight: "bold", marginBottom: "5px" }}>Source Port:</p>
+      <div style={{ background: "#f0f0f0", padding: "8px", borderRadius: "4px", marginBottom: "15px" }}>
+        {selectedOffence.src_port || 'N/A'}
+      </div>
       <p style={{ fontWeight: "bold", marginBottom: "5px" }}>Source IP:</p>
       <div style={{ background: "#f0f0f0", padding: "8px", borderRadius: "4px", marginBottom: "15px" }}>
         {selectedOffence.src_ip || 'N/A'}
       </div>
+      <p style={{ fontWeight: "bold", marginBottom: "5px" }}>Direction:</p>
+      <div style={{ background: "#f0f0f0", padding: "8px", borderRadius: "4px", marginBottom: "15px" }}>
+        {selectedOffence.direction || 'N/A'}
+      </div>
     </div>
     <div>
-      <p style={{ fontWeight: "bold", marginBottom: "5px" }}>Alert Type:</p>
+    <p style={{ fontWeight: "bold", marginBottom: "5px" }}>Alert Category:</p>
       <div style={{ background: "#f0f0f0", padding: "8px", borderRadius: "4px", marginBottom: "15px" }}>
-        {selectedOffence.description || 'N/A'}
+        {selectedOffence.classification || 'N/A'}
+      </div>
+      <p style={{ fontWeight: "bold", marginBottom: "5px" }}>Signature ID:</p>
+      <div style={{ background: "#f0f0f0", padding: "8px", borderRadius: "4px", marginBottom: "15px" }}>
+        {selectedOffence.signature_id || 'N/A'}
       </div>
       <p style={{ fontWeight: "bold", marginBottom: "5px" }}>Alert Protocol:</p>
       <div style={{ background: "#f0f0f0", padding: "8px", borderRadius: "4px", marginBottom: "15px" }}>
       {selectedOffence.protocol || 'N/A'}
       </div>
+      <p style={{ fontWeight: "bold", marginBottom: "5px" }}>Destination Port:</p>
+      <div style={{ background: "#f0f0f0", padding: "8px", borderRadius: "4px", marginBottom: "15px" }}>
+        {selectedOffence.dest_port || 'N/A'}
+      </div>
       <p style={{ fontWeight: "bold", marginBottom: "5px" }}>Destination IP:</p>
       <div style={{ background: "#f0f0f0", padding: "8px", borderRadius: "4px", marginBottom: "15px" }}>
         {selectedOffence.dest_ip || 'N/A'}
       </div>
+      <p style={{ fontWeight: "bold", marginBottom: "5px" }}>Severity Level:</p>
+      <div style={{ background: "#f0f0f0", padding: "8px", borderRadius: "4px", marginBottom: "15px" }}>
+        {getPriority(selectedOffence.classification.toLowerCase().trim() || 'N/A')}
+      </div>
+
     </div>
   </div>
 )}
