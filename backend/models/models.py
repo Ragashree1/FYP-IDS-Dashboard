@@ -1,11 +1,7 @@
-import json
 from sqlalchemy import Column, ForeignKey, Integer, String, ARRAY, TIMESTAMP, JSON, DateTime, func
-from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import validates
-from database import Base, datetime
-import datetime
-
-Base = declarative_base()
+from database import Base
+from datetime import datetime  # Optimized import
 
 class MeetingMinutes(Base):
     __tablename__= 'Meeting'
@@ -36,7 +32,7 @@ class BlockedIP(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     ip = Column(String, unique=True, nullable=False)
-    reason = Column(String, nullable=False)  # Store reason
+    reason = Column(String, nullable=False)
     created_at = Column(DateTime, server_default=func.now())
 
 class SnortAlerts(Base):
@@ -61,22 +57,21 @@ class SnortAlerts(Base):
     class Config:
         orm_mode = True
 
-
 class Logs(Base):
     __tablename__ = "Logs"
     
     id = Column(Integer, primary_key=True, index=True)
-    timestamp = Column(TIMESTAMP, default=datetime.datetime.utcnow)
-    log_type = Column(String, index=True)  # "apache", "syslog", etc.
-    source_ip = Column(String)  # Client/source IP
-    host = Column(String)  # Hostname of the system generating logs
-    message = Column(String)  # Raw log message
-    event_data = Column(JSON)  # Store additional metadata (JSON format)
-    http_method = Column(String, nullable=True)  # For Apache logs (e.g., GET, POST)
-    http_status = Column(Integer, nullable=True)  # For Apache logs (e.g., 200, 404)
-    url = Column(String, nullable=True)  # Requested URL (for Apache)
-    user_agent = Column(String, nullable=True)  # User Agent (for Apache)
-    log_path = Column(String, nullable=True)  # File path of the log file
+    timestamp = Column(TIMESTAMP, default=datetime.utcnow)  # Uses optimized import
+    log_type = Column(String, index=True)
+    source_ip = Column(String)
+    host = Column(String)
+    message = Column(String)
+    event_data = Column(JSON)
+    http_method = Column(String, nullable=True)
+    http_status = Column(Integer, nullable=True)
+    url = Column(String, nullable=True)
+    user_agent = Column(String, nullable=True)
+    log_path = Column(String, nullable=True)
 
     class Config:
         orm_mode = True

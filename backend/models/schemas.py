@@ -69,6 +69,35 @@ class SnortAlertsOut(BaseModel):
     class Config:
         orm_mode = True
 
+class LogsBase(BaseModel):
+    timestamp: str
+    log_type: str
+    source_ip: str
+    host: str
+    message: str
+    event_data: dict
+    http_method: str = None
+    http_status: int = None
+    url: str = None
+    user_agent: str = None
+    log_path: str = None
+
+class LogsOut(BaseModel):
+    id: int
+    timestamp: str
+    log_type: str
+    source_ip: str
+    host: str
+    message: str
+    event_data: dict
+    http_method: str = None
+    http_status: int = None
+    url: str = None
+    user_agent: str = None
+    log_path: str = None
+
+    class Config:
+        orm_mode = True
 class IPAddressSchema(BaseModel):
     ip: str
     reason : str
