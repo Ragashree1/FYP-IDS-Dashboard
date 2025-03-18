@@ -84,7 +84,7 @@ const Dashboard = () => {
 
   const attackData = Object.values(
       offences.reduce((acc, offence) => {
-          let attackType = offence.description  || 'Unknown'; // Extract attack type
+          let attackType = offence.classification  || 'Unknown'; // Extract attack type
           if (attackType.toString().toLowerCase().includes("none") || attackType.toString().toLowerCase().includes("unknown")) {
             attackType = "Others";
         }

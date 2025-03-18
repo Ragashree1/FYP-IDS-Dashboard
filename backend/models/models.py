@@ -1,7 +1,7 @@
 from sqlalchemy import Column, ForeignKey, Integer, String, ARRAY, TIMESTAMP, JSON, DateTime, func
 from sqlalchemy.orm import validates
 from database import Base
-from datetime import datetime  # Optimized import
+from datetime import datetime 
 
 class MeetingMinutes(Base):
     __tablename__= 'Meeting'
@@ -51,7 +51,7 @@ class SnortAlerts(Base):
     classification = Column(String)
     action = Column(String)
     message = Column(String)
-    description = Column(String)
+    signature_id = Column(String)
     host = Column(String)
 
     class Config:
@@ -61,7 +61,7 @@ class Logs(Base):
     __tablename__ = "Logs"
     
     id = Column(Integer, primary_key=True, index=True)
-    timestamp = Column(TIMESTAMP, default=datetime.utcnow)  # Uses optimized import
+    timestamp = Column(TIMESTAMP, default=datetime.utcnow)  
     log_type = Column(String, index=True)
     source_ip = Column(String)
     host = Column(String)

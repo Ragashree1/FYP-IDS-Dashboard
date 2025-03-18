@@ -45,7 +45,7 @@ class SnortAlertsBase(BaseModel):
     classification: str
     action: str
     message: str
-    description: str
+    signature_id: str
     host: str
 
 class SnortAlertsOut(BaseModel):
@@ -63,7 +63,7 @@ class SnortAlertsOut(BaseModel):
     classification: str
     action: str
     message: str
-    description: str
+    signature_id: str
     host: str
 
     class Config:
