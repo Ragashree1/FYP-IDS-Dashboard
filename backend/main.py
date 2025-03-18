@@ -15,9 +15,12 @@ from controllers.log_controller import router as logs_router
 from controllers.ip_blocking_controller import router as ip_blocking_router
 from apscheduler.schedulers.background import BackgroundScheduler
 from services.alert_service import update_and_fetch_alerts
+from database import engine, Base
+import models 
 
 app = FastAPI()
 load_dotenv()
+Base.metadata.create_all(bind=engine)
 
 @app.middleware("http")
 async def block_ip_middleware(request: Request, call_next):
