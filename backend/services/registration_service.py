@@ -24,7 +24,7 @@ def add_user(user_particulars: AccountBase):
         user_data.pop("passwd", None)
         user_data.pop("userRole", None)
         user_data.pop("userSuspend", None)
-        create_user = Account(**user_data,passwd=hashed_password,userRole ="organizational-admin",userSuspend = False)# Ragashree asked for default value as 'organizational-admin', putting system-admin, if wrong rmb to change
+        create_user = Account(**user_data,passwd=hashed_password,userRole = 1,userSuspend = False)# Ragashree asked for default value as 'organizational-admin', putting system-admin, if wrong rmb to change
         db.add(create_user)
         db.commit()
         db.refresh(create_user)

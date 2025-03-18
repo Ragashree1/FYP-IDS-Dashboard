@@ -1,6 +1,6 @@
 from fastapi import APIRouter, HTTPException
 from starlette import status
-from models.schemas import AccountBase
+from models.schemas import AccountBase, RoleOut
 from services import user_management_service
 from typing import List
 
@@ -16,6 +16,10 @@ def fetch_user():# -> Any:
     users = user_management_service.get_all_users()
     return users
 
+@router.get("/roles", response_model=List[RoleOut])
+def fetch_roles():# -> Any:
+    roles = user_management_service.get_all_roles()
+    return roles
 
 @router.delete("/{account_id}")
 def remove_user(account_id: int):

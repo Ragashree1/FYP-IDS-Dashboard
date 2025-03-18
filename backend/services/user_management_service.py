@@ -1,6 +1,6 @@
 from database import SessionLocal
-from models.models import Account
-from models.schemas import AccountBase
+from models.models import Account,Role
+from models.schemas import AccountBase,RoleBase
 from typing import List, Optional, Annotated
 from passlib.context import CryptContext
 from datetime import timedelta, timezone, datetime
@@ -43,6 +43,11 @@ def get_all_users() -> List[AccountBase]:
     with SessionLocal() as db:  
         users = db.query(Account).all()
         return [AccountBase.model_validate(user, from_attributes=True) for user in users]
+    
+def get_all_roles() -> List[RoleBase]:
+    with SessionLocal() as db:  
+        roles = db.query(Role).all()
+        return [RoleBase.model_validate(role, from_attributes=True) for role in roles]
     
 
 def update_account(account_id: int, update_data: AccountBase):

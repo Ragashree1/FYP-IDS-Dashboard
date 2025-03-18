@@ -159,7 +159,7 @@ const RegistrationPage = () => {
     userComName: "",
     userEmail: "",
     userPhoneNum: "",
-    userRole: "",
+    userRole: 0,
   });
 
   const [message, setMessage] = useState("");
@@ -293,7 +293,7 @@ const RegistrationPage = () => {
                 name="userComName"
                 id="userComName"
                 placeholder="Company Name"
-                value={formData.userComName}
+                value={formData.userComName.toLowerCase()}
                 onChange={handleChange}
                 required
               />

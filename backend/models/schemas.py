@@ -79,15 +79,17 @@ class AccountBase(BaseModel):
     userComName :  Optional[str] = None
     userEmail :  Optional[str] = None
     userPhoneNum :  Optional[str] = None
-    userRole :  Optional[str] = None
+    userRole :  Optional[int] = None
     userSuspend :  Optional[bool] = None   
 
+    
 
 
 
 class AccountLogin(BaseModel):
-    userid : int
-    userRole : str
+    userComName : str
+    userRole: Optional[int] = None
+    userid : str
     passwd : str
 
 class CreditCardBase(BaseModel):
@@ -103,3 +105,37 @@ class CreditCardBase(BaseModel):
 class Token(BaseModel):
     access_token: str
     token_type: str
+
+
+class PermissionBase(BaseModel):
+    id: int
+    permissionName: str
+
+    class Config:
+        from_attributes = True
+
+
+class RoleBase(BaseModel):
+    id:int
+    roleName: str
+
+class RoleIn(RoleBase):
+    id:Optional[int] = None
+    roleName: Optional[str] = None
+    permission_id: Optional[List[int]] = None
+
+class RoleOut(RoleBase):
+    id:Optional[int] = None
+    roleName: Optional[str] = None
+    permissions: Optional[List[PermissionBase]] = None  # Return permission details
+    permission_id: Optional[List[int]] = None
+
+    class Config:
+        orm_mode = True
+
+
+class AccountOut(AccountBase):
+    role: RoleOut  # Return role details instead of just an ID
+
+    class Config:
+        orm_mode = True

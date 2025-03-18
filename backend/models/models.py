@@ -1,7 +1,7 @@
 import json
-from sqlalchemy import Column, ForeignKey, Integer, String, ARRAY, DateTime,Boolean
+from sqlalchemy import Column, ForeignKey, Integer, String, ARRAY, DateTime,Boolean, Table
 from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import validates
+from sqlalchemy.orm import validates, relationship
 from database import Base
 import datetime
 
@@ -63,8 +63,11 @@ class Account(Base):
     userComName = Column(String)
     userEmail = Column(String)
     userPhoneNum = Column(String)
-    userRole = Column(String)
+    userRole = Column(Integer, ForeignKey("role.id"))
     userSuspend = Column(Boolean)
+   
+   
+    role = relationship("Role", back_populates="accounts")
     
     class Config:
         orm_mode = True
@@ -84,6 +87,39 @@ class CreditCard(Base):
 
     class Config:
         orm_mode = True
+
+role_permission_association = Table(
+    'role_permission_association', Base.metadata,
+    Column('role_id', Integer, ForeignKey('role.id')),
+    Column('permission_id', Integer, ForeignKey('permission.id'))
+)
+
+
+class Role(Base):
+    __tablename__ = 'role'
+    id = Column(Integer, primary_key=True, index=True)
+    roleName = Column(String)
+
+    # Back reference to Account
+    accounts = relationship("Account", back_populates="role")
+
+    # Many-to-many relationship
+    permissions = relationship('Permission', secondary=role_permission_association, back_populates='roles')
+
+    class Config:
+        orm_mode = True
+
+class Permission(Base):
+    __tablename__ = 'permission'
+    id = Column(Integer, primary_key=True, index=True)
+    permissionName = Column(String)
+
+    # Many-to-many relationship
+    roles = relationship('Role', secondary=role_permission_association, back_populates='permissions')
+
+    class Config:
+        orm_mode = True
+
 
 class Report(Base):
     __tablename__= 'report'

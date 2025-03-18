@@ -1,51 +1,87 @@
 from database import SessionLocal
-from models.models import Account
-from models.schemas import AccountBase
+from models.models import Role, Permission, role_permission_association
+from models.schemas import RoleBase,RoleIn,RoleOut,PermissionBase
 from typing import List, Optional, Annotated
 from passlib.context import CryptContext
 from datetime import timedelta, timezone, datetime
 from jose import jwt, JWTError
-from fastapi.security import OAuth2PasswordRequestForm, OAuth2PasswordBearer
+
 from fastapi import APIRouter, Depends, HTTPException
 
 
-SECRET_KEY = 'IWannaShootMyself'  #Could be anything
-ALGORITHM = 'HS256'
 
-bcrypt_context = CryptContext (schemes = ['bcrypt'], deprecated = 'auto') 
-# ^Where most password hashing and unhashing is done
-
-oauth2_bearer = OAuth2PasswordBearer(tokenUrl='/token')
-
-def add_user(user_particulars: AccountBase):
+def add_role(role: RoleIn):
     with SessionLocal() as db: 
-        hashed_password = bcrypt_context.hash(user_particulars.passwd)
-        user_data = user_particulars.model_dump()
-        user_data.pop("passwd", None)
-        user_data.pop("userRole", None)
-        create_user = Account(**user_data,passwd=hashed_password,userRole ="organizational-admin")# Ragashree asked for default value as 'organizational-admin', putting system-admin, if wrong rmb to change
-        db.add(create_user)
+        create_role = Role(roleName=role.roleName)# Ragashree asked for default value as 'organizational-admin', putting system-admin, if wrong rmb to change
+        for permission_id in role.permission_id:
+            permission = db.query(Permission).filter(Permission.id == permission_id).first()
+            if permission:
+                create_role.permissions.append(permission)
+        
+        db.add(create_role)
         db.commit()
-        db.refresh(create_user)
-        return create_user
+        db.refresh(create_role)
+        return create_role
+    
+def get_all_roles() -> List[RoleOut]:
+    with SessionLocal() as db:  
+        roles = db.query(Role).all()
+        return [RoleOut.model_validate(role, from_attributes=True) for role in roles]
+    
+
+def get_all_permissions() -> List[PermissionBase]:
+    with SessionLocal() as db:  
+        permissions = db.query(Permission).all()
+        return [PermissionBase.model_validate(permission, from_attributes=True) for permission in permissions]
+    
+def delete_role(role_id: int) -> bool:
+    with SessionLocal() as db: 
+        role = db.query(Role).filter(Role.id == role_id).first()
+        if role:
+             # Remove the role reference from all users before deleting the role
+            #db.query(Account).filter(Account.userRole == role_id).update({"userRole": None})
+            role.permissions = []  # Remove associations first
+            db.delete(role)
+            db.commit()
+            return True
+        return False
 
 
-def create_access_token(username: str, user_id: str, expires_delta: timedelta):
-    encode = {'sub': username, 'id': user_id}
-    expires = datetime.now(timezone.utc) + expires_delta
-    #encode.update({'exp':expires})
-    encode = {**encode, 'exp': expires}
-    return jwt.encode(encode, SECRET_KEY, algorithm= ALGORITHM)
+
+def update_role(role_id: int, update_data: RoleIn):
+    with SessionLocal() as db:  
+        role = db.query(Role).filter(Role.id == role_id).first()
+
+        if update_data.roleName:
+            role.roleName = update_data.roleName
+
+        
+        #if update_data.permission_id is not None:
+         #   role.permissions = db.query(Permission).filter(Permission.id.in_(update_data.permission_id)).all()
+        print(f"Current permissions for role ID {role_id}: {[permission.id for permission in role.permissions]}")
+        print(f"Current permissions for role ID {role_id}: {update_data.permission_id}")
+        
+        if update_data.permission_id:
+            # Ensure existing permissions are fully cleared
+            role.permissions.clear()
+            db.commit()  # Force the DB to update before adding new ones
+
+            # Fetch new permissions based on IDs
+            new_permissions = db.query(Permission).filter(Permission.id.in_(update_data.permission_id)).all()
+
+            print(f"Fetched new permissions: {[p.id for p in new_permissions]}")
+
+            # Assign new permissions
+            role.permissions = new_permissions
+
+        if not role:
+                return None
+
+        db.commit()
+        db.refresh(role)
+
+        print(f"Updated permissions for role ID {role_id}: {[permission.id for permission in role.permissions]}")
+        updated_role = RoleIn(**role.__dict__)
+        return RoleIn.model_validate(updated_role)
 
 
-async def get_current_user(token: Annotated[str,Depends(oauth2_bearer)]):
-   try:
-       payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
-       username: str = payload.get('sub','')
-       user_id: int = payload.get('id','-1')
-       if username is None or user_id is None:
-        raise 
-       
-       return {'username':username,'id':user_id}    
-   except JWTError: #JWTError is the error raised for when the payload= jwt.decode line fails to decode
-      raise HTTPException(status_code=401, detail="Invalid token")

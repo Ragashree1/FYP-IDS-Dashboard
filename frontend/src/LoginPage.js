@@ -1,4 +1,4 @@
-import React, { useState, useEffect  } from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 
 const styles = {
@@ -50,19 +50,6 @@ const styles = {
     backgroundColor: "white",
     color: "black",
   },
-  selectInput: {
-    width: "100%",
-    padding: "0.5rem",
-    border: "1px solid #ccc",
-    borderRadius: "4px",
-    backgroundColor: "white",
-    color: "black",
-    appearance: "none",
-    backgroundRepeat: "no-repeat",
-    backgroundPosition: "right 0.5rem center",
-    backgroundSize: "12px",
-    backgroundImage: "url('data:image/svg+xml;utf8,<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 24 24\" width=\"16\" height=\"16\"><path fill=\"black\" d=\"M7 10l5 5 5-5H7z\"/></svg>')",
-  },
   error: {
     color: "#ff4d4d",
     fontSize: "0.875rem",
@@ -84,9 +71,9 @@ const styles = {
 };
 
 export default function LoginPage() {
+  const [userComName, setCompany] = useState("");
   const [loginId, setLoginId] = useState("");
   const [password, setPassword] = useState("");
-  const [role, setRole] = useState("");
   const [error, setError] = useState("");
   const navigate = useNavigate();
 
@@ -94,13 +81,13 @@ export default function LoginPage() {
     const checkToken = async () => {
       const token = localStorage.getItem("token");
       if (!token) return; // If no token, do nothing
-  
+
       try {
         const response = await fetch("http://127.0.0.1:8000/login/get_token", {
           method: "GET",
           headers: { Authorization: `Bearer ${token}` },
         });
-  
+
         if (response.ok) {
           navigate("/dashboard"); // Only navigate if the token is valid
         } else {
@@ -108,68 +95,85 @@ export default function LoginPage() {
         }
       } catch (error) {
         console.error("Token validation failed:", error);
+        localStorage.removeItem("token"); // Clear token on error
       }
     };
-  
+
     checkToken();
-  }, [navigate]); 
-  
+  }, [navigate]);
+
   const handleLogin = async (e) => {
     e.preventDefault();
-    
+
+    // Check if userComName is empty
+    if (!userComName) {
+      setError("Company/Organisation name is required.");
+      return;
+    }
+
     try {
-      const response = await fetch("http://127.0.0.1:8000/login/token", {
+
+      const loginResponse = await fetch("http://127.0.0.1:8000/login/token", {
         method: "POST",
-        headers: { "Content-Type": "application/x-www-form-urlencoded" },
-        body: new URLSearchParams({ username: loginId, password: password,userRole: role}),
+        headers: {
+          "Content-Type": "application/json", // Update content type to application/json
+        },
+        body: JSON.stringify({
+          userComName: userComName,
+          userid: loginId, // Adjust the field name to match backend expectations
+          passwd: password,
+        }),
       });
-  
-      const data = await response.json();
-      if (!response.ok) throw new Error(data.detail || "Login failed");
-  
-      localStorage.setItem("token", data.access_token);
-      
-      if (role === "network-admin") {
-        navigate("/dashboard");
-      } else if (role === "organisation-admin") {
+
+      const loginData = await loginResponse.json();
+      console.log("Response data:", loginData); // Log the entire response data
+      if (!loginResponse.ok) throw new Error(loginData.detail || "Login failed");
+
+      localStorage.setItem("token", loginData.access_token);
+
+      // Assuming roles are fetched from the backend or set based on user data
+      const userRole = loginData.userRole;
+      console.log("Userrole:", userRole); // Logging userRole
+      if (userRole === 1) {
         navigate("/roles-permission");
-      } 
-      
+      } else {
+        navigate("/dashboard");
+      }
+
     } catch (err) {
+      console.error("Login failed:", err);
       setError(err.message);
     }
-  
   };
-  
 
- return (
-  <div style={styles.loginContainer}>
-    <div style={styles.loginForm}>
-      <div style={styles.logoContainer}>
-	        <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>  
-        <img 
-          src="https://hebbkx1anhila5yf.public.blob.vercel-storage.com/image-AwHpatwUXOxUSYkvlo8tVkBUyL8vzm.png" 
-          alt="SecuBoard Logo" 
-          className="logo" 
-          style={{ width: "70px", height: "70px"}} // Adjust width as needed
-        />
-        <h1 style={styles.title}>SecuBoard</h1>
-      </div>
-	     </div>
+  return (
+    <div style={styles.loginContainer}>
+      <div style={styles.loginForm}>
+        <div style={styles.logoContainer}>
+          <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+            <img
+              src="https://hebbkx1anhila5yf.public.blob.vercel-storage.com/image-AwHpatwUXOxUSYkvlo8tVkBUyL8vzm.png"
+              alt="SecuBoard Logo"
+              className="logo"
+              style={{ width: "70px", height: "70px" }} // Adjust width as needed
+            />
+            <h1 style={styles.title}>SecuBoard</h1>
+          </div>
+        </div>
 
         <form onSubmit={handleLogin}>
           <div style={styles.formGroup}>
-            <select
-              value={role}
-              onChange={(e) => setRole(e.target.value)}
-              style={styles.selectInput}
-            >
-              <option value="" disabled>Select role</option>
-              <option value="organisation-admin">Organisation Admin</option>
-              <option value="network-admin">Network Admin</option>
-              <option value="it-manager">IT Manager</option>
-              <option value="data-analyst">Data Analyst</option>
-            </select>
+            <label htmlFor="userComName" style={styles.label}>
+              Company/Organisation
+            </label>
+            <input
+              id="userComName"
+              type="text"
+              value={userComName}
+              onChange={(e) => setCompany(e.target.value.toLowerCase())}
+              placeholder="Enter your company/organisation's name"
+              style={styles.input}
+            />
           </div>
 
           <div style={styles.formGroup}>

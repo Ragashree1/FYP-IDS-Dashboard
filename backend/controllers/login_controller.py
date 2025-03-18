@@ -6,7 +6,7 @@ from starlette import status
 from passlib.context import CryptContext
 from jose import jwt, JWTError
 
-from models.schemas import AccountBase, AccountLogin
+from models.schemas import AccountBase, AccountLogin, RoleBase
 from fastapi.security import OAuth2PasswordRequestForm, OAuth2PasswordBearer
 from services import login_service
 from datetime import timedelta, datetime
@@ -14,47 +14,29 @@ from datetime import timedelta, datetime
 SECRET_KEY = 'IWannaShootMyself'  #Could be anything
 ALGORITHM = 'HS256'
 
-bcrypt_context = CryptContext (schemes = ['bcrypt'], deprecated = 'auto') 
-# ^Where most password hashing and unhashing is done
-
+bcrypt_context = CryptContext(schemes=['bcrypt'], deprecated='auto')
 oauth2_bearer = OAuth2PasswordBearer(tokenUrl="login/token")
-
-#change the default value of userRole to "organizational dmin"
 
 router = APIRouter(prefix="/login", tags=["login"])
 
-@router.get("/", response_model=AccountLogin)
-def fetch_user(userRole:str, username: str, password: str):
-    user = login_service.authenticate_user(userRole, username, password)
+@router.post("/token")
+async def login_access_token(user: AccountLogin):
+
+    user = login_service.authenticate_user(user.userComName, user.userid, user.passwd)
     
     if not user:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid username or password")
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid Credentials")
     
-    return {
-        "id": user.id,
-        "userRole": user.userRole,
-        #"passwd": user.passwd  # You probably don’t want to return this for security reasons
-    }
-
-
-@router.post("/token")
-async def login_access_token(form_data: Annotated[OAuth2PasswordRequestForm, Depends()]):
-    with SessionLocal() as db:
-        user = db.query(Account).filter(Account.userid == form_data.username).first()
-        if not user or not bcrypt_context.verify(form_data.password, user.passwd):
-            raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Invalid username or password",
-            )
-
     token = login_service.create_access_token(
-        userRole=user.userRole,  # Ensure userRole is passed correctly
-        username=user.userid,
         user_id=user.id,
-        expires_delta=timedelta(minutes=20),
+        userRole=user.userRole,
+        username=user.userid,
+        userComName=user.userComName,
+        userSuspend=user.userSuspend,
+        expires_delta=timedelta(minutes=15),
     )
 
-    return {"access_token": token, "token_type": "bearer"}
+    return {"access_token": token, "token_type": "bearer","userRole": user.userRole,"userSuspend":user.userSuspend}
 
 @router.get("/get_token")
 async def get_token(token: str = Depends(oauth2_bearer)):
@@ -73,6 +55,9 @@ async def get_token(token: str = Depends(oauth2_bearer)):
         if user is None:
             raise HTTPException(status_code=403, detail="User not found")
         
+        if user.userSuspend :
+            raise HTTPException(status_code=403, detail="User is suspended")
+
         # If everything is valid, return a success message
         return {"message": "Token is valid", "user": user.userid}
 

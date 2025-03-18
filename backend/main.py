@@ -8,13 +8,15 @@ from controllers.login_controller import router as login_router
 from controllers.registration_controller import router as registration_router 
 from controllers.payment_controller import router as payment_router 
 from controllers.user_management_controller import router as user_management_router 
+from controllers.role_permission_controller import router as role_permission_router 
+
 
 app = FastAPI()
 
 origins = [
     "http://localhost:3000",
     "http://127.0.0.1:3000", #This one is an attempt to fix bugs
-    "http://localhost:3006"  # put Frontend URL here
+    "http://localhost:3006",  # put Frontend URL here
     "http://localhost:9600"
 ]
 
@@ -34,6 +36,7 @@ app.include_router(login_router)
 app.include_router(registration_router)
 app.include_router(payment_router)
 app.include_router(user_management_router)
+app.include_router(role_permission_router)
 
 
 if __name__ == "__main__":

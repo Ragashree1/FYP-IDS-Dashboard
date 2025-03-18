@@ -264,11 +264,12 @@ const NewUserModal = ({ onClose, onConfirm, user = null }) => {
                   }}
                   required
                 >
-                  <option value="">Select Role</option>
-                  <option value="organisation-admin">Organisation Admin</option>
-                  <option value="network-admin">Network Admin</option>
-                  <option value="it-manager">IT Manager</option>
-                  <option value="data-analyst">Data Analyst</option>
+                  <option value=""disabled>Select Role</option>
+                  {roles.map((r) => (
+                  <option key={r} value={r}>
+                    {r}
+                  </option>
+                ))}
                 </select>
               </div>
             </div>
@@ -455,6 +456,7 @@ const UserManagementPage = () => {
   const [searchQuery, setSearchQuery] = useState("")
   const [showNewUserModal, setShowNewUserModal] = useState(false)
   const [users, setUsers] = useState([])
+  const [roles, setRoles] = useState([])
   const [selectedUser, setSelectedUser] = useState(null)
   const [showDeleteModal, setShowDeleteModal] = useState(false)
   const [userToDelete, setUserToDelete] = useState(null)
@@ -463,6 +465,7 @@ const UserManagementPage = () => {
   const [userToSuspend, setUserToSuspend] = useState(null)
   const [loading, setLoading] = useState(true); // Added loading state
   const [error, setError] = useState(null);
+
 
   const fetchUsers = async () => {
     try {
@@ -483,10 +486,29 @@ const UserManagementPage = () => {
       setLoading(false);
     }
   };
+
+  const fetchRoles = async () => {
+    try {
+      const response = await fetch ("http://127.0.0.1:8000/user-management/roles", {
+          method: "GET",
+        });
+
+      if (response.ok) {
+        const data = await response.json();
+        setRoles(data); // Assuming the response is an array of permissions
+      }else {
+        throw new Error('Failed to fetch permissions');
+      } 
+    }
+      catch (err) {
+      console.error(err);
+    }
+  };
   
 
   useEffect(() => {
     fetchUsers();
+    fetchRoles();
   }, []);
 
   const filteredUsers = (users || []).filter(
@@ -599,7 +621,7 @@ const addUser = async (user) => {
       setError("Failed to delete user");
     }
   };
- 
+  
   const handleConfirmDelete = () => {
     setUsers(users.filter((user) => user.id !== userToDelete.id))
     setShowDeleteModal(false)
