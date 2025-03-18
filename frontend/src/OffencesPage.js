@@ -1332,7 +1332,6 @@ const Offences = () => {
       <div style={{ background: "#f0f0f0", padding: "8px", borderRadius: "4px", marginBottom: "15px" }}>
         {getPriority(selectedOffence.classification.toLowerCase().trim() || 'N/A')}
       </div>
-      <pre>{JSON.stringify(selectedOffence, null, 2)}</pre>
 
     </div>
   </div>
