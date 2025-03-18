@@ -66,6 +66,7 @@ const DeleteConfirmationModal = ({ onClose, onConfirm }) => {
 }
 
 const NewUserModal = ({ onClose, onConfirm, user = null }) => {
+  const [roles, setRoles] = useState([])
   const [formData, setFormData] = useState({
     userid: '',
     userFirstName: '',
@@ -74,10 +75,31 @@ const NewUserModal = ({ onClose, onConfirm, user = null }) => {
     userComName: '',
     userEmail: '',
     userPhoneNum: '',
-    userRole: '',
+    userRole: 0,
     userSuspend: false,
 
   })
+  const fetchRoles = async () => {
+    try {
+      const response = await fetch ("http://127.0.0.1:8000/user-management/roles", {
+          method: "GET",
+        });
+
+      if (response.ok) {
+        const data = await response.json();
+        setRoles(data); // Assuming the response is an array of permissions
+      }else {
+        throw new Error('Failed to fetch permissions');
+      } 
+    }
+      catch (err) {
+      console.error(err);
+    }
+  };
+  
+  useEffect(() => {
+    fetchRoles();
+  }, []);
 
   const [errors, setErrors] = useState({
     userPhoneNum: "",
@@ -266,8 +288,8 @@ const NewUserModal = ({ onClose, onConfirm, user = null }) => {
                 >
                   <option value=""disabled>Select Role</option>
                   {roles.map((r) => (
-                  <option key={r} value={r}>
-                    {r}
+                  <option key={r.id} value={r.id}>
+                    {r.roleName}
                   </option>
                 ))}
                 </select>
@@ -456,7 +478,6 @@ const UserManagementPage = () => {
   const [searchQuery, setSearchQuery] = useState("")
   const [showNewUserModal, setShowNewUserModal] = useState(false)
   const [users, setUsers] = useState([])
-  const [roles, setRoles] = useState([])
   const [selectedUser, setSelectedUser] = useState(null)
   const [showDeleteModal, setShowDeleteModal] = useState(false)
   const [userToDelete, setUserToDelete] = useState(null)
@@ -487,28 +508,9 @@ const UserManagementPage = () => {
     }
   };
 
-  const fetchRoles = async () => {
-    try {
-      const response = await fetch ("http://127.0.0.1:8000/user-management/roles", {
-          method: "GET",
-        });
-
-      if (response.ok) {
-        const data = await response.json();
-        setRoles(data); // Assuming the response is an array of permissions
-      }else {
-        throw new Error('Failed to fetch permissions');
-      } 
-    }
-      catch (err) {
-      console.error(err);
-    }
-  };
-  
 
   useEffect(() => {
     fetchUsers();
-    fetchRoles();
   }, []);
 
   const filteredUsers = (users || []).filter(
@@ -532,7 +534,7 @@ const UserManagementPage = () => {
   const handleConfirmSuspend = () => {
     const updatedUser = {
       ...userToSuspend,
-      suspended: userToSuspend.userSuspend ? false : true,
+      suspended: !userToSuspend.userSuspend,
     };
   
     updateUserSuspend(updatedUser); // Update user suspend status in the backend
@@ -640,7 +642,8 @@ const addUser = async (user) => {
     } else {
       const newUser = {
         userid: formData.userid,
-        name: `${formData.userFirstName} ${formData.userLastName}`,
+        userFirstName: formData.userFirstName,
+        userLastName:formData.userLastName,
         userRole: formData.userRole,
         userEmail: formData.userEmail,
         userPhoneNum: formData.userPhoneNum,

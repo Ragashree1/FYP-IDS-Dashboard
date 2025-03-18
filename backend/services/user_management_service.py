@@ -22,8 +22,7 @@ def add_user(user_particulars: AccountBase):
         hashed_password = bcrypt_context.hash(user_particulars.passwd)
         user_data = user_particulars.model_dump()
         user_data.pop("passwd", None)
-        user_data.pop("userRole", None)
-        create_user = Account(**user_data,passwd=hashed_password,userRole ="organisation-admin",userSuspend = False)# Ragashree asked for default value as 'organizational-admin', putting system-admin, if wrong rmb to change
+        create_user = Account(**user_data,passwd=hashed_password)# Ragashree asked for default value as 'organizational-admin', putting system-admin, if wrong rmb to change
         db.add(create_user)
         db.commit()
         db.refresh(create_user)
@@ -77,7 +76,7 @@ def update_account(account_id: int, update_data: AccountBase):
     if update_data.userPhoneNum:
         account.userPhoneNum = update_data.userPhoneNum
 
-    if update_data.userSuspend:
+    if update_data.userSuspend is not None:
         account.userSuspend = update_data.userSuspend
 
     if not account:
