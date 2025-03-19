@@ -1,5 +1,7 @@
 from pydantic import BaseModel, IPvAnyAddress
 from typing import List
+import uuid
+from datetime import datetime
 
 class MeetingMinutesBase(BaseModel):
     date: str
@@ -98,6 +100,32 @@ class LogsOut(BaseModel):
 
     class Config:
         orm_mode = True
+
 class IPAddressSchema(BaseModel):
     ip: str
     reason : str
+
+class PlaybookBase(BaseModel):
+    name: str
+    description: str | None = None
+    conditions: list
+    actions: dict
+    is_active: bool = True
+
+    class Config:
+        from_attributes = True
+
+class PlaybookOut(PlaybookBase):
+    id: int
+    description: str = None  # Matches nullable=True in DB
+    conditions: list  # JSON field (assumed dictionary)
+    actions: dict  # JSON field (assumed list)
+    organization_id: uuid.UUID  # Foreign key to Organizations table
+    is_active: bool = True
+    created_at: datetime
+    updated_at: datetime
+
+    class Config:
+        orm_mode = True
+
+    

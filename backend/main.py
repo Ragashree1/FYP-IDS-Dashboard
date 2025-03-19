@@ -12,6 +12,7 @@ from controllers.journal_controller import router as journal_router
 from controllers.meeting_minutes_controller import router as meeting_minutes_router
 from controllers.alert_controller import router as alerts_router
 from controllers.log_controller import router as logs_router
+from controllers.playbook_controller import router as playbooks_router
 from controllers.ip_blocking_controller import router as ip_blocking_router
 from apscheduler.schedulers.background import BackgroundScheduler
 from services.alert_service import update_and_fetch_alerts
@@ -21,42 +22,6 @@ import models
 app = FastAPI()
 load_dotenv()
 Base.metadata.create_all(bind=engine)
-
-@app.middleware("http")
-async def block_ip_middleware(request: Request, call_next):
-    def get_client_ip(request: Request):
-        """Extracts the real client IP address from headers or request client."""
-        forwarded_for = request.headers.get("X-Forwarded-For", "").split(",")[0].strip()
-        real_ip = request.headers.get("X-Real-IP", "").strip()
-
-        if forwarded_for and forwarded_for not in ["127.0.0.1", "localhost"]:
-            return forwarded_for
-        elif real_ip and real_ip not in ["127.0.0.1", "localhost"]:
-            return real_ip
-        elif request.client.host:  # Use direct client IP if headers are not present
-            return request.client.host
-
-        return "UNKNOWN"  # Default in case no IP is found
-
-    client_ip = get_client_ip(request)
-    
-    # ** Print Client IP and Headers for Debugging**
-    print(f"Middleware detected client IP: {client_ip}")
-    print(f"Request Headers: {request.headers}")  
-
-    # Fetch blocked IPs from database
-    with SessionLocal() as db:
-        blocked_ips = db.query(BlockedIP.ip).all()
-        blocked_ip_list = [str(ip[0]).strip().lower() for ip in blocked_ips]  # Normalize IPs
-
-    print(f"Blocked IPs list: {blocked_ip_list}")
-
-    # Block the IP if it exists in the blocked list
-    if client_ip.lower() in blocked_ip_list:
-        print(f"Blocking IP: {client_ip}")
-        return JSONResponse(status_code=403, content={"detail": "Your IP is blocked."})
-
-    return await call_next(request)
 
 # CORS settings
 origins = [
@@ -78,6 +43,7 @@ app.include_router(meeting_minutes_router)
 app.include_router(alerts_router)
 app.include_router(logs_router)
 app.include_router(ip_blocking_router)
+app.include_router(playbooks_router)
 
 def fetch_alerts_job():
     update_and_fetch_alerts()
