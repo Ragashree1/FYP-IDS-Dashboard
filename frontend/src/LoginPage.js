@@ -130,6 +130,10 @@ export default function LoginPage() {
       if (!loginResponse.ok) throw new Error(loginData.detail || "Login failed");
 
       localStorage.setItem("token", loginData.access_token);
+        // Check if userRole is defined
+      if (loginData.userRole === undefined) {
+        throw new Error("User role is not defined in the response");
+      }
 
       // Assuming roles are fetched from the backend or set based on user data
       const userRole = loginData.userRole;

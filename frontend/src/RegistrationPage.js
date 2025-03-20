@@ -192,7 +192,7 @@ const RegistrationPage = () => {
     const { name, value } = e.target;
     setFormData({
       ...formData,
-      [name]: value
+      [name]: name === "userComName" ? value.toLowerCase() : value
     });
   };
 
@@ -227,19 +227,13 @@ const RegistrationPage = () => {
       const data = await response.json();
       if (response.ok) {
         setMessage("User registered successfully!");
-        setTimeout(() => navigate("/payment"), 2000);
+        //setTimeout(() => navigate("/payment"), 2000); Until I fix /payment redirect this to Landing Page
+        setTimeout(() => navigate("/LandingPage"), 2000);
       } else {
         setMessage(`Error: ${data.detail || "Registration failed"}`);
       }
 
 
-      if (response.ok) {
-        setMessage("User registered successfully!");
-        setTimeout(() => navigate("/payment"), 2000);
-      } else {
-        const errorData = await response.json();
-        setMessage(`Error: ${errorData.detail || "Registration failed"}`);
-      }
     } catch (error) {
       setMessage("Network error. Please try again.");
       console.error(error);
@@ -293,7 +287,7 @@ const RegistrationPage = () => {
                 name="userComName"
                 id="userComName"
                 placeholder="Company Name"
-                value={formData.userComName.toLowerCase()}
+                value={formData.userComName}
                 onChange={handleChange}
                 required
               />

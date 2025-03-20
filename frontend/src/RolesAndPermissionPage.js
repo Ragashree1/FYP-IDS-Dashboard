@@ -4,7 +4,7 @@ import { useState ,useEffect } from "react"
 import { useNavigate, useLocation } from "react-router-dom"
 import Sidebar from "./Sidebar"
 
-const userRole = "organisation-admin"
+const role = "organisation-admin"; 
 
 const DeleteConfirmationModal = ({ onClose, onConfirm }) => {
   return (
@@ -419,7 +419,7 @@ const RolesAndPermissionPage = () => {
         overflow: "hidden", // Added to prevent horizontal scrolling
       }}
     >
-      <Sidebar userRole={userRole} />
+      <Sidebar userRole={role} />
 
       <div
         style={{
