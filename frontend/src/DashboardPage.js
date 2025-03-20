@@ -16,12 +16,19 @@ import {
 import Sidebar from "./Sidebar"
 import axios from 'axios';
 
+
+import React from 'react';
+import { useState ,useEffect } from "react"
+import { useNavigate, useLocation } from 'react-router-dom';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, LineChart, Line, PieChart, Pie, Cell,ResponsiveContainer } from 'recharts'
+import Sidebar from "./Sidebar"
+import axios from 'axios';;
 const userRole = "network-admin"
 
 const Dashboard = () => {
   const navigate = useNavigate();
   const location = useLocation();
- 
+
   const [filter, setFilter] = useState("")
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [selectedOffence, setSelectedOffence] = useState(null)
@@ -165,7 +172,8 @@ const Dashboard = () => {
   // ];
 
   const handleLogout = () => {
-    navigate("/login")
+    localStorage.removeItem("token");
+    navigate("/LandingPage");
   }
 
   // Time range options
@@ -320,6 +328,7 @@ const Dashboard = () => {
     // Convert to array and sort by period
     return Object.values(data).sort((a, b) => a.period.localeCompare(b.period));
   }, [filteredOffences, plotTimeGranularity]);
+
 
   return (
     <div

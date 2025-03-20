@@ -1,5 +1,4 @@
-
-import { useState } from "react"
+import { useState , useEffect} from "react"
 import { useNavigate, useLocation } from "react-router-dom"
 import Sidebar from "./Sidebar"
 
@@ -67,71 +66,96 @@ const DeleteConfirmationModal = ({ onClose, onConfirm }) => {
 }
 
 const NewUserModal = ({ onClose, onConfirm, user = null }) => {
+  const [roles, setRoles] = useState([])
   const [formData, setFormData] = useState({
-    employeeId: user?.employeeId || "",
-    firstName: user?.name?.split(" ")[0] || "",
-    lastName: user?.name?.split(" ")[1] || "",
-    role: user?.role || "",
-    email: user?.email || "",
-    phone: user?.phone || "",
-    password: "",
+    userid: '',
+    userFirstName: '',
+    userLastName: '',
+    passwd: '',
+    userComName: '',
+    userEmail: '',
+    userPhoneNum: '',
+    userRole: 0,
+    userSuspend: false,
+
   })
+  const fetchRoles = async () => {
+    try {
+      const response = await fetch ("http://127.0.0.1:8000/user-management/roles", {
+          method: "GET",
+        });
+
+      if (response.ok) {
+        const data = await response.json();
+        setRoles(data); // Assuming the response is an array of permissions
+      }else {
+        throw new Error('Failed to fetch permissions');
+      } 
+    }
+      catch (err) {
+      console.error(err);
+    }
+  };
+  
+  useEffect(() => {
+    fetchRoles();
+  }, []);
 
   const [errors, setErrors] = useState({
-    phone: "",
-    password: "",
+    userPhoneNum: "",
+    passwd: "",
   })
 
   const handleInputChange = (e) => {
     const { name, value } = e.target
     setFormData((prev) => ({ ...prev, [name]: value }))
 
-    if (name === "phone") {
+    if (name === "userPhoneNum") {
       validatePhone(value)
-    } else if (name === "password") {
+    } else if (name === "passwd") {
       validatePassword(value)
     }
   }
 
-  const validatePhone = (phone) => {
-    if (user && !phone) {
-      setErrors((prev) => ({ ...prev, phone: "" }))
+  const validatePhone = (userPhoneNum) => {
+    if (user && !userPhoneNum) {
+      setErrors((prev) => ({ ...prev, userPhoneNum: "" }))
       return true
     }
 
     const phoneRegex = /^(\+\d{1,3}\s?)?[0-9]{8,10}$/
 
-    if (!phoneRegex.test(phone)) {
+    if (!phoneRegex.test(userPhoneNum)) {
       setErrors((prev) => ({
         ...prev,
-        phone: "Please enter a valid phone number (8-10 digits with optional country code)",
+        userPhoneNum: "Please enter a valid phone number (8-10 digits with optional country code)",
       }))
       return false
     } else {
-      setErrors((prev) => ({ ...prev, phone: "" }))
+      setErrors((prev) => ({ ...prev, userPhoneNum: "" }))
       return true
     }
   }
 
-  const validatePassword = (password) => {
-    if (user && !password) {
-      setErrors((prev) => ({ ...prev, password: "" }))
+  const validatePassword = (passwd) => {
+    if (user && !passwd) {
+      setErrors((prev) => ({ ...prev, passwd: "" }))
       return true
     }
 
-    if (!user || password) {
-      const hasSymbol = /[!@#$%^&*(),.?":{}|<>]/.test(password)
-      const hasNumber = /\d/.test(password)
-      const hasCapital = /[A-Z]/.test(password)
+    if (!user || passwd) {
+      const hasSymbol = /[!@#$%^&*(),.?":{}|<>]/.test(passwd)
+      const hasNumber = /\d/.test(passwd)
+      const hasCapital = /[A-Z]/.test(passwd)
 
       if (!hasSymbol || !hasNumber || !hasCapital) {
         setErrors((prev) => ({
           ...prev,
-          password: "Password must contain symbols, numbers, and capital letters",
+          passwd: "Password must contain symbols, numbers, and capital letters",
         }))
         return false
       } else {
-        setErrors((prev) => ({ ...prev, password: "" }))
+        setErrors((prev) => ({ ...prev, passwd: "" }))
         return true
       }
     }
@@ -142,8 +166,8 @@ const NewUserModal = ({ onClose, onConfirm, user = null }) => {
   const handleSubmit = (e) => {
     e.preventDefault()
 
-    const isPhoneValid = validatePhone(formData.phone)
-    const isPasswordValid = validatePassword(formData.password)
+    const isPhoneValid = validatePhone(formData.userPhoneNum)
+    const isPasswordValid = validatePassword(formData.passwd)
 
     if (isPhoneValid && isPasswordValid) {
       onConfirm(formData, user?.id)
@@ -195,8 +219,8 @@ const NewUserModal = ({ onClose, onConfirm, user = null }) => {
                 <label style={{ display: "block", marginBottom: "8px" }}>Employee ID (username)</label>
                 <input
                   type="text"
-                  name="employeeId"
-                  value={formData.employeeId}
+                  name="userid"
+                  value={formData.userid}
                   onChange={handleInputChange}
                   style={{
                     width: "100%",
@@ -214,8 +238,8 @@ const NewUserModal = ({ onClose, onConfirm, user = null }) => {
                 <label style={{ display: "block", marginBottom: "8px" }}>First Name</label>
                 <input
                   type="text"
-                  name="firstName"
-                  value={formData.firstName}
+                  name="userFirstName"
+                  value={formData.userFirstName}
                   onChange={handleInputChange}
                   style={{
                     width: "100%",
@@ -232,8 +256,8 @@ const NewUserModal = ({ onClose, onConfirm, user = null }) => {
                 <label style={{ display: "block", marginBottom: "8px" }}>Last Name</label>
                 <input
                   type="text"
-                  name="lastName"
-                  value={formData.lastName}
+                  name="userLastName"
+                  value={formData.userLastName}
                   onChange={handleInputChange}
                   style={{
                     width: "100%",
@@ -249,8 +273,8 @@ const NewUserModal = ({ onClose, onConfirm, user = null }) => {
               <div>
                 <label style={{ display: "block", marginBottom: "8px" }}>Role</label>
                 <select
-                  name="role"
-                  value={formData.role}
+                  name="userRole"
+                  value={formData.userRole}
                   onChange={handleInputChange}
                   style={{
                     width: "100%",
@@ -262,11 +286,12 @@ const NewUserModal = ({ onClose, onConfirm, user = null }) => {
                   }}
                   required
                 >
-                  <option value="">Select Role</option>
-                  <option value="Organisation Admin">Organisation Admin</option>
-                  <option value="Network Admin">Network Admin</option>
-                  <option value="IT Manager">IT Manager</option>
-                  <option value="Data Analyst">Data Analyst</option>
+                  <option value=""disabled>Select Role</option>
+                  {roles.map((r) => (
+                  <option key={r.id} value={r.id}>
+                    {r.roleName}
+                  </option>
+                ))}
                 </select>
               </div>
             </div>
@@ -277,8 +302,8 @@ const NewUserModal = ({ onClose, onConfirm, user = null }) => {
                 <label style={{ display: "block", marginBottom: "8px" }}>Email</label>
                 <input
                   type="email"
-                  name="email"
-                  value={formData.email}
+                  name="userEmail"
+                  value={formData.userEmail}
                   onChange={handleInputChange}
                   style={{
                     width: "100%",
@@ -295,13 +320,13 @@ const NewUserModal = ({ onClose, onConfirm, user = null }) => {
                 <label style={{ display: "block", marginBottom: "8px" }}>Phone</label>
                 <input
                   type="tel"
-                  name="phone"
-                  value={formData.phone}
+                  name="userPhoneNum"
+                  value={formData.userPhoneNum}
                   onChange={handleInputChange}
                   style={{
                     width: "100%",
                     padding: "8px",
-                    border: errors.phone ? "1px solid #ff4d4f" : "1px solid #ddd",
+                    border: errors.userPhoneNum ? "1px solid #ff4d4f" : "1px solid #ddd",
                     borderRadius: "4px",
                     backgroundColor: "#f5f5f5",
                     boxSizing: "border-box", // Added to prevent overflow
@@ -309,21 +334,21 @@ const NewUserModal = ({ onClose, onConfirm, user = null }) => {
                   placeholder="+65 98765432"
                   required
                 />
-                {errors.phone && (
-                  <p style={{ color: "#ff4d4f", fontSize: "12px", margin: "4px 0 0 0" }}>{errors.phone}</p>
+                {errors.userPhoneNum && (
+                  <p style={{ color: "#ff4d4f", fontSize: "12px", margin: "4px 0 0 0" }}>{errors.userPhoneNum}</p>
                 )}
               </div>
               <div>
                 <label style={{ display: "block", marginBottom: "8px" }}>Password</label>
                 <input
                   type="password"
-                  name="password"
-                  value={formData.password}
+                  name="passwd"
+                  value={formData.passwd}
                   onChange={handleInputChange}
                   style={{
                     width: "100%",
                     padding: "8px",
-                    border: errors.password ? "1px solid #ff4d4f" : "1px solid #ddd",
+                    border: errors.passwd ? "1px solid #ff4d4f" : "1px solid #ddd",
                     borderRadius: "4px",
                     backgroundColor: "#f5f5f5",
                     boxSizing: "border-box", // Added to prevent overflow
@@ -331,8 +356,8 @@ const NewUserModal = ({ onClose, onConfirm, user = null }) => {
                   required={!user}
                   placeholder={user ? "Leave blank to keep current password" : ""}
                 />
-                {errors.password && (
-                  <p style={{ color: "#ff4d4f", fontSize: "12px", margin: "4px 0 0 0" }}>{errors.password}</p>
+                {errors.passwd && (
+                  <p style={{ color: "#ff4d4f", fontSize: "12px", margin: "4px 0 0 0" }}>{errors.passwd}</p>
                 )}
                 <p style={{ color: "#666", fontSize: "12px", margin: "4px 0 0 0" }}>
                   Password must contain symbols, numbers, and capital letters.
@@ -408,8 +433,8 @@ const SuspendConfirmationModal = ({ onClose, onConfirm, user, isSuspending }) =>
       >
         <h3 style={{ marginTop: 0, marginBottom: "16px" }}>
           {isSuspending
-            ? `Are you sure you want to suspend ${user.name}?`
-            : `Are you sure you want to reactivate ${user.name}?`}
+            ? `Are you sure you want to suspend ${user.userFirstName || ''} ${user.userLastName || ''}?`
+            : `Are you sure you want to reactivate ${user.userFirstName || ''} ${user.userLastName || ''}?`}
         </h3>
         <p style={{ marginBottom: "24px", color: "#666" }}>
           {isSuspending
@@ -452,112 +477,49 @@ const UserManagementPage = () => {
   const location = useLocation()
   const [searchQuery, setSearchQuery] = useState("")
   const [showNewUserModal, setShowNewUserModal] = useState(false)
-  const [users, setUsers] = useState([
-    {
-      id: 1,
-      employeeId: "SA01",
-      name: "Ryan Atwood",
-      role: "Organisation Admin",
-      email: "RyanAtwood@yahoo.com",
-      phone: "98705564",
-      suspended: false,
-    },
-    {
-      id: 2,
-      employeeId: "NA01",
-      name: "Seth Cohen",
-      role: "Network Admin",
-      email: "SethCohen@yahoo.com",
-      phone: "97352790",
-      suspended: false,
-    },
-    {
-      id: 3,
-      employeeId: "CA01",
-      name: "Marissa Cooper",
-      role: "Network Admin",
-      email: "MarissaCoop@gmail.com",
-      phone: "92735234",
-      suspended: true,
-    },
-    {
-      id: 4,
-      employeeId: "ITM01",
-      name: "Summer Roberts",
-      role: "Data Analyst",
-      email: "SummerRob@hotmail.com",
-      phone: "87354723",
-      suspended: false,
-    },
-    {
-      id: 5,
-      employeeId: "SA02",
-      name: "Kirsten Cohen",
-      role: "Organisation Admin",
-      email: "Kirsten@yahoo.com",
-      phone: "93214456",
-      suspended: false,
-    },
-    {
-      id: 6,
-      employeeId: "NA02",
-      name: "Sandy Cohen",
-      role: "Network Admin",
-      email: "SandyCohen@yahoo.com",
-      phone: "87709667",
-      suspended: false,
-    },
-    {
-      id: 7,
-      employeeId: "CA02",
-      name: "Julie Cooper",
-      role: "Network Admin",
-      email: "JulieCooper@gmail.com",
-      phone: "85658203",
-      suspended: false,
-    },
-    {
-      id: 8,
-      employeeId: "ITM02",
-      name: "Luke Ward",
-      role: "IT Manager",
-      email: "LukeW@gmail.com",
-      phone: "96689077",
-      suspended: false,
-    },
-    {
-      id: 9,
-      employeeId: "CA03",
-      name: "Theresa Diaz",
-      role: "IT Manager",
-      email: "Theresa@hotmail.com",
-      phone: "97554211",
-      suspended: false,
-    },
-    {
-      id: 10,
-      employeeId: "DA01",
-      name: "Anna Stern",
-      role: "Network Admin",
-      email: "AnnaSt@yahoo.com",
-      phone: "83314489",
-      suspended: false,
-    },
-  ])
-
+  const [users, setUsers] = useState([])
   const [selectedUser, setSelectedUser] = useState(null)
   const [showDeleteModal, setShowDeleteModal] = useState(false)
   const [userToDelete, setUserToDelete] = useState(null)
+  const [userToEdit, setEditUserIndex] = useState(null)
   const [showSuspendModal, setShowSuspendModal] = useState(false)
   const [userToSuspend, setUserToSuspend] = useState(null)
+  const [loading, setLoading] = useState(true); // Added loading state
+  const [error, setError] = useState(null);
 
-  const filteredUsers = users.filter(
+
+  const fetchUsers = async () => {
+    try {
+      const response = await fetch ("http://127.0.0.1:8000/user-management/", {
+          method: "GET",
+        });
+
+      if (response.ok) {
+        const data = await response.json();
+        console.log("Fetched users:", data); // Add this line to inspect the fetched data
+        setUsers(data); // Assuming the response is an array of users
+      }else {
+        throw new Error('Failed to fetch users');
+      } 
+    }
+      catch (err) {
+      setError("Failed to fetch users");
+      setLoading(false);
+    }
+  };
+
+
+  useEffect(() => {
+    fetchUsers();
+  }, []);
+
+  const filteredUsers = (users || []).filter(
     (user) =>
-      user.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      user.employeeId.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      user.role.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      user.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      user.phone.includes(searchQuery),
+      (user.name || "").toLowerCase().includes(searchQuery.toLowerCase()) ||
+      user.userid.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      user.userRole.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      user.userEmail.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      user.userPhoneNum.includes(searchQuery),
   )
 
   const handleSearch = (e) => {
@@ -566,22 +528,18 @@ const UserManagementPage = () => {
 
   const handleSuspend = (user) => {
     setUserToSuspend(user)
-    setShowSuspendModal(true)
+    setShowSuspendModal(user)
   }
 
   const handleConfirmSuspend = () => {
-    setUsers(
-      users.map((user) =>
-        user.id === userToSuspend.id
-          ? {
-              ...user,
-              suspended: !user.suspended,
-            }
-          : user,
-      ),
-    )
-    setShowSuspendModal(false)
-    setUserToSuspend(null)
+    const updatedUser = {
+      ...userToSuspend,
+      suspended: !userToSuspend.userSuspend,
+    };
+  
+    updateUserSuspend(updatedUser); // Update user suspend status in the backend
+    setShowSuspendModal(false);
+    setUserToSuspend(null);
   }
 
   const handleCloseSuspendModal = () => {
@@ -589,16 +547,83 @@ const UserManagementPage = () => {
     setUserToSuspend(null)
   }
 
+  const updateUserSuspend = async (user) => {
+    try {
+      const response = await fetch(`http://127.0.0.1:8000/user-management/${user.id}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ userSuspend: !user.userSuspend }), // Only send the suspended status
+      });
+  
+      if (response.ok) {
+        fetchUsers(); // Refresh the user list to reflect the updated status
+      } else {
+        throw new Error("Failed to update user suspend status");
+      }
+    } catch (err) {
+      setError("Failed to update suspend status");
+    }
+  };
+
+  const handleAdd = (user) => {
+    // Set the selected user to be edited
+  setSelectedUser(user);
+  setShowNewUserModal(true); 
+}
+
+const addUser = async (user) => {
+  try {
+    await fetch(`http://127.0.0.1:8000/user-management/`, { method: "POST" , headers: {
+      "Content-Type": "application/json", // Add this header to indicate the body is JSON
+    },
+      body: JSON.stringify(user), // Send userData as the payload to add the user
+    });
+    fetchUsers() 
+  } catch (err) {
+    setError("Failed to add user");
+  }
+};
+
+
   const handleEdit = (user) => {
-    setSelectedUser(user)
-    setShowNewUserModal(true)
-  }
+      // Set the selected user to be edited
+    setSelectedUser(user);
+    setShowNewUserModal(true); 
+}
 
-  const handleDelete = (user) => {
-    setUserToDelete(user)
-    setShowDeleteModal(true)
-  }
+  const updateUser = async (user) => {
+    try {
+      const response = await fetch (`http://127.0.0.1:8000/user-management/${user.id}`, { method: "PUT", headers: {
+        "Content-Type": "application/json", // Add this header to indicate the body is JSON
+      },
+        body: JSON.stringify(user), // Send userData as the payload to update the user
+      });
+  
+      if (!response.ok) {
+        throw new Error("Failed to update user");
+      }
+  
+      fetchUsers(); // Refresh the user list
+    } catch (err) {
+      setError("Failed to edit user");
+    }
+  };
+  const handleDelete = async (user) => {
+    await deleteUser(user.id);
+    fetchUsers();
+  };
 
+  const deleteUser = async (id) => {
+    try {
+      await fetch(`http://127.0.0.1:8000/user-management/${id}`, { method: "DELETE" });
+      fetchUsers()
+    } catch (err) {
+      setError("Failed to delete user");
+    }
+  };
+  
   const handleConfirmDelete = () => {
     setUsers(users.filter((user) => user.id !== userToDelete.id))
     setShowDeleteModal(false)
@@ -612,30 +637,20 @@ const UserManagementPage = () => {
 
   const handleAddOrUpdateUser = (formData, userId) => {
     if (userId) {
-      setUsers(
-        users.map((user) =>
-          user.id === userId
-            ? {
-                ...user,
-                name: `${formData.firstName} ${formData.lastName}`,
-                role: formData.role,
-                email: formData.email,
-                phone: formData.phone,
-              }
-            : user,
-        ),
-      )
+      // Call updateUser if the user is being edited
+      updateUser({ ...formData, id: userId }); // Ensure the formData has the necessary properties for the update
     } else {
       const newUser = {
-        id: users.length + 1,
-        employeeId: formData.employeeId,
-        name: `${formData.firstName} ${formData.lastName}`,
-        role: formData.role,
-        email: formData.email,
-        phone: formData.phone,
-        suspended: false,
+        userid: formData.userid,
+        userFirstName: formData.userFirstName,
+        userLastName:formData.userLastName,
+        userRole: formData.userRole,
+        userEmail: formData.userEmail,
+        userPhoneNum: formData.userPhoneNum,
+        passwd: formData.passwd,
+        userSuspend: false,
       }
-      setUsers([...users, newUser])
+      addUser(newUser)
     }
     setShowNewUserModal(false)
     setSelectedUser(null)
@@ -702,6 +717,7 @@ const UserManagementPage = () => {
           </div>
           <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
             <button
+            onClick={() => fetchUsers()}
               style={{
                 background: "none",
                 border: "none",
@@ -773,15 +789,15 @@ const UserManagementPage = () => {
                   key={user.id}
                   style={{
                     borderBottom: "1px solid #eee",
-                    backgroundColor: user.suspended ? "#fff5f5" : "inherit",
+                    backgroundColor: user.userSuspend ? "#fff5f5" : "inherit",
                   }}
                 >
                   <td style={{ padding: "16px" }}>{user.id}</td>
-                  <td style={{ padding: "16px" }}>{user.employeeId}</td>
-                  <td style={{ padding: "16px" }}>{user.name}</td>
-                  <td style={{ padding: "16px" }}>{user.role}</td>
-                  <td style={{ padding: "16px" }}>{user.email}</td>
-                  <td style={{ padding: "16px" }}>{user.phone}</td>
+                  <td style={{ padding: "16px" }}>{user.userid}</td>
+                  <td style={{ padding: "16px" }}>{user.name || `${user.userFirstName || ''} ${user.userLastName || ''}`.trim()}</td>
+                  <td style={{ padding: "16px" }}>{user.userRole}</td>
+                  <td style={{ padding: "16px" }}>{user.userEmail}</td>
+                  <td style={{ padding: "16px" }}>{user.userPhoneNum}</td>
                   <td style={{ padding: "16px" }}>
                     <span
                       style={{
@@ -790,11 +806,11 @@ const UserManagementPage = () => {
                         borderRadius: "4px",
                         fontSize: "12px",
                         fontWeight: "bold",
-                        backgroundColor: user.suspended ? "#ffcccb" : "#90EE90",
-                        color: user.suspended ? "#d32f2f" : "#2e7d32",
+                        backgroundColor: user.userSuspend  ? "#ffcccb" : "#90EE90",
+                        color: user.userSuspend ? "#d32f2f" : "#2e7d32",
                       }}
                     >
-                      {user.suspended ? "Suspended" : "Active"}
+                      {user.userSuspend ? "Suspended" : "Active"}
                     </span>
                   </td>
                   <td style={{ padding: "16px", textAlign: "center" }}>
@@ -806,11 +822,11 @@ const UserManagementPage = () => {
                           border: "none",
                           cursor: "pointer",
                           fontSize: "16px",
-                          color: user.suspended ? "#2e7d32" : "#d32f2f",
+                          color: user.userSuspend ? "#2e7d32" : "#d32f2f",
                         }}
-                        title={user.suspended ? "Reactivate User" : "Suspend User"}
+                        title={user.userSuspend ? "Reactivate User" : "Suspend User"}
                       >
-                        {user.suspended ? "❌" : "✅"}
+                        {user.userSuspend ? "❌" : "✅"}
                       </button>
                       <button
                         onClick={() => handleEdit(user)}
@@ -863,7 +879,7 @@ const UserManagementPage = () => {
         {showSuspendModal && (
           <SuspendConfirmationModal
             user={userToSuspend}
-            isSuspending={!userToSuspend.suspended}
+            isSuspending={!userToSuspend.userSuspend}
             onClose={handleCloseSuspendModal}
             onConfirm={handleConfirmSuspend}
           />
@@ -874,4 +890,3 @@ const UserManagementPage = () => {
 }
 
 export default UserManagementPage
-

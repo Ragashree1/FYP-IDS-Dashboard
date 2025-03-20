@@ -6,13 +6,18 @@ from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
 from dotenv import load_dotenv
 from database import get_db, SessionLocal
-from models.models import BlockedIP  # Ensure correct import
+from models.models import BlockedIP  
 from starlette.responses import JSONResponse
 from controllers.journal_controller import router as journal_router
 from controllers.meeting_minutes_controller import router as meeting_minutes_router
 from controllers.alert_controller import router as alerts_router
 from controllers.log_controller import router as logs_router
 from controllers.playbook_controller import router as playbooks_router
+from controllers.login_controller import router as login_router
+from controllers.registration_controller import router as registration_router 
+from controllers.payment_controller import router as payment_router 
+from controllers.user_management_controller import router as user_management_router 
+from controllers.role_permission_controller import router as role_permission_router 
 from controllers.ip_blocking_controller import router as ip_blocking_router
 from apscheduler.schedulers.background import BackgroundScheduler
 from services.alert_service import update_and_fetch_alerts
@@ -26,8 +31,9 @@ Base.metadata.create_all(bind=engine)
 # CORS settings
 origins = [
     "http://localhost:3000",
-    "http://localhost:3006",  # put Frontend URL here
-    "http://localhost:9600",
+    "http://127.0.0.1:3000", 
+    "http://localhost:3006",  
+    "http://localhost:9600"
 ]
 app.add_middleware(
     CORSMiddleware,
@@ -42,6 +48,11 @@ app.include_router(journal_router)
 app.include_router(meeting_minutes_router)
 app.include_router(alerts_router)
 app.include_router(logs_router)
+app.include_router(login_router)
+app.include_router(registration_router)
+app.include_router(payment_router)
+app.include_router(user_management_router)
+app.include_router(role_permission_router)
 app.include_router(ip_blocking_router)
 app.include_router(playbooks_router)
 
