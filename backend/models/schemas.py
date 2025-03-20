@@ -1,7 +1,7 @@
-from pydantic import BaseModel, IPvAnyAddress
-from typing import List
 import uuid
 from datetime import datetime
+from pydantic import BaseModel,EmailStr, IPvAnyAddress
+from typing import List, Optional
 
 class MeetingMinutesBase(BaseModel):
     date: str
@@ -70,6 +70,75 @@ class SnortAlertsOut(BaseModel):
 
     class Config:
         orm_mode = True
+        
+class AccountBase(BaseModel):
+    id: Optional[int] = None
+    userid:  Optional[str] = None
+    userFirstName:  Optional[str] = None
+    userLastName:  Optional[str] = None
+    passwd :  Optional[str] = None
+    userComName :  Optional[str] = None
+    userEmail :  Optional[str] = None
+    userPhoneNum :  Optional[str] = None
+    userRole :  Optional[int] = None
+    userSuspend :  Optional[bool] = None   
+
+    
+
+
+
+class AccountLogin(BaseModel):
+    userComName : str
+    userRole: Optional[int] = None
+    userid : str
+    passwd : str
+
+class CreditCardBase(BaseModel):
+    creditFirstName: str
+    creditLastName: str
+    creditNum: str
+    creditDate: str
+    creditCVV: int
+    subscription: str
+    total: str
+
+
+class Token(BaseModel):
+    access_token: str
+    token_type: str
+
+
+class PermissionBase(BaseModel):
+    id: int
+    permissionName: str
+
+    class Config:
+        from_attributes = True
+
+
+class RoleBase(BaseModel):
+    id:int
+    roleName: str
+
+class RoleIn(RoleBase):
+    id:Optional[int] = None
+    roleName: Optional[str] = None
+    permission_id: Optional[List[int]] = None
+
+class RoleOut(RoleBase):
+    id:Optional[int] = None
+    roleName: Optional[str] = None
+    permissions: Optional[List[PermissionBase]] = None  # Return permission details
+    permission_id: Optional[List[int]] = None
+
+    class Config:
+        orm_mode = True
+
+class AccountOut(AccountBase):
+    role: RoleOut  # Return role details instead of just an ID
+
+    class Config:
+        orm_mode = True
 
 class LogsBase(BaseModel):
     timestamp: str
@@ -117,9 +186,9 @@ class PlaybookBase(BaseModel):
 
 class PlaybookOut(PlaybookBase):
     id: int
-    description: str = None  # Matches nullable=True in DB
-    conditions: list  # JSON field (assumed dictionary)
-    actions: dict  # JSON field (assumed list)
+    description: str = None  
+    conditions: list  # JSON field
+    actions: dict  # JSON field
     organization_id: uuid.UUID  # Foreign key to Organizations table
     is_active: bool = True
     created_at: datetime

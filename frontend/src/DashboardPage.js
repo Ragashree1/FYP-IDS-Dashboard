@@ -20,6 +20,13 @@ import { Select, ColorPicker } from 'antd';
 import defaultClassifications from './defaultClassifications';  
 const { Option } = Select;
 
+
+import React from 'react';
+import { useState ,useEffect } from "react"
+import { useNavigate, useLocation } from 'react-router-dom';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, LineChart, Line, PieChart, Pie, Cell,ResponsiveContainer } from 'recharts'
+import Sidebar from "./Sidebar"
+import axios from 'axios';;
 const userRole = "network-admin"
 
 const Dashboard = () => {
@@ -88,7 +95,8 @@ const Dashboard = () => {
   ]
 
   const handleLogout = () => {
-    navigate("/login")
+    localStorage.removeItem("token");
+    navigate("/LandingPage");
   }
 
   // Time range options
