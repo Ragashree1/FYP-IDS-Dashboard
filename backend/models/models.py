@@ -1,3 +1,5 @@
+import uuid  
+from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy import Column, ForeignKey, Integer, String, ARRAY, TIMESTAMP, JSON, DateTime, func, Boolean, Table
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import validates, relationship
@@ -28,6 +30,12 @@ class Journal(Base):
 
     class Config:
         orm_mode = True
+
+class Organization(Base):
+    __tablename__ = "Organizations"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    name = Column(String, unique=True, nullable=False)
 
 class BlockedIP(Base):
     __tablename__ = "blocked_ips"
@@ -161,6 +169,22 @@ class Logs(Base):
     url = Column(String, nullable=True)
     user_agent = Column(String, nullable=True)
     log_path = Column(String, nullable=True)
+
+    class Config:
+        orm_mode = True
+
+class Playbook(Base):
+    __tablename__ = "Playbooks"
+
+    id = Column(Integer, primary_key=True, index=True)
+    organization_id = Column(UUID(as_uuid=True), ForeignKey("Organizations.id", ondelete="SET NULL"), nullable=True, index=True)  # Foreign key to an Organization table
+    name = Column(String, unique=True, nullable=False)  # Name of the playbook
+    description = Column(String, nullable=True)  # Optional description of what the playbook does
+    conditions = Column(JSON, nullable=False)  # JSON structure to define rules (e.g., {"log_type": "alert", "priority": ">3"})
+    actions = Column(JSON, nullable=False)  # JSON array to store multiple actions (e.g., ["block_ip", "alert"])
+    is_active = Column(Boolean, default=True)  
+    created_at = Column(TIMESTAMP, server_default=func.now())  
+    updated_at = Column(TIMESTAMP, server_default=func.now(), onupdate=func.now())  # Timestamp of last update
 
     class Config:
         orm_mode = True

@@ -1,6 +1,7 @@
+import uuid
+from datetime import datetime
 from pydantic import BaseModel,EmailStr, IPvAnyAddress
 from typing import List, Optional
-import datetime
 
 class MeetingMinutesBase(BaseModel):
     date: str
@@ -133,7 +134,6 @@ class RoleOut(RoleBase):
     class Config:
         orm_mode = True
 
-
 class AccountOut(AccountBase):
     role: RoleOut  # Return role details instead of just an ID
 
@@ -169,6 +169,32 @@ class LogsOut(BaseModel):
 
     class Config:
         orm_mode = True
+
 class IPAddressSchema(BaseModel):
     ip: str
     reason : str
+
+class PlaybookBase(BaseModel):
+    name: str
+    description: str | None = None
+    conditions: list
+    actions: dict
+    is_active: bool = True
+
+    class Config:
+        from_attributes = True
+
+class PlaybookOut(PlaybookBase):
+    id: int
+    description: str = None  
+    conditions: list  # JSON field
+    actions: dict  # JSON field
+    organization_id: uuid.UUID  # Foreign key to Organizations table
+    is_active: bool = True
+    created_at: datetime
+    updated_at: datetime
+
+    class Config:
+        orm_mode = True
+
+    
