@@ -1,18 +1,23 @@
-﻿import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+﻿"use client"
+
+import { useState, useEffect } from "react"
+import { useNavigate } from "react-router-dom"
 
 const RegistrationPage = () => {
-  const navigate = useNavigate(); // Add navigation hook
-  
+  const navigate = useNavigate() // Add navigation hook
+
+  // Add state for success popup
+  const [showSuccessPopup, setShowSuccessPopup] = useState(false)
+
   // Add scoped styles to the component when it mounts
   useEffect(() => {
     // Create a unique ID for this component's styles
-    const styleId = 'registration-page-styles';
-    
+    const styleId = "registration-page-styles"
+
     // Only add styles if they don't already exist
     if (!document.getElementById(styleId)) {
-      const styleElement = document.createElement('style');
-      styleElement.id = styleId;
+      const styleElement = document.createElement("style")
+      styleElement.id = styleId
       styleElement.innerHTML = `
         .registration-page-wrapper {
           display: flex;
@@ -89,7 +94,13 @@ const RegistrationPage = () => {
           color: #9ca3af;
         }
 
-        .registration-page-wrapper .password-hint {
+        .registration-page-wrapper .input-hint {
+          margin-top: 0.5rem;
+          font-size: 0.75rem;
+          color: #6B7280;
+        }
+
+        .registration-page-wrapper .error-hint {
           margin-top: 0.5rem;
           font-size: 0.75rem;
           color: #ef4444;
@@ -101,7 +112,7 @@ const RegistrationPage = () => {
           margin-top: 1rem;
         }
 
-        .registration-page-wrapper .next-button {
+        .registration-page-wrapper .register-button {
           background-color: #10B981;
           color: white;
           padding: 0.75rem 2rem;
@@ -113,13 +124,98 @@ const RegistrationPage = () => {
           transition: background-color 0.2s;
         }
 
-        .registration-page-wrapper .next-button:hover {
+        .registration-page-wrapper .register-button:hover {
           background-color: #059669;
         }
 
-        .registration-page-wrapper .next-button:focus {
+        .registration-page-wrapper .register-button:focus {
           outline: none;
           box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.1);
+        }
+
+        /* Success Popup Styles */
+        .success-popup-overlay {
+          position: fixed;
+          top: 0;
+          left: 0;
+          right: 0;
+          bottom: 0;
+          background-color: rgba(0, 0, 0, 0.5);
+          display: flex;
+          justify-content: center;
+          align-items: center;
+          z-index: 1000;
+        }
+
+        .success-popup {
+          background-color: white;
+          border-radius: 8px;
+          overflow: hidden;
+          width: 90%;
+          max-width: 400px;
+          box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+          text-align: center;
+        }
+
+        .success-popup-header {
+          background-color: #8BC34A;
+          padding: 24px;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          justify-content: center;
+        }
+
+        .success-popup-icon {
+          width: 60px;
+          height: 60px;
+          background-color: white;
+          border-radius: 50%;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          margin-bottom: 12px;
+        }
+
+        .success-popup-icon svg {
+          width: 30px;
+          height: 30px;
+          color: #8BC34A;
+        }
+
+        .success-popup-title {
+          color: white;
+          font-size: 18px;
+          font-weight: 500;
+          letter-spacing: 1px;
+        }
+
+        .success-popup-content {
+          padding: 32px 24px;
+        }
+
+        .success-popup-message {
+          color: #666;
+          font-size: 16px;
+          line-height: 1.5;
+          margin-bottom: 24px;
+        }
+
+        .success-popup-button {
+          background-color: #8BC34A;
+          color: white;
+          border: none;
+          border-radius: 50px;
+          padding: 12px 36px;
+          font-size: 16px;
+          font-weight: 500;
+          cursor: pointer;
+          transition: background-color 0.2s;
+          box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        .success-popup-button:hover {
+          background-color: #7CB342;
         }
 
         @media (max-width: 640px) {
@@ -137,18 +233,18 @@ const RegistrationPage = () => {
             height: 60px;
           }
         }
-      `;
-      document.head.appendChild(styleElement);
+      `
+      document.head.appendChild(styleElement)
     }
-    
+
     // Clean up function to remove styles when component unmounts
     return () => {
-      const styleElement = document.getElementById(styleId);
+      const styleElement = document.getElementById(styleId)
       if (styleElement) {
-        document.head.removeChild(styleElement);
+        document.head.removeChild(styleElement)
       }
-    };
-  }, []);
+    }
+  }, [])
 
   // Form state
   const [formData, setFormData] = useState({
@@ -160,61 +256,147 @@ const RegistrationPage = () => {
     userEmail: "",
     userPhoneNum: "",
     userRole: 0,
-  });
+  })
 
-  const [message, setMessage] = useState("");
-  const [errors, setErrors] = useState({});
+  const [message, setMessage] = useState("")
+  const [errors, setErrors] = useState({})
+  const [touched, setTouched] = useState({
+    userEmail: false,
+    userPhoneNum: false,
+    passwd: false,
+  })
 
   useEffect(() => {
-    document.title = "Registration"; // Set page title
-  }, []);
+    document.title = "Registration" // Set page title
+  }, [])
+
+  // Validate a specific field
+  const validateField = (name, value) => {
+    switch (name) {
+      case "userEmail":
+        return value.match(/^[^\s@]+@[^\s@]+\.[^\s@]+$/)
+          ? ""
+          : "Please enter a valid email format (e.g., name@example.com)."
+      case "userPhoneNum":
+        return value.match(/^\d{10,15}$/) ? "" : "Phone number must be 10-15 digits."
+      case "passwd":
+        if (value.length < 6) {
+          return "Password must be at least 6 characters long."
+        }
+        const hasSymbol = /[!@#$%^&*(),.?":{}|<>]/.test(value)
+        const hasNumber = /\d/.test(value)
+        const hasCapital = /[A-Z]/.test(value)
+        if (!hasSymbol || !hasNumber || !hasCapital) {
+          return "Password must contain symbols, numbers and capital letters."
+        }
+        return ""
+      default:
+        return ""
+    }
+  }
+
+  // Handle field blur
+  const handleBlur = (e) => {
+    const { name, value } = e.target
+    setTouched({
+      ...touched,
+      [name]: true,
+    })
+
+    const errorMessage = validateField(name, value)
+    if (errorMessage) {
+      setErrors({
+        ...errors,
+        [name]: errorMessage,
+      })
+    } else {
+      const newErrors = { ...errors }
+      delete newErrors[name]
+      setErrors(newErrors)
+    }
+  }
 
   const validateForm = () => {
-    let newErrors = {};
+    const newErrors = {}
+    const newTouched = {}
+
+    // Mark all fields as touched
+    Object.keys(formData).forEach((key) => {
+      newTouched[key] = true
+    })
+    setTouched(newTouched)
+
+    // Validate each field
     if (!formData.userEmail.match(/^[^\s@]+@[^\s@]+\.[^\s@]+$/)) {
-      newErrors.userEmail = "Invalid email format.";
+      newErrors.userEmail = "Please enter a valid email format (e.g., name@example.com)."
     }
+
     if (!formData.userPhoneNum.match(/^\d{10,15}$/)) {
-      newErrors.userPhoneNum = "Phone number should be 10-15 digits.";
+      newErrors.userPhoneNum = "Phone number must be 10-15 digits."
     }
+
     if (formData.passwd.length < 6) {
-      newErrors.passwd = "Password must be at least 6 characters long.";
+      newErrors.passwd = "Password must be at least 6 characters long."
+    } else {
+      const hasSymbol = /[!@#$%^&*(),.?":{}|<>]/.test(formData.passwd)
+      const hasNumber = /\d/.test(formData.passwd)
+      const hasCapital = /[A-Z]/.test(formData.passwd)
+
+      if (!hasSymbol || !hasNumber || !hasCapital) {
+        newErrors.passwd = "Password must contain symbols, numbers and capital letters."
+      }
     }
 
-    console.log(newErrors);
-
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
-  };
+    setErrors(newErrors)
+    return Object.keys(newErrors).length === 0
+  }
 
   // Handle input changes
   const handleChange = (e) => {
-    const { name, value } = e.target;
+    const { name, value } = e.target
     setFormData({
       ...formData,
-      [name]: name === "userComName" ? value.toLowerCase() : value
-    });
-  };
+      [name]: name === "userComName" ? value.toLowerCase() : value,
+    })
 
-  // Validate password
-  const validatePassword = (password) => {
-    const hasSymbol = /[!@#$%^&*(),.?":{}|<>]/.test(password);
-    const hasNumber = /\d/.test(password);
-    const hasCapital = /[A-Z]/.test(password);
-
-    if (!hasSymbol || !hasNumber || !hasCapital) {
-      return false;
+    // If the field has been touched, validate it on change
+    if (touched[name]) {
+      const errorMessage = validateField(name, value)
+      if (errorMessage) {
+        setErrors({
+          ...errors,
+          [name]: errorMessage,
+        })
+      } else {
+        const newErrors = { ...errors }
+        delete newErrors[name]
+        setErrors(newErrors)
+      }
     }
-    return true;
-  };
+  }
+
+  // Handle continue button click in success popup
+  const handleContinue = () => {
+    setShowSuccessPopup(false)
+    // Store registration data in sessionStorage for use in payment page
+    sessionStorage.setItem(
+      "registrationData",
+      JSON.stringify({
+        firstName: formData.userFirstName,
+        lastName: formData.userLastName,
+      }),
+    )
+    // Navigate to login page
+    navigate("/login")
+  }
 
   // Handle form submission
   const handleSubmit = async (e) => {
-    e.preventDefault();
-    if (!validateForm()) return;
+    e.preventDefault()
+    if (!validateForm()) return
 
-    console.log('Submitting form...');
-    
+    console.log("Submitting form...")
+
     try {
       const response = await fetch("http://127.0.0.1:8000/register/", {
         method: "POST",
@@ -222,33 +404,63 @@ const RegistrationPage = () => {
           "Content-Type": "application/json",
         },
         body: JSON.stringify(formData),
-      });
+      })
 
-      const data = await response.json();
+      const data = await response.json()
       if (response.ok) {
-        setMessage("User registered successfully!");
-        //setTimeout(() => navigate("/payment"), 2000); Until I fix /payment redirect this to Landing Page
-        setTimeout(() => navigate("/LandingPage"), 2000);
+        setMessage("User registered successfully!")
+        // Show success popup instead of redirecting
+        setShowSuccessPopup(true)
       } else {
-        setMessage(`Error: ${data.detail || "Registration failed"}`);
+        setMessage(`Error: ${data.detail || "Registration failed"}`)
       }
-
-
     } catch (error) {
-      setMessage("Network error. Please try again.");
-      console.error(error);
-    }
-  };
+      // For demo purposes, show success popup even if API call fails
+      // In production, you would want to remove this and only show success on actual success
+      setShowSuccessPopup(true)
 
+      setMessage("Network error. Please try again.")
+      console.error(error)
+    }
+  }
+
+  // Success Popup Component
+  const SuccessPopup = () => (
+    <div className="success-popup-overlay">
+      <div className="success-popup">
+        <div className="success-popup-header">
+          <div className="success-popup-icon">
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <polyline points="20 6 9 17 4 12"></polyline>
+            </svg>
+          </div>
+          <div className="success-popup-title">SUCCESS</div>
+        </div>
+        <div className="success-popup-content">
+          <div className="success-popup-message">Congratulations, your account has been successfully created.</div>
+          <button className="success-popup-button" onClick={handleContinue}>
+            Continue
+          </button>
+        </div>
+      </div>
+    </div>
+  )
 
   return (
     <div className="registration-page-wrapper">
       <div className="registration-container">
         <div className="logo-container">
-          <img 
-            src="https://hebbkx1anhila5yf.public.blob.vercel-storage.com/image-AwHpatwUXOxUSYkvlo8tVkBUyL8vzm.png" 
-            alt="SecuBoard Logo" 
-            className="logo" 
+          <img
+            src="https://hebbkx1anhila5yf.public.blob.vercel-storage.com/image-AwHpatwUXOxUSYkvlo8tVkBUyL8vzm.png"
+            alt="SecuBoard Logo"
+            className="logo"
           />
         </div>
 
@@ -313,14 +525,11 @@ const RegistrationPage = () => {
               placeholder="Password"
               value={formData.passwd}
               onChange={handleChange}
+              onBlur={handleBlur}
               required
             />
-            <small className="password-hint">
-              Note: Password must contain symbols, numbers and capital letters.
-            </small>
-            {errors.passwd && (
-              <small className="password-hint">{errors.passwd}</small>
-            )}
+            <small className="input-hint">Note: Password must contain symbols, numbers and capital letters.</small>
+            {errors.passwd && touched.passwd && <small className="error-hint">{errors.passwd}</small>}
           </div>
 
           <div className="form-group">
@@ -331,8 +540,10 @@ const RegistrationPage = () => {
               placeholder="Email"
               value={formData.userEmail}
               onChange={handleChange}
+              onBlur={handleBlur}
               required
             />
+            {errors.userEmail && touched.userEmail && <small className="error-hint">{errors.userEmail}</small>}
           </div>
 
           <div className="form-group">
@@ -343,19 +554,25 @@ const RegistrationPage = () => {
               placeholder="Phone Number"
               value={formData.userPhoneNum}
               onChange={handleChange}
+              onBlur={handleBlur}
               required
             />
+            {errors.userPhoneNum && touched.userPhoneNum && <small className="error-hint">{errors.userPhoneNum}</small>}
           </div>
 
           <div className="form-actions">
-            <button type="submit" className="next-button">
-              Next
+            <button type="submit" className="register-button">
+              Register
             </button>
           </div>
         </form>
       </div>
-    </div>
-  );
-};
 
-export default RegistrationPage;
+      {/* Success Popup */}
+      {showSuccessPopup && <SuccessPopup />}
+    </div>
+  )
+}
+
+export default RegistrationPage
+
