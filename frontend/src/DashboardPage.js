@@ -1,4 +1,4 @@
-import React,  {useState, useMemo, useEffect} from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { useNavigate, useLocation } from "react-router-dom"
 import {
   BarChart,
@@ -31,6 +31,7 @@ const Dashboard = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [offences, setOffences] = useState([]);
+  const [timeRange, setTimeRange] = useState('30min'); // Add this new state
   //const [attackData, setAttackData] = useState([]);
   const defaultClassifications = [
     { name: "not-suspicious", priority: 3, text: "Not Suspicious Traffic" },
@@ -166,6 +167,72 @@ const Dashboard = () => {
     navigate("/login")
   }
 
+  // Time range options
+  const timeRangeOptions = [
+    { value: '30min', label: 'Last 30 Minutes' },
+    { value: '5days', label: 'Last 5 Days' },
+    { value: '10days', label: 'Last 10 Days' },
+    { value: '1month', label: 'Last Month' },
+    { value: '1year', label: 'Last Year' }
+  ];
+
+  // Filter data based on time range
+  const filterDataByTimeRange = (data, range) => {
+    const now = new Date();
+    let filterDate = new Date();
+
+    switch (range) {
+      case '30min':
+        filterDate.setMinutes(now.getMinutes() - 30);
+        break;
+      case '5days':
+        filterDate.setDate(now.getDate() - 5);
+        break;
+      case '10days':
+        filterDate.setDate(now.getDate() - 10);
+        break;
+      case '1month':
+        filterDate.setMonth(now.getMonth() - 1);
+        break;
+      case '1year':
+        filterDate.setFullYear(now.getFullYear() - 1);
+        break;
+      default:
+        filterDate.setMinutes(now.getMinutes() - 30);
+    }
+
+    return data.filter(item => new Date(item.timestamp) >= filterDate);
+  };
+
+  // Memoized filtered data
+  const filteredOffences = useMemo(() => {
+    return filterDataByTimeRange(offences, timeRange);
+  }, [offences, timeRange]);
+
+  // Memoized attack data based on filtered offences
+  const filteredAttackData = useMemo(() => {
+    return Object.values(
+      filteredOffences.reduce((acc, offence) => {
+        let attackType = offence.classification || 'Unknown';
+        if (attackType.toString().toLowerCase().includes("none") || 
+            attackType.toString().toLowerCase().includes("unknown")) {
+          attackType = "Others";
+        }
+        
+        if (!acc[attackType]) {
+          acc[attackType] = { name: attackType, value: 0, color: getRandomColor() };
+        }
+        acc[attackType].value += 1;
+        return acc;
+      }, {})
+    );
+  }, [filteredOffences]);
+
+  // Add this before the return statement
+  const handleTimeRangeChange = (e) => {
+    setTimeRange(e.target.value);
+  };
+
   return (
     <div
       style={{
@@ -187,6 +254,27 @@ const Dashboard = () => {
           overflowX: "hidden", // Prevent horizontal scrolling
         }}
       >
+        {/* Add Time Range Filter */}
+        <div style={{ marginBottom: "20px" }}>
+          <select
+            value={timeRange}
+            onChange={handleTimeRangeChange}
+            style={{
+              padding: "8px 12px",
+              borderRadius: "4px",
+              border: "1px solid #ddd",
+              backgroundColor: "white",
+              minWidth: "200px"
+            }}
+          >
+            {timeRangeOptions.map(option => (
+              <option key={option.value} value={option.value}>
+                {option.label}
+              </option>
+            ))}
+          </select>
+        </div>
+
         {/* Top Stats */}
         <div
           style={{
@@ -333,12 +421,12 @@ const Dashboard = () => {
               minWidth: "250px", // Minimum width to ensure the pie chart is visible
             }}
           >
-            <h3>Types of Attack Over Past 30 days</h3>
+            <h3>Types of Attack Over {timeRangeOptions.find(opt => opt.value === timeRange)?.label}</h3>
             <div style={{ width: "100%", height: "300px", display: "flex", justifyContent: "center" }}>
               <ResponsiveContainer width="100%" height="100%">
                 <PieChart>
                   <Pie
-                    data={attackData}
+                    data={filteredAttackData}
                     cx="50%"
                     cy="50%"
                     innerRadius={60}
@@ -346,7 +434,7 @@ const Dashboard = () => {
                     paddingAngle={5}
                     dataKey="value"
                   >
-                    {attackData.map((entry, index) => (
+                    {filteredAttackData.map((entry, index) => (
                       <Cell key={`cell-${index}`} fill={entry.color} />
                     ))}
                   </Pie>
@@ -354,7 +442,7 @@ const Dashboard = () => {
               </ResponsiveContainer>
             </div>
             <div style={{ marginTop: "20px" }}>
-              {attackData.map((item, index) => (
+              {filteredAttackData.map((item, index) => (
                 <div key={index} style={{ display: "flex", alignItems: "center", marginBottom: "10px" }}>
                   <div
                     style={{
