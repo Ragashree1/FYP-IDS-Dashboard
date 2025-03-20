@@ -104,7 +104,6 @@ export default function LoginPage() {
 
   const handleLogin = async (e) => {
     e.preventDefault();
-
     // Check if userComName is empty
     if (!userComName) {
       setError("Company/Organisation name is required.");
@@ -135,7 +134,6 @@ export default function LoginPage() {
         throw new Error("User role is not defined in the response");
       }
 
-      // Assuming roles are fetched from the backend or set based on user data
       const userRole = loginData.userRole;
       console.log("Userrole:", userRole); // Logging userRole
       if (userRole === 1) {

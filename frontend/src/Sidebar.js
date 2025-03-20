@@ -49,14 +49,9 @@ const Sidebar = ({ userRole }) => {
     color: "#fff",
     display: "flex",
     alignItems: "center",
+    gap: "12px",
     cursor: "pointer",
-  }
-
-  // Common logout icon styles
-  const logoutIconStyle = {
-    width: "20px",
-    height: "20px",
-    marginRight: "10px",
+    borderRadius: "4px",
   }
 
   // Spacer div style
@@ -162,11 +157,11 @@ const Sidebar = ({ userRole }) => {
                 SecuBoard
               </h2>
             </div>
-            <ul style={{ listStyle: "none", padding: 0, margin: 0 }}>
+            <ul style={{ listStyle: "none", padding: 0 }}>
               <li
                 style={{
                   padding: "12px 16px",
-                  background: isActive("/roles-permission") ? "#555" : "#333",
+                  background: isActive("/dashboard") ? "#555" : "#333",
                   marginBottom: "8px",
                   borderRadius: "4px",
                   display: "flex",
@@ -182,7 +177,7 @@ const Sidebar = ({ userRole }) => {
               <li
                 style={{
                   padding: "12px 16px",
-                  background: isActive("/roles-permission") ? "#555" : "#333",
+                  background: isActive("/offences") ? "#555" : "#333",
                   marginBottom: "8px",
                   borderRadius: "4px",
                   display: "flex",
@@ -198,7 +193,23 @@ const Sidebar = ({ userRole }) => {
               <li
                 style={{
                   padding: "12px 16px",
-                  background: isActive("/roles-permission") ? "#555" : "#333",
+                  background: isActive("/playbooks") ? "#555" : "#333",
+                  marginBottom: "8px",
+                  borderRadius: "4px",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "12px",
+                  cursor: "pointer",
+                }}
+                onClick={() => navigate("/playbooks")}
+              >
+                <span style={{ fontSize: "18px" }}>📚</span>
+                Playbooks
+              </li>
+              <li
+                style={{
+                  padding: "12px 16px",
+                  background: isActive("/event-log") ? "#555" : "#333",
                   marginBottom: "8px",
                   borderRadius: "4px",
                   display: "flex",
@@ -214,7 +225,7 @@ const Sidebar = ({ userRole }) => {
               <li
                 style={{
                   padding: "12px 16px",
-                  background: isActive("/roles-permission") ? "#555" : "#333",
+                  background: isActive("/reports") ? "#555" : "#333",
                   marginBottom: "8px",
                   borderRadius: "4px",
                   display: "flex",
@@ -230,7 +241,7 @@ const Sidebar = ({ userRole }) => {
               <li
                 style={{
                   padding: "12px 16px",
-                  background: isActive("/roles-permission") ? "#555" : "#333",
+                  background: isActive("/blocklist") ? "#555" : "#333",
                   marginBottom: "8px",
                   borderRadius: "4px",
                   display: "flex",
@@ -240,13 +251,13 @@ const Sidebar = ({ userRole }) => {
                 }}
                 onClick={() => navigate("/blocklist")}
               >
-                 <span style={{ fontSize: "18px" }}>🚫</span>
+                <span style={{ fontSize: "18px" }}>🚫</span>
                 Blocklist Management
               </li>
               <li
                 style={{
                   padding: "12px 16px",
-                  background: isActive("/roles-permission") ? "#555" : "#333",
+                  background: isActive("/system-config") ? "#555" : "#333",
                   marginBottom: "8px",
                   borderRadius: "4px",
                   display: "flex",
@@ -262,7 +273,7 @@ const Sidebar = ({ userRole }) => {
               <li
                 style={{
                   padding: "12px 16px",
-                  background: isActive("/roles-permission") ? "#555" : "#333",
+                  background: isActive("/settings") ? "#555" : "#333",
                   marginBottom: "8px",
                   borderRadius: "4px",
                   display: "flex",
@@ -274,6 +285,117 @@ const Sidebar = ({ userRole }) => {
               >
                 <span style={{ fontSize: "18px" }}>⚙️</span>
                 Settings
+              </li>
+            </ul>
+          </div>
+          <div style={logoutContainerStyle}>
+            <button onClick={handleLogout} style={logoutButtonStyle}>
+              <span style={{ fontSize: "18px" }}>🚪</span>
+              Logout
+            </button>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  // Render Platform Administrator sidebar
+  if (userRole === "platform-admin") {
+    return (
+      <div style={{ display: "flex" }}>
+        <div style={spacerStyle} />
+        <div style={sidebarContainerStyle}>
+          <div style={contentAreaStyle}>
+            <div style={{ marginBottom: "40px" }}>
+              <h2 style={{ display: "flex", alignItems: "center", gap: "10px", margin: 0 }}>
+                <img
+                  src="https://hebbkx1anhila5yf.public.blob.vercel-storage.com/image-AwHpatwUXOxUSYkvlo8tVkBUyL8vzm.png"
+                  alt="SecuBoard"
+                  style={{ width: "24px", height: "24px" }}
+                />{" "}
+                SecuBoard
+              </h2>
+            </div>
+            <ul style={{ listStyle: "none", padding: 0 }}>
+              <li
+                style={{
+                  padding: "12px 16px",
+                  background: isActive("/organization-requests") ? "#555" : "#333",
+                  marginBottom: "8px",
+                  borderRadius: "4px",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "12px",
+                  cursor: "pointer",
+                }}
+                onClick={() => navigate("/organization-requests")}
+              >
+                <span style={{ fontSize: "18px" }}>🏢</span>
+                Organization Requests
+              </li>
+              <li
+                style={{
+                  padding: "12px 16px",
+                  background: isActive("/organization-management") ? "#555" : "#333",
+                  marginBottom: "8px",
+                  borderRadius: "4px",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "12px",
+                  cursor: "pointer",
+                }}
+                onClick={() => navigate("/organization-management")}
+              >
+                <span style={{ fontSize: "18px" }}>🔧</span>
+                Organization Management
+              </li>
+              <li
+                style={{
+                  padding: "12px 16px",
+                  background: isActive("/log-forwarding") ? "#555" : "#333",
+                  marginBottom: "8px",
+                  borderRadius: "4px",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "12px",
+                  cursor: "pointer",
+                }}
+                onClick={() => navigate("/log-forwarding")}
+              >
+                <span style={{ fontSize: "18px" }}>📊</span>
+                Log Forwarding
+              </li>
+              <li
+                style={{
+                  padding: "12px 16px",
+                  background: isActive("/api-access") ? "#555" : "#333",
+                  marginBottom: "8px",
+                  borderRadius: "4px",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "12px",
+                  cursor: "pointer",
+                }}
+                onClick={() => navigate("/api-access")}
+              >
+                <span style={{ fontSize: "18px" }}>🔑</span>
+                API Access Management
+              </li>
+              <li
+                style={{
+                  padding: "12px 16px",
+                  background: isActive("/platform-settings") ? "#555" : "#333",
+                  marginBottom: "8px",
+                  borderRadius: "4px",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "12px",
+                  cursor: "pointer",
+                }}
+                onClick={() => navigate("/platform-settings")}
+              >
+                <span style={{ fontSize: "18px" }}>⚙️</span>
+                Platform Settings
               </li>
             </ul>
           </div>
