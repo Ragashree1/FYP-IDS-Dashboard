@@ -32,6 +32,7 @@ const Dashboard = () => {
   const [error, setError] = useState(null);
   const [offences, setOffences] = useState([]);
   const [timeRange, setTimeRange] = useState('30min'); // Add this new state
+  const [plotTimeGranularity, setPlotTimeGranularity] = useState('monthly');
   //const [attackData, setAttackData] = useState([]);
   const defaultClassifications = [
     { name: "not-suspicious", priority: 3, text: "Not Suspicious Traffic" },
@@ -269,6 +270,57 @@ const Dashboard = () => {
     return monthlyData;
   }, [filteredOffences]);
 
+  // Add this helper function to format date as YYYY-MM-DD
+  const formatDate = (date) => {
+    return new Date(date).toISOString().split('T')[0];
+  };
+
+  // Add these new memoized calculations for different time granularities
+  const alertsData = useMemo(() => {
+    const data = {};
+    
+    filteredOffences.forEach(offence => {
+      const date = new Date(offence.timestamp);
+      let key;
+      
+      // Determine the key based on selected granularity
+      switch (plotTimeGranularity) {
+        case 'daily':
+          key = formatDate(date);
+          break;
+        case 'monthly':
+          key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+          break;
+        case 'yearly':
+          key = date.getFullYear().toString();
+          break;
+        default:
+          key = formatDate(date);
+      }
+
+      // Initialize the data structure if needed
+      if (!data[key]) {
+        data[key] = {
+          period: key,
+          critical: 0,
+          high: 0,
+          medium: 0,
+          low: 0
+        };
+      }
+
+      // Increment the appropriate counter based on priority
+      const priority = getPriority(offence.classification.toLowerCase().trim());
+      if (priority === 1) data[key].critical += 1;
+      else if (priority === 2) data[key].high += 1;
+      else if (priority === 3) data[key].medium += 1;
+      else if (priority === 4) data[key].low += 1;
+    });
+
+    // Convert to array and sort by period
+    return Object.values(data).sort((a, b) => a.period.localeCompare(b.period));
+  }, [filteredOffences, plotTimeGranularity]);
+
   return (
     <div
       style={{
@@ -312,7 +364,7 @@ const Dashboard = () => {
         </div>
 
         {/* Top Stats */}
-        <div
+        {/* <div
           style={{
             display: "flex",
             gap: "20px",
@@ -356,7 +408,7 @@ const Dashboard = () => {
             <div style={{ fontSize: "24px", fontWeight: "bold" }}>100+</div>
             <div>Ack</div>
           </div>
-        </div>
+        </div> */}
 
         {/* Time Metrics */}
         {/* <div
@@ -421,21 +473,43 @@ const Dashboard = () => {
               maxWidth: "100%", // Ensure it doesn't overflow its container
             }}
           >
-            <h3>Alerts each month</h3>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "20px" }}>
+              <h3>Alerts Overview</h3>
+              <select
+                value={plotTimeGranularity}
+                onChange={(e) => setPlotTimeGranularity(e.target.value)}
+                style={{
+                  padding: "8px 12px",
+                  borderRadius: "4px",
+                  border: "1px solid #ddd",
+                  backgroundColor: "white"
+                }}
+              >
+                <option value="daily">Daily</option>
+                <option value="monthly">Monthly</option>
+                <option value="yearly">Yearly</option>
+              </select>
+            </div>
+
             <div style={{ width: "100%", height: "300px" }}>
               <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={monthlyAlertData}>
+                <BarChart data={alertsData}>
                   <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="month" />
+                  <XAxis 
+                    dataKey="period" 
+                    tick={{ fontSize: 12 }}
+                    interval={0}  // Skip labels for better readability in daily view
+                  />
                   <YAxis />
-                  <Bar dataKey="critical" name="critical" fill="#000000" />
-                  <Bar dataKey="high" name="high" fill="#ff4d4f" />
-                  <Bar dataKey="medium" name="medium" fill="#faad14" />
-                  <Bar dataKey="low" name="low" fill="#52c41a" />
+                  <Bar dataKey="critical" name="Critical" fill="#000000" stackId="stack" />
+                  <Bar dataKey="high" name="High" fill="#ff4d4f" stackId="stack" />
+                  <Bar dataKey="medium" name="Medium" fill="#faad14" stackId="stack" />
+                  <Bar dataKey="low" name="Low" fill="#52c41a" stackId="stack" />
                 </BarChart>
               </ResponsiveContainer>
             </div>
 
+            {/* Legend */}
             <div style={{ 
               display: "flex", 
               justifyContent: "center", 
