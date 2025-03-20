@@ -8,7 +8,7 @@ const Sidebar = ({ userRole }) => {
   const isActive = (path) => location.pathname.startsWith(path)
 
   const handleLogout = () => {
-    navigate("/login")
+    navigate("/LandingPage")
   }
 
   // Updated sidebar container styles
@@ -130,7 +130,7 @@ const Sidebar = ({ userRole }) => {
             </ul>
           </div>
           <div style={logoutContainerStyle}>
-            <button onClick={() => navigate("/login")} style={logoutButtonStyle}>
+            <button onClick={() => navigate("/LandingPage")} style={logoutButtonStyle}>
               <span style={{ fontSize: "18px" }}>🚪</span>
               Logout
             </button>

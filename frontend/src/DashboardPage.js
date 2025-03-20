@@ -1,27 +1,17 @@
-import React,  {useState, useMemo, useEffect} from 'react';
-import { useNavigate, useLocation } from "react-router-dom"
-import {
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  LineChart,
-  Line,
-  PieChart,
-  Pie,
-  Cell,
-  ResponsiveContainer,
-} from "recharts"
-import Sidebar from "./Sidebar"
-import axios from 'axios';
+"use client"
 
+import React from 'react';
+import { useState ,useEffect } from "react"
+import { useNavigate, useLocation } from 'react-router-dom';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, LineChart, Line, PieChart, Pie, Cell,ResponsiveContainer } from 'recharts'
+import Sidebar from "./Sidebar"
+import axios from 'axios';;
 const userRole = "network-admin"
 
 const Dashboard = () => {
   const navigate = useNavigate();
   const location = useLocation();
- 
+
   const [filter, setFilter] = useState("")
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [selectedOffence, setSelectedOffence] = useState(null)
@@ -163,9 +153,10 @@ const Dashboard = () => {
   // ];
 
   const handleLogout = () => {
-    navigate("/login")
+    localStorage.removeItem("token");
+    navigate("/LandingPage");
   }
-
+  
   return (
     <div
       style={{
