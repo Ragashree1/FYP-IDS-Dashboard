@@ -209,6 +209,11 @@ const Dashboard = () => {
     return filterDataByTimeRange(offences, timeRange);
   }, [offences, timeRange]);
 
+  function getPriority(name) {
+    name = name.trim()
+    return classifications[name] ? classifications[name].priority : 'Unknown'
+  }
+
   // Memoized attack data based on filtered offences
   const filteredAttackData = useMemo(() => {
     return Object.values(
@@ -232,6 +237,37 @@ const Dashboard = () => {
   const handleTimeRangeChange = (e) => {
     setTimeRange(e.target.value);
   };
+
+  // Add this new memoized calculation for monthly data
+  const monthlyAlertData = useMemo(() => {
+    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    const monthlyData = months.map(month => ({
+      month,
+      critical:0,
+      high: 0,
+      medium: 0,
+      low: 0
+    }));
+
+    filteredOffences.forEach(offence => {
+      const date = new Date(offence.timestamp);
+      const monthIndex = date.getMonth();
+      const priority = getPriority(offence.classification.toLowerCase().trim() || 'N/A');
+
+      // Categorize alerts based on priority
+      if (priority === 1) {
+        monthlyData[monthIndex].critical += 1;
+      } else if (priority === 2) {
+        monthlyData[monthIndex].high += 1;
+      } else if (priority === 3) {
+        monthlyData[monthIndex].medium += 1;
+      } else if (priority === 4) {
+        monthlyData[monthIndex].low += 1;
+      }
+    });
+
+    return monthlyData;
+  }, [filteredOffences]);
 
   return (
     <div
@@ -388,14 +424,60 @@ const Dashboard = () => {
             <h3>Alerts each month</h3>
             <div style={{ width: "100%", height: "300px" }}>
               <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={monthlyData}>
+                <BarChart data={monthlyAlertData}>
                   <CartesianGrid strokeDasharray="3 3" />
                   <XAxis dataKey="month" />
                   <YAxis />
-                  <Bar dataKey="positive" fill="#8884d8" name="Positive" />
-                  <Bar dataKey="negative" fill="#82ca9d" name="Negative" />
+                  <Bar dataKey="critical" name="critical" fill="#000000" />
+                  <Bar dataKey="high" name="high" fill="#ff4d4f" />
+                  <Bar dataKey="medium" name="medium" fill="#faad14" />
+                  <Bar dataKey="low" name="low" fill="#52c41a" />
                 </BarChart>
               </ResponsiveContainer>
+            </div>
+
+            <div style={{ 
+              display: "flex", 
+              justifyContent: "center", 
+              gap: "20px", 
+              marginTop: "10px" 
+            }}>
+              <div style={{ display: "flex", alignItems: "center" }}>
+                <div style={{ 
+                  width: "12px", 
+                  height: "12px", 
+                  backgroundColor: "#000000", 
+                  marginRight: "8px" 
+                }} />
+                <span>Critical</span>
+              </div>
+              <div style={{ display: "flex", alignItems: "center" }}>
+                <div style={{ 
+                  width: "12px", 
+                  height: "12px", 
+                  backgroundColor: "#ff4d4f", 
+                  marginRight: "8px" 
+                }} />
+                <span>High Priority</span>
+              </div>
+              <div style={{ display: "flex", alignItems: "center" }}>
+                <div style={{ 
+                  width: "12px", 
+                  height: "12px", 
+                  backgroundColor: "#faad14", 
+                  marginRight: "8px" 
+                }} />
+                <span>Medium Priority</span>
+              </div>
+              <div style={{ display: "flex", alignItems: "center" }}>
+                <div style={{ 
+                  width: "12px", 
+                  height: "12px", 
+                  backgroundColor: "#52c41a", 
+                  marginRight: "8px" 
+                }} />
+                <span>Low Priority</span>
+              </div>
             </div>
 
             <h3>Real time network Traffic</h3>
