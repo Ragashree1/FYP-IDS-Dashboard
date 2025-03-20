@@ -620,12 +620,11 @@ const Dashboard = () => {
                 dataKey="key"
                 tick={{ fontSize: 12 }}
                 interval={0}
-                angle={45}
-                textAnchor="start"
+                // angle={45}
+                // textAnchor="start"
               />
               <YAxis />
               <Tooltip
-                // formatter={(value) => [value, 'Count']}
                 formatter={(value, name, props) => [value, 'Count']}
                 labelFormatter={(label) => `${label}`}
               />
