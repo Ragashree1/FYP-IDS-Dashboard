@@ -1,6 +1,6 @@
 import uuid  
 from sqlalchemy.dialects.postgresql import UUID
-from sqlalchemy import Column, ForeignKey, Integer, String, ARRAY, TIMESTAMP, JSON, DateTime, func, Boolean, Table
+from sqlalchemy import Column, ForeignKey, Integer, String, ARRAY, TIMESTAMP, JSON, DateTime, func, Boolean, Table, UniqueConstraint
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import validates, relationship
 from database import Base
@@ -71,7 +71,7 @@ class SnortAlerts(Base):
 class Account(Base):
     __tablename__= 'Account'
     id = Column(Integer,primary_key=True, index=True)
-    userid = Column(String,unique=True)
+    username = Column(String)
     userFirstName = Column(String)
     userLastName = Column(String)
     passwd = Column(String)
@@ -81,8 +81,11 @@ class Account(Base):
     userRole = Column(Integer, ForeignKey("role.id"))
     userSuspend = Column(Boolean)
    
-   
     role = relationship("Role", back_populates="accounts")
+    
+    __table_args__ = (
+        UniqueConstraint('username', 'userComName', name='unique_username_company'),
+    )
     
     class Config:
         orm_mode = True
@@ -97,7 +100,7 @@ class CreditCard(Base):
     creditCVV = Column(Integer)
     subscription = Column(String)
     total = Column(String)
-    userid = Column(String, ForeignKey('Account.userid')) #Encountered error while trying to import userid as a foreign key, remember to come back when free and try solve this issue
+    userid = Column(String, ForeignKey('Account.id')) #Encountered error while trying to import username as a foreign key, remember to come back when free and try solve this issue
 
 
     class Config:
@@ -152,7 +155,7 @@ class TokenTable(Base):
     access_token = Column(String)
     refresh_token = Column(String,nullable=False)
     status = Column(Boolean)
-    created_date = Column(DateTime, default=datetime.datetime.now)
+    created_date = Column(DateTime, default=datetime.now)
 
 class Logs(Base):
     __tablename__ = "Logs"

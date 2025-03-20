@@ -3,7 +3,7 @@ import { useState ,useEffect } from "react"
 import { useNavigate, useLocation } from "react-router-dom"
 import Sidebar from "./Sidebar"
 
-const role = "organisation-admin"; 
+const role = "1"; 
 
 const DeleteConfirmationModal = ({ onClose, onConfirm }) => {
   return (

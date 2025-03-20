@@ -9,7 +9,7 @@ from fastapi.security import OAuth2PasswordRequestForm, OAuth2PasswordBearer
 from fastapi import APIRouter, Depends, HTTPException
 
 
-SECRET_KEY = 'IWannaShootMyself'  #Could be anything
+SECRET_KEY = 's3cr3tk3y'  #Could be anything
 ALGORITHM = 'HS256'
 
 bcrypt_context = CryptContext (schemes = ['bcrypt'], deprecated = 'auto') 
@@ -18,11 +18,24 @@ bcrypt_context = CryptContext (schemes = ['bcrypt'], deprecated = 'auto')
 oauth2_bearer = OAuth2PasswordBearer(tokenUrl='/token')
 
 def add_user(user_particulars: AccountBase):
-    with SessionLocal() as db: 
+    with SessionLocal() as db:
+        # Check if user with same username and company exists
+        existing_user = db.query(Account).filter(
+            Account.username == user_particulars.username,
+            Account.userComName == user_particulars.userComName
+        ).first()
+        
+        if existing_user:
+            raise HTTPException(
+                status_code=400,
+                detail=f"User with username '{user_particulars.username}' already exists in company '{user_particulars.userComName}'"
+            )
+
+        # If no existing user found, proceed with creation
         hashed_password = bcrypt_context.hash(user_particulars.passwd)
         user_data = user_particulars.model_dump()
         user_data.pop("passwd", None)
-        create_user = Account(**user_data,passwd=hashed_password)# Ragashree asked for default value as 'organizational-admin', putting system-admin, if wrong rmb to change
+        create_user = Account(**user_data, passwd=hashed_password)
         db.add(create_user)
         db.commit()
         db.refresh(create_user)

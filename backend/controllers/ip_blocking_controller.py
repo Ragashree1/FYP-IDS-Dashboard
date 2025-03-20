@@ -1,6 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException, Request
 from sqlalchemy.orm import Session
-from database import get_db
 from models.models import BlockedIP
 from models.schemas import IPAddressSchema
 from services import ip_blocking_service
@@ -42,8 +41,8 @@ def block_ip_api(ip_data: IPAddressSchema):
     return message
 
 @router.get("/check-my-ip/")
-def check_my_ip(request: Request, db: Session = Depends(get_db)):
-    client_ip = get_client_ip(request)
+def check_my_ip(request: Request):
+    client_ip = ip_blocking_service.get_client_ip(request)
 
     print(f"Detected Client IP: {client_ip}")  # Debugging Output
     message = ip_blocking_service.check_ip_blocked(client_ip)
@@ -59,13 +58,13 @@ def get_blocked_ips_with_reasons():
     return blocked_ips
 
 @router.get("/blocked-ips-list/")
-def get_blocked_ips_list(db: Session = Depends(get_db)):
+def get_blocked_ips_list():
     """Returns only a list of blocked IPs for the cron job"""
     blocked_ips_list = ip_blocking_service.get_blocked_ips_list()
     return blocked_ips_list
 
 @router.delete("/unblock-ip/{ip}")
-def unblock_ip_api(ip: str, db: Session = Depends(get_db)):
+def unblock_ip_api(ip: str):
     message = ip_blocking_service.unblock_ip(ip)
     if message.get("message") == "IP not found":
         raise HTTPException(status_code=400, detail="IP not found")

@@ -12,7 +12,7 @@ const EventLogPage = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  const userRole = "network-admin"
+  const userRole = "2"
 
   // Fetch logs from backend
   useEffect(() => {

@@ -5,7 +5,7 @@ from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
 from dotenv import load_dotenv
-from database import get_db, SessionLocal
+from database import SessionLocal
 from models.models import BlockedIP  
 from starlette.responses import JSONResponse
 from controllers.journal_controller import router as journal_router
@@ -23,25 +23,59 @@ from apscheduler.schedulers.background import BackgroundScheduler
 from services.alert_service import update_and_fetch_alerts
 from database import engine, Base
 import models 
+from init_db import init_database
+from fastapi.security import OAuth2PasswordBearer
+from jose import JWTError, jwt
+
+load_dotenv()
+
+SECRET_KEY = os.getenv("SECRET_KEY", "default_secret_key")  # Default for safety
+ALGORITHM = os.getenv("ALGORITHM", "HS256")
 
 app = FastAPI()
 load_dotenv()
 Base.metadata.create_all(bind=engine)
 
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
+
+# Initialize database with roles on startup
+@app.on_event("startup")
+async def startup_event():
+    init_database()
+
 # CORS settings
 origins = [
-    "http://localhost:3000",
-    "http://127.0.0.1:3000", 
-    "http://localhost:3006",  
+    "http://localhost:3000",  # Frontend origin
+    "http://127.0.0.1:3000",  # Alternate localhost origin
+    "http://localhost:3006",  # Add any other origins as needed
     "http://localhost:9600"
 ]
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=origins,
-    allow_credentials=True,
+    allow_origins=origins,  # Allow these origins
+    allow_credentials=True,  # Allow cookies and credentials
     allow_methods=["GET", "POST", "PUT", "DELETE"],
-    allow_headers=["X-Requested-With", "Content-Type"],  # Allow Authorization header
+    allow_headers=["Authorization", "X-Requested-With", "Content-Type"],  # Include Authorization header
 )
+
+@app.middleware("http")
+async def log_requests(request: Request, call_next):
+    print(f"Incoming request: {request.method} {request.url}")
+    response = await call_next(request)
+    print(f"Response status: {response.status_code}")
+    return response
+
+@app.get("/login/get_token")
+async def get_token(token: str = Depends(oauth2_scheme)):
+    try:
+        # Replace 'your-secret-key' and 'your-algorithm' with actual values
+        payload = jwt.decode(token, os.getenv("SECRET_KEY"), algorithms=[os.getenv("ALGORITHM")])
+        print('Payload:', payload)
+        print('valid')
+        return {"message": "Token is valid"}
+    except JWTError as e:
+        print(f"Token validation error: {e}")  # Debug log
+        raise HTTPException(status_code=403, detail="Invalid or expired token")
 
 # Include the routers
 app.include_router(journal_router)

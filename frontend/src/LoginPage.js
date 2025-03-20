@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import React, { useState } from "react";
+import { useNavigate , useEffect} from "react-router-dom";
 
 const styles = {
   loginContainer: {
@@ -77,71 +77,76 @@ export default function LoginPage() {
   const [error, setError] = useState("");
   const navigate = useNavigate();
 
-  useEffect(() => {
-    const checkToken = async () => {
-      const token = localStorage.getItem("token");
-      if (!token) return; // If no token, do nothing
+  const checkToken = async () => {
+    const token = localStorage.getItem("token");
+    if (!token) return; // If no token, do nothing
 
-      try {
-        const response = await fetch("http://127.0.0.1:8000/login/get_token", {
-          method: "GET",
-          headers: { Authorization: `Bearer ${token}` },
-        });
+    console.log("Sending token for validation:", token); // Debug log
 
-        if (response.ok) {
-          navigate("/dashboard"); // Only navigate if the token is valid
-        } else {
-          localStorage.removeItem("token"); // Clear invalid token
-        }
-      } catch (error) {
-        console.error("Token validation failed:", error);
-        localStorage.removeItem("token"); // Clear token on error
+    try {
+      const response = await fetch("http://127.0.0.1:8000/login/get_token", {
+        method: "GET",
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      if (response.ok) {
+        console.log("Token is valid, navigating to dashboard."); // Debug log
+        navigate("/dashboard"); // Navigate to dashboard
+      } else {
+        console.log("Token validation failed:", response.status); // Debug log
+        localStorage.removeItem("token"); // Clear invalid token
       }
-    };
-
-    checkToken();
-  }, [navigate]);
+    } catch (error) {
+      console.error("Token validation failed:", error);
+      localStorage.removeItem("token"); // Clear token on error
+    }
+  };
 
   const handleLogin = async (e) => {
     e.preventDefault();
-    // Check if userComName is empty
     if (!userComName) {
       setError("Company/Organisation name is required.");
       return;
     }
 
     try {
-
       const loginResponse = await fetch("http://127.0.0.1:8000/login/token", {
         method: "POST",
         headers: {
-          "Content-Type": "application/json", // Update content type to application/json
+          "Content-Type": "application/json",
         },
         body: JSON.stringify({
           userComName: userComName,
-          userid: loginId, // Adjust the field name to match backend expectations
+          username: loginId,
           passwd: password,
         }),
       });
 
       const loginData = await loginResponse.json();
-      console.log("Response data:", loginData); // Log the entire response data
+      console.log("Response data:", loginData); // Debug log
       if (!loginResponse.ok) throw new Error(loginData.detail || "Login failed");
 
+      // Store the full user data in local storage
+      const userData = {
+        token: loginData.access_token,
+        userRole: loginData.userRole,
+        username: loginData.username,
+        userComName: loginData.userComName,
+      };
+      localStorage.setItem("user", JSON.stringify(userData));
       localStorage.setItem("token", loginData.access_token);
-        // Check if userRole is defined
+
       if (loginData.userRole === undefined) {
         throw new Error("User role is not defined in the response");
       }
 
       const userRole = loginData.userRole;
-      console.log("Userrole:", userRole); // Logging userRole
+      console.log("Userrole:", userRole); // Debug log
       if (userRole === 1) {
-        navigate("/roles-permission");
+        navigate("/user-management");
       } else {
         navigate("/dashboard");
       }
-
     } catch (err) {
       console.error("Login failed:", err);
       setError(err.message);
@@ -157,7 +162,7 @@ export default function LoginPage() {
               src="https://hebbkx1anhila5yf.public.blob.vercel-storage.com/image-AwHpatwUXOxUSYkvlo8tVkBUyL8vzm.png"
               alt="SecuBoard Logo"
               className="logo"
-              style={{ width: "70px", height: "70px" }} // Adjust width as needed
+              style={{ width: "70px", height: "70px" }}
             />
             <h1 style={styles.title}>SecuBoard</h1>
           </div>

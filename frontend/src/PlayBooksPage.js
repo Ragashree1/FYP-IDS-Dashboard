@@ -2,7 +2,7 @@ import { useState, useEffect } from "react"
 import { useNavigate, useLocation } from "react-router-dom"
 import Sidebar from "./Sidebar"
 
-const userRole = "network-admin"
+const userRole = "2"
 
 // New AddPlaybookModal component that matches the design in the images
 const AddPlaybookModal = ({ onClose, onSave }) => {

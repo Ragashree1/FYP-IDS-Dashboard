@@ -8,8 +8,16 @@ router = APIRouter(prefix="/user-management", tags=["user-management"])
 
 @router.post("/", response_model=AccountBase)
 def add_user(user: AccountBase):
-    new_user = user_management_service.add_user(user_particulars=user)
-    return new_user
+    try:
+        new_user = user_management_service.add_user(user_particulars=user)
+        return new_user
+    except HTTPException as e:
+        raise e
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=str(e)
+        )
 
 @router.get("/", response_model=List[AccountBase])
 def fetch_user():# -> Any:

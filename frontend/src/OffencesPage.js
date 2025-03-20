@@ -4,7 +4,7 @@ import axios from 'axios';
 import Sidebar from "./Sidebar" // Import the Sidebar component
 import defaultClassifications from "./defaultClassifications" // Import default classifications
 
-const userRole = "network-admin"
+const userRole = "2"
 
 const FilterModal = ({ onClose, onSubmit , initialValues}) => {
 
