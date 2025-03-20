@@ -1,28 +1,27 @@
-import json
-from sqlalchemy import Column, ForeignKey, Integer, String, ARRAY, DateTime,Boolean, Table
+from sqlalchemy import Column, ForeignKey, Integer, String, ARRAY, TIMESTAMP, JSON, DateTime, func, Boolean, Table
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import validates, relationship
 from database import Base
-import datetime
+from datetime import datetime 
+import json
 
 class MeetingMinutes(Base):
     __tablename__= 'Meeting'
-    id = Column(Integer,primary_key=True, index=True)
+    id = Column(Integer, primary_key=True, index=True)
     date = Column(String)
     startTime = Column(String)
     endTime = Column(String)
-    pplpresent= Column(ARRAY(String))
-    agenda =  Column(String)
+    pplpresent = Column(ARRAY(String))
+    agenda = Column(String)
     discussion = Column(String)
     actions = Column(String)
 
     class Config:
         orm_mode = True  
 
-
 class Journal(Base):
     __tablename__= 'Journal'
-    id = Column(Integer,primary_key=True, index=True)
+    id = Column(Integer, primary_key=True, index=True)
     jName = Column(String, index=True)
     jDescription = Column(String)
     jWeek = Column(String)
@@ -30,8 +29,16 @@ class Journal(Base):
     class Config:
         orm_mode = True
 
-class SnortLogs(Base):
-    __tablename__ = 'SnortLogs'
+class BlockedIP(Base):
+    __tablename__ = "blocked_ips"
+
+    id = Column(Integer, primary_key=True, index=True)
+    ip = Column(String, unique=True, nullable=False)
+    reason = Column(String, nullable=False)
+    created_at = Column(DateTime, server_default=func.now())
+
+class SnortAlerts(Base):
+    __tablename__ = 'SnortAlerts'
     id = Column(Integer, primary_key=True, index=True)
     timestamp = Column(String)
     priority = Column(Integer)
@@ -46,7 +53,7 @@ class SnortLogs(Base):
     classification = Column(String)
     action = Column(String)
     message = Column(String)
-    description = Column(String)
+    signature_id = Column(String)
     host = Column(String)
 
     class Config:
@@ -131,19 +138,6 @@ class Report(Base):
     class Config:
         orm_mode = True
 
-class Log(Base):
-    __tablename__= 'log'
-    id = Column(Integer,primary_key=True, index=True)
-    logType = Column(String)
-    logName = Column(String)
-    logDateTime = Column(String)
-    logSource = Column(String)
-    logDestinationIP = Column(String)
-    logEventCount = Column(String)
-
-    class Config:
-        orm_mode = True
-
 class TokenTable(Base):
     __tablename__ = "token"
     id = Column(Integer,primary_key=True, index=True)
@@ -151,3 +145,22 @@ class TokenTable(Base):
     refresh_token = Column(String,nullable=False)
     status = Column(Boolean)
     created_date = Column(DateTime, default=datetime.datetime.now)
+
+class Logs(Base):
+    __tablename__ = "Logs"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    timestamp = Column(TIMESTAMP, default=datetime.utcnow)  
+    log_type = Column(String, index=True)
+    source_ip = Column(String)
+    host = Column(String)
+    message = Column(String)
+    event_data = Column(JSON)
+    http_method = Column(String, nullable=True)
+    http_status = Column(Integer, nullable=True)
+    url = Column(String, nullable=True)
+    user_agent = Column(String, nullable=True)
+    log_path = Column(String, nullable=True)
+
+    class Config:
+        orm_mode = True

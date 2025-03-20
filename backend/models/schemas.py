@@ -1,4 +1,4 @@
-from pydantic import BaseModel,EmailStr
+from pydantic import BaseModel,EmailStr, IPvAnyAddress
 from typing import List, Optional
 import datetime
 
@@ -32,7 +32,7 @@ class MeetingMinutesOut(BaseModel):
     discussion: str
     actions: str
 
-class SnortLogsBase(BaseModel):
+class SnortAlertsBase(BaseModel):
     timestamp: str
     priority: int
     protocol: str
@@ -46,10 +46,10 @@ class SnortLogsBase(BaseModel):
     classification: str
     action: str
     message: str
-    description: str
+    signature_id: str
     host: str
 
-class SnortLogsOut(BaseModel):
+class SnortAlertsOut(BaseModel):
     id: int
     timestamp: str
     priority: int
@@ -64,7 +64,7 @@ class SnortLogsOut(BaseModel):
     classification: str
     action: str
     message: str
-    description: str
+    signature_id: str
     host: str
 
     class Config:
@@ -139,3 +139,36 @@ class AccountOut(AccountBase):
 
     class Config:
         orm_mode = True
+
+class LogsBase(BaseModel):
+    timestamp: str
+    log_type: str
+    source_ip: str
+    host: str
+    message: str
+    event_data: dict
+    http_method: str = None
+    http_status: int = None
+    url: str = None
+    user_agent: str = None
+    log_path: str = None
+
+class LogsOut(BaseModel):
+    id: int
+    timestamp: str
+    log_type: str
+    source_ip: str
+    host: str
+    message: str
+    event_data: dict
+    http_method: str = None
+    http_status: int = None
+    url: str = None
+    user_agent: str = None
+    log_path: str = None
+
+    class Config:
+        orm_mode = True
+class IPAddressSchema(BaseModel):
+    ip: str
+    reason : str
