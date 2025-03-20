@@ -12,68 +12,37 @@ import {
   Pie,
   Cell,
   ResponsiveContainer,
+  Tooltip,
 } from "recharts"
 import Sidebar from "./Sidebar"
 import axios from 'axios';
+import { Select, ColorPicker } from 'antd';
+import defaultClassifications from './defaultClassifications';  
+const { Option } = Select;
 
 const userRole = "network-admin"
 
 const Dashboard = () => {
   const navigate = useNavigate();
-  const location = useLocation();
- 
-  const [filter, setFilter] = useState("")
-  const [isModalOpen, setIsModalOpen] = useState(false)
-  const [selectedOffence, setSelectedOffence] = useState(null)
-  const [showReportForm, setShowReportForm] = useState(false)
-  const [showGenerateReport, setShowGenerateReport] = useState(false)
   const [logs, setLogs] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [offences, setOffences] = useState([]);
-  const [timeRange, setTimeRange] = useState('30min'); // Add this new state
-  const [plotTimeGranularity, setPlotTimeGranularity] = useState('monthly');
+  const [timeRange, setTimeRange] = useState('5days'); // Add this new state
+  const [plotTimeGranularity, setPlotTimeGranularity] = useState('daily');
+  const [chartColors, setChartColors] = useState({
+    critical: '#000000',
+    high: '#ff4d4f',
+    medium: '#faad14',
+    low: '#52c41a',
+    total: '#8884d8',
+    custom: getRandomColor(),
+    sourceChart: '#1890ff', // Add this new color
+  });
+  const [topSourcesLimit, setTopSourcesLimit] = useState(10);
+  const [sourceMetric, setSourceMetric] = useState('src_ip');
+  const [selectedSource, setSelectedSource] = useState('src_ip');
   //const [attackData, setAttackData] = useState([]);
-  const defaultClassifications = [
-    { name: "not-suspicious", priority: 3, text: "Not Suspicious Traffic" },
-    { name: "unknown", priority: 3, text: "Unknown Traffic" },
-    { name: "bad-unknown", priority: 2, text: "Potentially Bad Traffic" },
-    { name: "attempted-recon", priority: 2, text: "Attempted Information Leak" },
-    { name: "successful-recon-limited", priority: 2, text: "Information Leak" },
-    { name: "successful-recon-largescale", priority: 2, text: "Large Scale Information Leak" },
-    { name: "attempted-dos", priority: 2, text: "Attempted Denial of Service" },
-    { name: "successful-dos", priority: 2, text: "Denial of Service" },
-    { name: "attempted-user", priority: 1, text: "Attempted User Privilege Gain" },
-    { name: "unsuccessful-user", priority: 1, text: "Unsuccessful User Privilege Gain" },
-    { name: "successful-user", priority: 1, text: "Successful User Privilege Gain" },
-    { name: "attempted-admin", priority: 1, text: "Attempted Administrator Privilege Gain" },
-    { name: "successful-admin", priority: 1, text: "Successful Administrator Privilege Gain" },
-    { name: "rpc-portmap-decode", priority: 2, text: "Decode of an RPC Query" },
-    { name: "shellcode-detect", priority: 1, text: "Executable code was detected" },
-    { name: "string-detect", priority: 3, text: "A suspicious string was detected" },
-    { name: "suspicious-filename-detect", priority: 2, text: "A suspicious filename was detected" },
-    { name: "suspicious-login", priority: 2, text: "An attempted login using a suspicious username was detected" },
-    { name: "system-call-detect", priority: 2, text: "A system call was detected" },
-    { name: "tcp-connection", priority: 4, text: "A TCP connection was detected" },
-    { name: "trojan-activity", priority: 1, text: "A Network Trojan was detected" },
-    { name: "unusual-client-port-connection", priority: 2, text: "A client was using an unusual port" },
-    { name: "network-scan", priority: 3, text: "Detection of a Network Scan" },
-    { name: "denial-of-service", priority: 2, text: "Detection of a Denial of Service Attack" },
-    { name: "non-standard-protocol", priority: 2, text: "Detection of a non-standard protocol or event" },
-    { name: "protocol-command-decode", priority: 3, text: "Generic Protocol Command Decode" },
-    { name: "web-application-activity", priority: 2, text: "Access to a potentially vulnerable web application" },
-    { name: "web-application-attack", priority: 1, text: "Web Application Attack" },
-    { name: "misc-activity", priority: 3, text: "Misc activity" },
-    { name: "misc-attack", priority: 2, text: "Misc Attack" },
-    { name: "icmp-event", priority: 3, text: "Generic ICMP event" },
-    { name: "inappropriate-content", priority: 1, text: "Inappropriate Content was Detected" },
-    { name: "policy-violation", priority: 1, text: "Potential Corporate Privacy Violation" },
-    { name: "default-login-attempt", priority: 2, text: "Attempt to login by a default username and password" },
-    { name: "sdf", priority: 2, text: "Sensitive Data" },
-    { name: "file-format", priority: 1, text: "Known malicious file or file based exploit" },
-    { name: "malware-cnc", priority: 1, text: "Known malware command and control traffic" },
-    { name: "client-side-exploit", priority: 1, text: "Known client side exploit attempt" }
-  ];
   
   function convertToKeyValuePair(data) {
     return data.reduce((acc, item) => {
@@ -84,28 +53,6 @@ const Dashboard = () => {
   
   const classifications = convertToKeyValuePair(defaultClassifications);
 
-  const attackData = Object.values(
-      offences.reduce((acc, offence) => {
-          let attackType = offence.classification  || 'Unknown'; // Extract attack type
-          if (attackType.toString().toLowerCase().includes("none") || attackType.toString().toLowerCase().includes("unknown")) {
-            attackType = "Others";
-        }
-        
-          // if (!(attackType in Object.keys(classifications))) {
-          //   attackType = 'Others';
-          // }
-          
-          if (!acc[attackType]) {
-              acc[attackType] = { name: attackType, value: 0, color: getRandomColor() }; // Initialize
-          }
-          acc[attackType].value += 1; // Aggregate count
-  
-          return acc;
-        }, {})
-    );
-    function getRandomColor() {
-      return `#${Math.floor(Math.random() * 16777215).toString(16).padStart(6, '0')}`;
-    } 
   
 
   useEffect(() => {
@@ -129,22 +76,6 @@ const Dashboard = () => {
       });
   }, []);
 
-  // Monthly alerts data
-  const monthlyData = [
-    { month: "Jan", positive: 15, negative: 18 },
-    { month: "Feb", positive: 12, negative: 15 },
-    { month: "Mar", positive: 22, negative: 14 },
-    { month: "Apr", positive: 8, negative: 10 },
-    { month: "May", positive: 10, negative: 8 },
-    { month: "Jun", positive: 5, negative: 12 },
-    { month: "Jul", positive: 15, negative: 18 },
-    { month: "Aug", positive: 12, negative: 15 },
-    { month: "Sep", positive: 10, negative: 12 },
-    { month: "Oct", positive: 8, negative: 15 },
-    { month: "Nov", positive: 18, negative: 20 },
-    { month: "Dec", positive: 15, negative: 12 },
-  ]
-
   // Network traffic data
   const trafficData = [
     { time: "1", value1: 30, value2: 40 },
@@ -155,14 +86,6 @@ const Dashboard = () => {
     { time: "6", value1: 40, value2: 46 },
     { time: "7", value1: 38, value2: 45 },
   ]
-
-  // Attack types data
-  // const attackData = [
-  //   { name: 'Ransomwares', value: 20, color: '#8884d8' },
-  //   { name: 'DDos', value: 20, color: '#ffc658' },
-  //   { name: 'Phishing', value: 15, color: '#ff8042' },
-  //   { name: 'SQL Injections', value: 7, color: '#82ca9d' },
-  // ];
 
   const handleLogout = () => {
     navigate("/login")
@@ -239,42 +162,14 @@ const Dashboard = () => {
     setTimeRange(e.target.value);
   };
 
-  // Add this new memoized calculation for monthly data
-  const monthlyAlertData = useMemo(() => {
-    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-    const monthlyData = months.map(month => ({
-      month,
-      critical:0,
-      high: 0,
-      medium: 0,
-      low: 0
-    }));
-
-    filteredOffences.forEach(offence => {
-      const date = new Date(offence.timestamp);
-      const monthIndex = date.getMonth();
-      const priority = getPriority(offence.classification.toLowerCase().trim() || 'N/A');
-
-      // Categorize alerts based on priority
-      if (priority === 1) {
-        monthlyData[monthIndex].critical += 1;
-      } else if (priority === 2) {
-        monthlyData[monthIndex].high += 1;
-      } else if (priority === 3) {
-        monthlyData[monthIndex].medium += 1;
-      } else if (priority === 4) {
-        monthlyData[monthIndex].low += 1;
-      }
-    });
-
-    return monthlyData;
-  }, [filteredOffences]);
-
   // Add this helper function to format date as YYYY-MM-DD
   const formatDate = (date) => {
     return new Date(date).toISOString().split('T')[0];
   };
 
+  function getRandomColor() {
+    return `#${Math.floor(Math.random() * 16777215).toString(16).padStart(6, '0')}`;
+  } 
   // Add these new memoized calculations for different time granularities
   const alertsData = useMemo(() => {
     const data = {};
@@ -321,6 +216,89 @@ const Dashboard = () => {
     return Object.values(data).sort((a, b) => a.period.localeCompare(b.period));
   }, [filteredOffences, plotTimeGranularity]);
 
+  // Add this new memoized calculation for alerts over time
+  const alertsOverTime = useMemo(() => {
+    const timeData = {};
+    
+    // Group alerts by hour
+    filteredOffences.forEach(offence => {
+      const date = new Date(offence.timestamp);
+      // Format to YYYY-MM-DD HH:00 to group by hour
+      const timeKey = new Date(date.setMinutes(0, 0, 0)).toISOString();
+      
+      if (!timeData[timeKey]) {
+        timeData[timeKey] = {
+          time: timeKey,
+          total: 0,
+          critical: 0,
+          high: 0,
+          medium: 0,
+          low: 0
+        };
+      }
+      
+      // Increment total count
+      timeData[timeKey].total += 1;
+      
+      // Categorize by priority
+      const priority = getPriority(offence.classification.toLowerCase().trim());
+      if (priority === 1) timeData[timeKey].critical += 1;
+      else if (priority === 2) timeData[timeKey].high += 1;
+      else if (priority === 3) timeData[timeKey].medium += 1;
+      else if (priority === 4) timeData[timeKey].low += 1;
+    });
+
+    // Convert to array and sort by time
+    return Object.values(timeData)
+      .sort((a, b) => new Date(a.time) - new Date(b.time))
+      .map(item => ({
+        ...item,
+        time: new Date(item.time).toLocaleTimeString(), // Format time for display
+      }));
+  }, [filteredOffences]);
+
+  // Add memoized calculation for top attack sources
+  const topAttackSources = useMemo(() => {
+    const sourceCount = {};
+    
+    filteredOffences.forEach(offence => {
+      const key = offence[selectedSource]?.toString() || 'Unknown';
+      sourceCount[key] = (sourceCount[key] || 0) + 1;
+    });
+
+    return Object.entries(sourceCount)
+      .map(([key, count]) => ({ 
+        key,
+        count,
+        label: `${key}${selectedSource.includes('port') ? ' (Port)' : ''}`
+      }))
+      .sort((a, b) => b.count - a.count)
+      .slice(0, topSourcesLimit);
+  }, [filteredOffences, selectedSource, topSourcesLimit]);
+
+  // Add color change handler
+  const handleColorChange = (colorKey, color) => {
+    setChartColors(prev => ({
+      ...prev,
+      [colorKey]: color.toHexString()
+    }));
+  };
+
+  // Add source metric options
+  const sourceMetricOptions = [
+    { value: 'src_ip', label: 'Source IP' },
+    { value: 'dest_ip', label: 'Destination IP' },
+    { value: 'src_port', label: 'Source Port' },
+    { value: 'dest_port', label: 'Destination Port' },
+  ];
+
+  const sourceOptions = [
+    { value: 'src_ip', label: 'Source IP', label2: ' Source IPs', description: 'Shows which IPs are generating the most alerts' },
+    { value: 'dest_ip', label: 'Destination IP', label2: ' Destination IPs', description: 'Helps identify which servers are targeted the most' },
+    { value: 'src_port', label: 'Source Port', label2: ' Source Ports', description: 'Useful for analyzing where traffic originates' },
+    { value: 'dest_port', label: 'Destination Port', label2: ' Targeted Ports', description: 'Helps understand which services are being targeted' }
+  ];
+
   return (
     <div
       style={{
@@ -363,97 +341,34 @@ const Dashboard = () => {
           </select>
         </div>
 
-        {/* Top Stats */}
-        {/* <div
-          style={{
-            display: "flex",
-            gap: "20px",
-            marginBottom: "20px",
-            flexWrap: "wrap", // Added to prevent overflow on small screens
-          }}
-        >
-          <div
-            style={{
-              flex: "1 1 200px", // Changed from flex: 1 to prevent shrinking too small
-              background: "#ddd",
-              padding: "20px",
-              borderRadius: "8px",
-              minWidth: "150px", // Added minimum width
-            }}
-          >
-            <div style={{ fontSize: "24px", fontWeight: "bold" }}>100</div>
-            <div>Active!</div>
+        {/* Add Color Customization Panel */}
+        <div style={{ marginBottom: "20px", background: "white", padding: "20px", borderRadius: "8px" }}>
+          <h3>Chart Color Customization</h3>
+          <div style={{ display: "flex", gap: "20px", flexWrap: "wrap" }}>
+            <div>
+              <label>Critical</label>
+              <ColorPicker value={chartColors.critical} onChange={(color) => handleColorChange('critical', color)} />
+            </div>
+            <div>
+              <label>High</label>
+              <ColorPicker value={chartColors.high} onChange={(color) => handleColorChange('high', color)} />
+            </div>
+            <div>
+              <label>Medium</label>
+              <ColorPicker value={chartColors.medium} onChange={(color) => handleColorChange('medium', color)} />
+            </div>
+            <div>
+              <label>Low</label>
+              <ColorPicker value={chartColors.low} onChange={(color) => handleColorChange('low', color)} />
+            </div>
+            <div>
+              <label>Total Line</label>
+              <ColorPicker value={chartColors.total} onChange={(color) => handleColorChange('total', color)} />
+            </div>
           </div>
-          <div
-            style={{
-              flex: "1 1 200px",
-              background: "#ddd",
-              padding: "20px",
-              borderRadius: "8px",
-              minWidth: "150px",
-            }}
-          >
-            <div style={{ fontSize: "24px", fontWeight: "bold" }}>0</div>
-            <div>Open</div>
-          </div>
-          <div
-            style={{
-              flex: "1 1 200px",
-              background: "#ddd",
-              padding: "20px",
-              borderRadius: "8px",
-              minWidth: "150px",
-            }}
-          >
-            <div style={{ fontSize: "24px", fontWeight: "bold" }}>100+</div>
-            <div>Ack</div>
-          </div>
-        </div> */}
+        </div>
 
-        {/* Time Metrics */}
-        {/* <div
-          style={{
-            display: "flex",
-            gap: "20px",
-            marginBottom: "20px",
-            flexWrap: "wrap", // Added to prevent overflow on small screens
-          }}
-        >
-          <div
-            style={{
-              flex: "1 1 200px",
-              background: "#fff",
-              padding: "20px",
-              borderRadius: "8px",
-              minWidth: "200px",
-            }}
-          >
-            <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-              <div style={{ width: "24px", height: "24px", borderRadius: "50%", background: "#007bff" }} />
-              <div>
-                <div>0d 0h 30m</div>
-                <div>Mean Time to Acknowledge</div>
-              </div>
-            </div>
-          </div>
-          <div
-            style={{
-              flex: "1 1 200px",
-              background: "#fff",
-              padding: "20px",
-              borderRadius: "8px",
-              minWidth: "200px",
-            }}
-          >
-            <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-              <div style={{ width: "24px", height: "24px", borderRadius: "50%", background: "#007bff" }} />
-              <div>
-                <div>1d 0h 0m</div>
-                <div>Mean Time to Resolve</div>
-              </div>
-            </div>
-          </div>
-        </div> */}
+        {/* Add Top Attack Sources Chart */}
 
         {/* Charts Section */}
         <div
@@ -501,10 +416,10 @@ const Dashboard = () => {
                     interval={0}  // Skip labels for better readability in daily view
                   />
                   <YAxis />
-                  <Bar dataKey="critical" name="Critical" fill="#000000" stackId="stack" />
-                  <Bar dataKey="high" name="High" fill="#ff4d4f" stackId="stack" />
-                  <Bar dataKey="medium" name="Medium" fill="#faad14" stackId="stack" />
-                  <Bar dataKey="low" name="Low" fill="#52c41a" stackId="stack" />
+                  <Bar dataKey="critical" name="Critical" fill={chartColors.critical} stackId="stack" />
+                  <Bar dataKey="high" name="High" fill={chartColors.high} stackId="stack" />
+                  <Bar dataKey="medium" name="Medium" fill={chartColors.medium} stackId="stack" />
+                  <Bar dataKey="low" name="Low" fill={chartColors.low} stackId="stack" />
                 </BarChart>
               </ResponsiveContainer>
             </div>
@@ -520,7 +435,7 @@ const Dashboard = () => {
                 <div style={{ 
                   width: "12px", 
                   height: "12px", 
-                  backgroundColor: "#000000", 
+                  backgroundColor: chartColors.critical, 
                   marginRight: "8px" 
                 }} />
                 <span>Critical</span>
@@ -529,7 +444,7 @@ const Dashboard = () => {
                 <div style={{ 
                   width: "12px", 
                   height: "12px", 
-                  backgroundColor: "#ff4d4f", 
+                  backgroundColor: chartColors.high, 
                   marginRight: "8px" 
                 }} />
                 <span>High Priority</span>
@@ -538,7 +453,7 @@ const Dashboard = () => {
                 <div style={{ 
                   width: "12px", 
                   height: "12px", 
-                  backgroundColor: "#faad14", 
+                  backgroundColor: chartColors.medium, 
                   marginRight: "8px" 
                 }} />
                 <span>Medium Priority</span>
@@ -547,25 +462,182 @@ const Dashboard = () => {
                 <div style={{ 
                   width: "12px", 
                   height: "12px", 
-                  backgroundColor: "#52c41a", 
+                  backgroundColor: chartColors.low, 
                   marginRight: "8px" 
                 }} />
                 <span>Low Priority</span>
               </div>
             </div>
 
-            <h3>Real time network Traffic</h3>
+            <h3>Alerts Over Time</h3>
             <div style={{ width: "100%", height: "200px" }}>
               <ResponsiveContainer width="100%" height="100%">
-                <LineChart data={trafficData}>
+                <LineChart data={alertsOverTime}>
                   <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="time" />
+                  <XAxis 
+                    dataKey="time" 
+                    tick={{ fontSize: 12 }}
+                    interval="preserveStartEnd"
+                  />
                   <YAxis />
-                  <Line type="monotone" dataKey="value1" stroke="#8884d8" />
-                  <Line type="monotone" dataKey="value2" stroke="#82ca9d" />
+                  <Line 
+                    type="monotone" 
+                    dataKey="total" 
+                    stroke={chartColors.total} 
+                    name="Total Alerts"
+                    strokeWidth={2}
+                  />
+                  <Line 
+                    type="monotone" 
+                    dataKey="critical" 
+                    stroke={chartColors.critical} 
+                    name="Critical"
+                  />
+                  <Line 
+                    type="monotone" 
+                    dataKey="high" 
+                    stroke={chartColors.high} 
+                    name="High"
+                  />
+                  <Line 
+                    type="monotone" 
+                    dataKey="medium" 
+                    stroke={chartColors.medium} 
+                    name="Medium"
+                  />
+                  <Line 
+                    type="monotone" 
+                    dataKey="low" 
+                    stroke={chartColors.low} 
+                    name="Low"
+                  />
                 </LineChart>
               </ResponsiveContainer>
             </div>
+
+            {/* Add legend for the line chart */}
+            <div style={{ 
+              display: "flex", 
+              justifyContent: "center", 
+              gap: "20px", 
+              marginTop: "10px",
+              flexWrap: "wrap"
+            }}>
+              <div style={{ display: "flex", alignItems: "center" }}>
+                <div style={{ 
+                  width: "12px", 
+                  height: "2px", 
+                  backgroundColor: chartColors.total, 
+                  marginRight: "8px" 
+                }} />
+                <span>Total Alerts</span>
+              </div>
+              <div style={{ display: "flex", alignItems: "center" }}>
+                <div style={{ 
+                  width: "12px", 
+                  height: "2px", 
+                  backgroundColor: chartColors.critical, 
+                  marginRight: "8px" 
+                }} />
+                <span>Critical</span>
+              </div>
+              <div style={{ display: "flex", alignItems: "center" }}>
+                <div style={{ 
+                  width: "12px", 
+                  height: "2px", 
+                  backgroundColor: chartColors.high, 
+                  marginRight: "8px" 
+                }} />
+                <span>High</span>
+              </div>
+              <div style={{ display: "flex", alignItems: "center" }}>
+                <div style={{ 
+                  width: "12px", 
+                  height: "2px", 
+                  backgroundColor: chartColors.medium, 
+                  marginRight: "8px" 
+                }} />
+                <span>Medium</span>
+              </div>
+              <div style={{ display: "flex", alignItems: "center" }}>
+                <div style={{ 
+                  width: "12px", 
+                  height: "2px", 
+                  backgroundColor: chartColors.low, 
+                  marginRight: "8px" 
+                }} />
+                <span>Low</span>
+              </div>
+            </div>
+            <div style={{ marginBottom: "24px", background: "white", padding: "20px", borderRadius: "8px" }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "20px" }}>
+          
+          <div>
+            <h3 style={{ marginBottom: "8px" }}>Top {sourceOptions.find(opt => opt.value === selectedSource)?.label2}</h3>
+            <p style={{ color: "#666", fontSize: "14px", margin: 0 }}>
+              {sourceOptions.find(opt => opt.value === selectedSource)?.description}
+            </p>
+          </div>
+          <div style={{ display: "flex", gap: "10px", alignItems: "center" }}>
+            <Select
+              value={selectedSource}
+              onChange={value => setSelectedSource(value)}
+              style={{ width: 180 }}
+            >
+              {sourceOptions.map(option => (
+                <Option key={option.value} value={option.value}>
+                  {option.label}
+                </Option>
+              ))}
+            </Select>
+            <Select
+              value={topSourcesLimit}
+              onChange={setTopSourcesLimit}
+              style={{ width: 120 }}
+            >
+              <Option value={5}>Top 5</Option>
+              <Option value={10}>Top 10</Option>
+              <Option value={20}>Top 20</Option>
+              <Option value={50}>Top 50</Option>
+            </Select>
+          </div>
+        </div>
+
+        {/* Add color customization for source chart */}
+        <div style={{ marginBottom: "10px" }}>
+          <label style={{ marginRight: "10px" }}>Chart Color:</label>
+          <ColorPicker
+            value={chartColors.sourceChart}
+            onChange={(color) => handleColorChange('sourceChart', color)}
+          />
+        </div>
+        
+        <div style={{ height: "300px" }}>
+          <ResponsiveContainer width="100%" height="100%">
+            <BarChart data={topAttackSources}>
+              <CartesianGrid strokeDasharray="3 3" />
+              <XAxis 
+                dataKey="key"
+                tick={{ fontSize: 12 }}
+                interval={0}
+                angle={45}
+                textAnchor="start"
+              />
+              <YAxis />
+              <Tooltip
+                // formatter={(value) => [value, 'Count']}
+                formatter={(value, name, props) => [value, 'Count']}
+                labelFormatter={(label) => `${label}`}
+              />
+              <Bar 
+                dataKey="count" 
+                fill={chartColors.sourceChart}
+                name={sourceOptions.find(opt => opt.value === selectedSource)?.label}
+              />
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
+        </div>
           </div>
 
           <div
@@ -617,6 +689,9 @@ const Dashboard = () => {
             </div>
           </div>
         </div>
+        <div style={{ marginBottom: "24px", background: "white", padding: "20px", borderRadius: "8px" }}>
+      
+    </div>
       </div>
     </div>
   )
