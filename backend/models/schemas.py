@@ -77,7 +77,7 @@ class AccountBase(BaseModel):
     username: str
     userFirstName: str
     userLastName: str
-    passwd: str
+    passwd: Optional[str] = None
     userComName: str
     userEmail: EmailStr  # Changed to use EmailStr for better validation
     userPhoneNum: str
@@ -115,6 +115,8 @@ class AccountBase(BaseModel):
 
     @validator('passwd')
     def validate_password(cls, v):
+        if v is None:  # Skip validation if no password is provided
+            return v
         if len(v) < 8:
             raise ValueError('Password must be at least 8 characters')
         if not re.search(r'[A-Z]', v):

@@ -10,6 +10,7 @@ const userRole = "1"
 const UserManagementPage = () => {
   const navigate = useNavigate()
   const location = useLocation()
+  const { user } = useAuth(); // Get the logged-in user's token
   const [searchQuery, setSearchQuery] = useState("")
   const [showNewUserModal, setShowNewUserModal] = useState(false)
   const [users, setUsers] = useState([])
@@ -53,9 +54,13 @@ const UserManagementPage = () => {
 
   const fetchUsers = async () => {
     try {
-      const response = await fetch ("http://127.0.0.1:8000/user-management/", {
-          method: "GET",
-        });
+      const response = await fetch("http://127.0.0.1:8000/user-management/", {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${user.token}`, // Pass the token in the headers
+        },
+      });
 
       if (response.ok) {
         const data = await response.json();
@@ -139,26 +144,28 @@ const UserManagementPage = () => {
 
 const addUser = async (user) => {
   try {
-    const response = await fetch(`http://127.0.0.1:8000/user-management/`, { 
+    const token = localStorage.getItem("token"); // Get the token from localStorage
+    const response = await fetch("http://127.0.0.1:8000/user-management/", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`, // Ensure the token is included in the headers
       },
-      body: JSON.stringify(user),
+      body: JSON.stringify(user), // Send the user data in the request body
     });
-    
+
     if (!response.ok) {
       const errorData = await response.json();
-      throw new Error(errorData.detail || 'Failed to add user');
+      throw new Error(errorData.detail || "Failed to add user");
     }
-    
-    fetchUsers();
+
+    fetchUsers(); // Refresh the user list after adding a new user
   } catch (err) {
     setError(err.message);
     // Optional: Add a timeout to clear the error after 5 seconds
     setTimeout(() => setError(null), 5000);
   }
-}
+};
 
   const handleEdit = (user) => {
       // Set the selected user to be edited
@@ -168,19 +175,43 @@ const addUser = async (user) => {
 
   const updateUser = async (user) => {
     try {
-      const response = await fetch (`http://127.0.0.1:8000/user-management/${user.id}`, { method: "PUT", headers: {
-        "Content-Type": "application/json", // Add this header to indicate the body is JSON
-      },
-        body: JSON.stringify(user), // Send userData as the payload to update the user
+      const token = localStorage.getItem("token"); // Get the token from localStorage
+      const payload = {
+        id: user.id,
+        username: user.username,
+        userFirstName: user.userFirstName,
+        userLastName: user.userLastName,
+        userComName: user.userComName,
+        userEmail: user.userEmail,
+        userPhoneNum: user.userPhoneNum,
+        userRole: user.userRole,
+        userSuspend: user.userSuspend,
+      };
+  
+      // Include password only if it is provided
+      if (user.passwd) {
+        payload.passwd = user.passwd;
+      }
+  
+      const response = await fetch(`http://127.0.0.1:8000/user-management/${user.id}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`, // Include the token in the headers
+        },
+        body: JSON.stringify(payload), // Send the payload
       });
   
       if (!response.ok) {
-        throw new Error("Failed to update user");
+        const errorData = await response.json();
+        throw new Error(errorData.detail || "Failed to update user");
       }
   
-      fetchUsers(); // Refresh the user list
+      fetchUsers(); // Refresh the user list after updating
     } catch (err) {
-      setError("Failed to edit user");
+      setError(err.message);
+      // Optional: Add a timeout to clear the error after 5 seconds
+      setTimeout(() => setError(null), 5000);
     }
   };
   const handleDelete = async (user) => {
