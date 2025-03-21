@@ -1,5 +1,6 @@
 import React, { useState } from "react";
-import { useNavigate , useEffect} from "react-router-dom";
+import { useNavigate } from "react-router-dom";
+import { useAuth } from "./context/AuthContext"; // Import AuthContext
 
 const styles = {
   loginContainer: {
@@ -76,31 +77,7 @@ export default function LoginPage() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const navigate = useNavigate();
-
-  const checkToken = async () => {
-    const token = localStorage.getItem("token");
-    if (!token) return; // If no token, do nothing
-
-    console.log("Sending token for validation:", token); // Debug log
-
-    try {
-      const response = await fetch("http://127.0.0.1:8000/login/get_token", {
-        method: "GET",
-        headers: { Authorization: `Bearer ${token}` },
-      });
-
-      if (response.ok) {
-        console.log("Token is valid, navigating to dashboard."); // Debug log
-        navigate("/dashboard"); // Navigate to dashboard
-      } else {
-        console.log("Token validation failed:", response.status); // Debug log
-        localStorage.removeItem("token"); // Clear invalid token
-      }
-    } catch (error) {
-      console.error("Token validation failed:", error);
-      localStorage.removeItem("token"); // Clear token on error
-    }
-  };
+  const { login } = useAuth(); // Use the login function from AuthContext
 
   const handleLogin = async (e) => {
     e.preventDefault();
@@ -126,20 +103,21 @@ export default function LoginPage() {
       console.log("Response data:", loginData); // Debug log
       if (!loginResponse.ok) throw new Error(loginData.detail || "Login failed");
 
-      // Store the full user data in local storage
+      // Store the token in localStorage
+      localStorage.setItem("token", loginData.access_token);
+
+      // Extract user data from the token response
       const userData = {
         token: loginData.access_token,
         userRole: loginData.userRole,
         username: loginData.username,
         userComName: loginData.userComName,
       };
-      localStorage.setItem("user", JSON.stringify(userData));
-      localStorage.setItem("token", loginData.access_token);
 
-      if (loginData.userRole === undefined) {
-        throw new Error("User role is not defined in the response");
-      }
+      // Update AuthContext with the user data
+      login(userData);
 
+      // Navigate based on user role
       const userRole = loginData.userRole;
       console.log("Userrole:", userRole); // Debug log
       if (userRole === 1) {

@@ -1,4 +1,5 @@
 import { createContext, useState, useContext, useEffect } from 'react';
+import {jwtDecode} from 'jwt-decode'; // Install this package if not already installed
 
 const AuthContext = createContext(null);
 
@@ -7,14 +8,27 @@ export const AuthProvider = ({ children }) => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const savedUser = localStorage.getItem('user');
-    console.log("Saved user from localStorage:", savedUser); // Debug log
-    if (savedUser) {
-      const parsedUser = JSON.parse(savedUser);
-      if (parsedUser.token) {
-        setUser(parsedUser);
-      } else {
-        localStorage.removeItem('user'); // Clear invalid user data
+    const savedToken = localStorage.getItem('token');
+    console.log("Saved token from localStorage:", savedToken); // Debug log
+    if (savedToken) {
+      try {
+        const decodedToken = jwtDecode(savedToken); // Decode the token
+        console.log("Decoded token:", decodedToken); // Debug log
+
+        // Extract user details from the token
+        const userData = {
+          id: decodedToken.id,
+          username: decodedToken.sub,
+          userRole: decodedToken.role,
+          userComName: decodedToken.company,
+          userSuspend: decodedToken.suspend,
+          token: savedToken,
+        };
+
+        setUser(userData); // Set the user state
+      } catch (error) {
+        console.error("Failed to decode token:", error);
+        localStorage.removeItem('token'); // Clear invalid token
       }
     }
     setLoading(false);
@@ -56,7 +70,7 @@ export const AuthProvider = ({ children }) => {
       };
 
       verifyToken();
-      const interval = setInterval(verifyToken, 5 * 60 * 1000); // Check every 5 minutes
+      const interval = setInterval(verifyToken, 10 * 60 * 1000); // Check every 5 minutes
       return () => clearInterval(interval);
     }
   }, [user]);

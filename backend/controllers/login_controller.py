@@ -31,7 +31,7 @@ async def login_access_token(user: AccountLogin):
         username=user.username,
         userComName=user.userComName,
         userSuspend=user.userSuspend,
-        expires_delta=timedelta(minutes=15),
+        expires_delta=timedelta(minutes=60),
     )
 
     # Return all necessary data for the frontend
@@ -65,7 +65,7 @@ async def get_token(token: str = Depends(oauth2_bearer)):
         if user.userSuspend :
             raise HTTPException(status_code=403, detail="User is suspended")
         print('Payload1:', payload)
-        pirnt('isvalide')
+        print('isvalid')
         # If everything is valid, return a success message
         return {"message": "Token is valid", "user": user.username}
     except JWTError:
