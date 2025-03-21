@@ -2,7 +2,7 @@ import { useState, useEffect } from "react"
 import { useNavigate, useLocation } from "react-router-dom"
 import Sidebar from "./Sidebar"
 
-const userRole = "network-admin"
+const userRole = "2"
 
 // New AddPlaybookModal component that matches the design in the images
 const AddPlaybookModal = ({ onClose, onSave }) => {
@@ -630,7 +630,6 @@ const AddPlaybookModal = ({ onClose, onSave }) => {
 const PlaybookModal = ({ playbook, onClose, onSave, isEditing }) => {
   const [playbookName, setPlaybookName] = useState(playbook?.name || "")
   const [description, setDescription] = useState(playbook?.description || "")
-  const [occurrenceThreshold, setOccurrenceThreshold] = useState(playbook?.occurrenceThreshold || 3)
   const [status, setStatus] = useState(playbook?.status === "active")
 
   // Parse action details to get blockIP and sendEmailAlert values
@@ -640,24 +639,46 @@ const PlaybookModal = ({ playbook, onClose, onSave, isEditing }) => {
     actionDetails.sendEmailAlert !== undefined ? actionDetails.sendEmailAlert : false,
   )
   const [emailRecipients, setEmailRecipients] = useState(actionDetails.emailRecipients || "")
+  const [conditions, setConditions] = useState([])
 
-  // Parse trigger conditions
-  let initialConditions = [{ id: 1, field: "Alert Category", value: "" }]
+  // Parse trigger conditions with proper initialization
+  let initialConditions = [{ 
+    id: 1, 
+    condition_type: "threshold",
+    field: "source_ip",
+    operator: "greater than or equal",
+    value: "",
+    window_period: ""
+  }]
+
   try {
-    if (playbook?.triggerConditions) {
-      const parsedConditions = JSON.parse(playbook.triggerConditions)
+    if (playbook?.conditions) {
+      const parsedConditions = playbook.conditions
+      console.log('parsed conditions')
+      console.log(parsedConditions);
       if (Array.isArray(parsedConditions)) {
         initialConditions = parsedConditions.map((condition, index) => ({
-          ...condition,
           id: index + 1,
+          condition_type: condition.condition_type,
+          field: condition.field,
+          operator: condition.operator,
+          value: condition.value,
+          window_period: condition.window_period 
         }))
+        console.log('initial conditions')
+        console.log(initialConditions)
+        setConditions(initialConditions)
       }
+    }else{
+      console.log('not loaded')
     }
   } catch (error) {
     console.error("Error parsing trigger conditions:", error)
+    console.log(error)
+    console.log(playbook)
   }
 
-  const [conditions, setConditions] = useState(initialConditions)
+  
 
   const handleAddCondition = () => {
     const newCondition = {
@@ -1465,6 +1486,20 @@ const PlaybooksPage = () => {
     }
   }
 
+  const formatActionType = (actions) => {
+    const actionsList = [];
+    
+    if (actions.blockIP) {
+      actionsList.push('Block IP');
+    }
+    
+    if (actions.sendEmailAlert) {
+      actionsList.push('Send Email');
+    }
+    
+    return actionsList.length > 0 ? actionsList.join(' + ') : 'No actions';
+  };
+
   const renderPlaybookRow = (playbook) => (
     <tr key={playbook.id} style={{ borderBottom: "1px solid #eee" }}>
       <td style={{ padding: "16px", textAlign: "center" }}>
@@ -1476,14 +1511,8 @@ const PlaybooksPage = () => {
       </td>
       <td style={{ padding: "16px", fontWeight: "500" }}>{playbook.name}</td>
       <td style={{ padding: "16px" }}>{playbook.description}</td>
-      <td style={{ padding: "16px", textAlign: "center" }}>
-        {playbook.conditions.occurrenceThreshold}
-      </td>
       <td style={{ padding: "16px" }}>
-        {Object.keys(playbook.conditions).join(', ')}
-      </td>
-      <td style={{ padding: "16px" }}>
-        {Object.keys(playbook.actions).join(', ')}
+        {formatActionType(playbook.actions)}
       </td>
       <td style={{ padding: "16px" }}>
         {new Date(playbook.created_at).toLocaleDateString()}
@@ -1723,10 +1752,6 @@ const PlaybooksPage = () => {
                 </th>
                 <th style={{ padding: "16px", textAlign: "left", borderBottom: "1px solid #eee" }}>Name</th>
                 <th style={{ padding: "16px", textAlign: "left", borderBottom: "1px solid #eee" }}>Description</th>
-                <th style={{ padding: "16px", textAlign: "center", borderBottom: "1px solid #eee" }}>
-                  Occurrence Threshold
-                </th>
-                <th style={{ padding: "16px", textAlign: "left", borderBottom: "1px solid #eee" }}>Trigger Type</th>
                 <th style={{ padding: "16px", textAlign: "left", borderBottom: "1px solid #eee" }}>Action Type</th>
                 <th style={{ padding: "16px", textAlign: "left", borderBottom: "1px solid #eee" }}>Created By</th>
                 <th style={{ padding: "16px", textAlign: "left", borderBottom: "1px solid #eee" }}>Last Modified</th>

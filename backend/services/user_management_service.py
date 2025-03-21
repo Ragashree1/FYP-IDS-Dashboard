@@ -9,7 +9,7 @@ from fastapi.security import OAuth2PasswordRequestForm, OAuth2PasswordBearer
 from fastapi import APIRouter, Depends, HTTPException
 
 
-SECRET_KEY = 'IWannaShootMyself'  #Could be anything
+SECRET_KEY = 's3cr3tk3y'  #Could be anything
 ALGORITHM = 'HS256'
 
 bcrypt_context = CryptContext (schemes = ['bcrypt'], deprecated = 'auto') 
@@ -18,11 +18,24 @@ bcrypt_context = CryptContext (schemes = ['bcrypt'], deprecated = 'auto')
 oauth2_bearer = OAuth2PasswordBearer(tokenUrl='/token')
 
 def add_user(user_particulars: AccountBase):
-    with SessionLocal() as db: 
+    with SessionLocal() as db:
+        # Check if user with same username and company exists
+        existing_user = db.query(Account).filter(
+            Account.username == user_particulars.username,
+            Account.userComName == user_particulars.userComName
+        ).first()
+        
+        if existing_user:
+            raise HTTPException(
+                status_code=400,
+                detail=f"User with username '{user_particulars.username}' already exists in company '{user_particulars.userComName}'"
+            )
+
+        # If no existing user found, proceed with creation
         hashed_password = bcrypt_context.hash(user_particulars.passwd)
         user_data = user_particulars.model_dump()
         user_data.pop("passwd", None)
-        create_user = Account(**user_data,passwd=hashed_password)# Ragashree asked for default value as 'organizational-admin', putting system-admin, if wrong rmb to change
+        create_user = Account(**user_data, passwd=hashed_password)
         db.add(create_user)
         db.commit()
         db.refresh(create_user)
@@ -38,9 +51,9 @@ def delete_user(account_id: int) -> bool:
             return True
         return False
     
-def get_all_users() -> List[AccountBase]:
+def get_all_users(company_name: str) -> List[AccountBase]:
     with SessionLocal() as db:  
-        users = db.query(Account).all()
+        users = db.query(Account).filter(Account.userComName == company_name).all()
         return [AccountBase.model_validate(user, from_attributes=True) for user in users]
     
 def get_all_roles() -> List[RoleBase]:
@@ -50,43 +63,34 @@ def get_all_roles() -> List[RoleBase]:
     
 
 def update_account(account_id: int, update_data: AccountBase):
-    with SessionLocal() as db:  
+    with SessionLocal() as db:
         account = db.query(Account).filter(Account.id == account_id).first()
-     # Check if the password,user company name & user role is provided, if not, keep the existing ones
-    if update_data.passwd:
-        account.passwd = bcrypt_context.hash(update_data.passwd)
-
-    if update_data.userComName:
-        account.userComName = update_data.userComName
-
-    
-    if update_data.userRole:
-        account.userRole = update_data.userRole
-    
-    # Update other fields
-    if update_data.userFirstName:
-        account.userFirstName = update_data.userFirstName
-
-    if update_data.userLastName:
-        account.userLastName = update_data.userLastName
-
-    if update_data.userEmail:
-        account.userEmail = update_data.userEmail
-
-    if update_data.userPhoneNum:
-        account.userPhoneNum = update_data.userPhoneNum
-
-    if update_data.userSuspend is not None:
-        account.userSuspend = update_data.userSuspend
-
-    if not account:
+        if not account:
             return None
 
-    db.add(account) 
-    db.commit()
-    db.refresh(account)
-    updated_account = AccountBase(**account.__dict__)
-    return AccountBase.model_validate(updated_account)
+        # Update fields only if they are provided
+        if update_data.passwd:  # Only update the password if provided
+            account.passwd = bcrypt_context.hash(update_data.passwd)
+        if update_data.userComName:
+            account.userComName = update_data.userComName
+        if update_data.userRole:
+            account.userRole = update_data.userRole
+        if update_data.userFirstName:
+            account.userFirstName = update_data.userFirstName
+        if update_data.userLastName:
+            account.userLastName = update_data.userLastName
+        if update_data.userEmail:
+            account.userEmail = update_data.userEmail
+        if update_data.userPhoneNum:
+            account.userPhoneNum = update_data.userPhoneNum
+        if update_data.userSuspend is not None:
+            account.userSuspend = update_data.userSuspend
+
+        db.add(account)
+        db.commit()
+        db.refresh(account)
+        updated_account = AccountBase(**account.__dict__)
+        return AccountBase.model_validate(updated_account)
 
 
 

@@ -60,7 +60,7 @@ const Sidebar = ({ userRole }) => {
   }
 
   // Render Organisation Admin sidebar
-  if (userRole === "organisation-admin") {
+  if (userRole === "1") {
     return (
       <div style={{ display: "flex" }}>
         <div style={spacerStyle} />
@@ -140,7 +140,7 @@ const Sidebar = ({ userRole }) => {
   }
 
   // Render Network Admin sidebar
-  if (userRole === "network-admin") {
+  if (userRole === "2") {
     return (
       <div style={{ display: "flex" }}>
         <div style={spacerStyle} />
