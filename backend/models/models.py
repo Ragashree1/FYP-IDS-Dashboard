@@ -1,7 +1,7 @@
 import json
-from sqlalchemy import Column, ForeignKey, Integer, String, ARRAY, DateTime, func
+from sqlalchemy import Column, ForeignKey, Integer, String, ARRAY, DateTime, func, Boolean, Text
 from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import validates
+from sqlalchemy.orm import validates, relationship
 from database import Base
 from datetime import datetime
 
@@ -59,3 +59,32 @@ class SnortLogs(Base):
     class Config:
         orm_mode = True
 
+class Organization(Base):
+    __tablename__ = "organizations"
+    id = Column(Integer, primary_key=True, index=True)
+    name = Column(String, unique=True, nullable=False)
+
+class Client(Base):
+    __tablename__ = "clients"
+    id = Column(Integer, primary_key=True, index=True)
+    name = Column(String, nullable=False)
+    email = Column(String, unique=True, nullable=False)
+
+    logs = relationship("LogEntry", back_populates="client")
+
+class VerifiedIP(Base):
+    __tablename__ = "verified_ips"
+    id = Column(Integer, primary_key=True, index=True)
+    client_id = Column(Integer, ForeignKey("clients.id"), nullable=False)
+    ip = Column(String, unique=True, nullable=False)
+    is_verified = Column(Boolean, default=False)
+
+class LogEntry(Base):
+    __tablename__ = "logs"
+    id = Column(Integer, primary_key=True, index=True)
+    client_id = Column(Integer, ForeignKey("clients.id"), nullable=False)
+    ip = Column(String, nullable=False)
+    log_data = Column(Text, nullable=False)
+    timestamp = Column(DateTime, default=datetime.utcnow)
+
+    client = relationship("Client", back_populates="logs")

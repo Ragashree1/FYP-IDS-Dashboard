@@ -65,3 +65,5 @@ def update_and_fetch_logs():
     
     with SessionLocal() as db:
         return db.query(SnortLogs).all()
+    
+

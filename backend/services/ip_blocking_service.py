@@ -1,8 +1,7 @@
-import re
 from sqlalchemy.orm import Session
-from fastapi import HTTPException, Request
 from models.models import BlockedIP
-from models.schemas import IPAddressSchema
+from fastapi import HTTPException, Request
+import re
 
 def get_client_ip(request: Request) -> str:
     """Extracts the actual client IP from request headers."""
@@ -28,45 +27,57 @@ def validate_ip(ip: str):
     if not ip_pattern.match(ip):
         raise HTTPException(status_code=400, detail="Invalid IP format")
 
-def block_ip(db: Session, ip_data: IPAddressSchema):
-    """Adds an IP to the blocklist in the database."""
-    ip = ip_data.ip.strip().lower()
-    validate_ip(ip)  # Ensure valid IP
+def block_ip(ip: str, reason: str, db: Session):
+    """Blocks an IP and stores it in the database"""
+    ip = ip.strip().lower()
+    validate_ip(ip)
 
     existing_ip = db.query(BlockedIP).filter_by(ip=ip).first()
     if existing_ip:
         raise HTTPException(status_code=400, detail="IP is already blocked.")
 
-    new_ip = BlockedIP(ip=ip, reason=ip_data.reason)
+    new_ip = BlockedIP(ip=ip, reason=reason)
     db.add(new_ip)
-    db.commit()
-    db.refresh(new_ip)
 
-    return {"message": "IP Blocked Successfully", "ip": new_ip.ip, "reason": new_ip.reason}
+    try:
+        db.commit() 
+        db.refresh(new_ip)
+        return {"message": "IP Blocked Successfully", "ip": new_ip.ip, "reason": new_ip.reason}
+    except:
+        db.rollback()  
+        raise HTTPException(status_code=500, detail="Database commit failed")
 
-def unblock_ip(db: Session, ip: str):
-    """Removes an IP from the blocklist."""
+def unblock_ip(ip: str, db: Session):
+    """Unblocks an IP by deleting it from the database"""
     ip = ip.strip().lower()
-
     blocked_ip = db.query(BlockedIP).filter_by(ip=ip).first()
+
     if not blocked_ip:
         raise HTTPException(status_code=404, detail="IP not found")
 
     db.delete(blocked_ip)
-    db.commit()
-    return {"message": "IP Unblocked Successfully", "ip": ip}
 
-def check_ip_blocked(db: Session, request: Request):
-    """Checks if the client's IP is blocked."""
-    client_ip = get_client_ip(request)
+    try:
+        db.commit()  
+        return {"message": "IP Unblocked Successfully", "ip": ip}
+    except:
+        db.rollback()  
+        raise HTTPException(status_code=500, detail="Database commit failed")
 
+def check_ip(client_ip: str, db: Session):
+    """Checks if the client IP is blocked"""
     blocked_ip = db.query(BlockedIP).filter(BlockedIP.ip == client_ip.lower()).first()
     if blocked_ip:
         raise HTTPException(status_code=403, detail="Your IP is blocked.")
 
     return {"message": "Your IP is not blocked", "ip": client_ip}
 
-def get_blocked_ips(db: Session):
-    """Retrieves all blocked IPs from the database."""
-    blocked_ips = db.query(BlockedIP).all()
-    return [{"ip": ip.ip, "reason": ip.reason} for ip in blocked_ips]
+def get_blocked_ips_with_reasons(db: Session):
+    """Returns blocked IPs with their reasons for the frontend"""
+    blocked_ips = db.query(BlockedIP.ip, BlockedIP.reason).all()
+    return {"blocked_ips": [{"ip": ip, "reason": reason} for ip, reason in blocked_ips]}
+
+def get_blocked_ips_list(db: Session):
+    """Returns only a list of blocked IPs for the cron job"""
+    blocked_ips = db.query(BlockedIP.ip).all()
+    return {"blocked_ips": [ip[0] for ip in blocked_ips]}

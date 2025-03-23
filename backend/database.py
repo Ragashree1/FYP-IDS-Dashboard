@@ -14,7 +14,7 @@ if not DATABASE_URL:
     raise ValueError("DATABASE_URL is not set in the .env file! Please check.")
 
 # Print loaded database URL (for debugging)
-print(f"DATABASE_URL from .env: {DATABASE_URL}")
+#print(f"DATABASE_URL from .env: {DATABASE_URL}")
 
 # IMPROVED: Add connection pooling settings
 engine = create_engine(

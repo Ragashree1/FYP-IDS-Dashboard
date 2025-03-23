@@ -1,11 +1,13 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { useNavigate, useLocation } from "react-router-dom"
-
 import Sidebar from "./Sidebar" // Import the Sidebar component
 
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"
+
 const userRole = "network-admin"
+
 const AddIPModal = ({ onClose, onAdd }) => {
   const [newIP, setNewIP] = useState("")
 
@@ -122,29 +124,104 @@ const SystemConfiguration = () => {
   const navigate = useNavigate()
   const location = useLocation()
   const [searchQuery, setSearchQuery] = useState("")
-  const [clients, setClients] = useState([
-    { id: 1, ip: "192.168.10.1" },
-    { id: 2, ip: "192.168.10.2" },
-  ])
+  const [clients, setClients] = useState([])
   const [isModalOpen, setIsModalOpen] = useState(false)
+  const [isLoading, setLoading] = useState(false)
 
-  const isActive = (path) => location.pathname.startsWith(path)
+  useEffect(() => {
+    const storedClientId = localStorage.getItem("clientId")
+  
+    if (!storedClientId) {
+      // Redirect to client registration page if no client is found
+      navigate("/client-registration")
+    } else {
+      fetchVerifiedIPs(storedClientId)
+    }
+  }, [navigate])
 
-  const handleLogout = () => {
-    navigate("/login")
+  const fetchClientId = async () => {
+    try {
+      setLoading(true)
+      const response = await fetch(`${API_BASE_URL}/clients/get-client`)
+      if (!response.ok) throw new Error("Failed to fetch client ID")
+
+      const data = await response.json()
+      
+      if (!data.client_id) {
+        throw new Error("Client ID is missing in API response.")
+      }
+
+      console.log("Fetched Client ID:", data.client_id) 
+
+      localStorage.setItem("clientId", data.client_id)
+
+      //Ensure client_id is valid before calling fetchVerifiedIPs
+      await fetchVerifiedIPs(data.client_id)
+    } catch (error) {
+      console.error("Error fetching client ID:", error)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const fetchVerifiedIPs = async (clientId) => {
+    try {
+      setLoading(true)
+      const response = await fetch(`${API_BASE_URL}/ip-verification/verified-ips/${clientId}`)
+      if (!response.ok) throw new Error("Failed to fetch verified IPs")
+
+      const data = await response.json()
+      setClients(data.verified_ips)
+    } catch (error) {
+      console.error("Error fetching verified IPs:", error)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleRemoveClient = async (id) => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/ip-verification/remove-ip/${id}`, {
+        method: "DELETE",
+      })
+
+      if (!response.ok) throw new Error("Failed to remove IP")
+
+      setClients((prevClients) => prevClients.filter((client) => client.id !== id))
+
+      alert("IP removed successfully!")
+    } catch (error) {
+      console.error("Error removing IP:", error)
+      alert("Error removing IP. Please try again.")
+    }
+  }
+
+  const handleAddClient = async (newIP) => {
+    try {
+      const clientId = localStorage.getItem("clientId") // Get client ID from storage
+      if (!clientId) throw new Error("Client ID is missing. Please register again.")
+
+      console.log("Sending IP Verification request:", { client_id: Number(clientId), ip: newIP })
+
+      const response = await fetch(`${API_BASE_URL}/ip-verification/verify-ip`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ client_id: Number(clientId), ip: newIP }), //Ensure correct JSON format
+      })
+
+      const data = await response.json()
+      console.log("API Response:", data) //Log the API response
+
+      if (!response.ok) throw new Error(data.detail || "Failed to verify IP")
+
+      setClients((prevClients) => [...prevClients, { id: data.id, ip: newIP }])
+    } catch (error) {
+      console.error("Error verifying IP:", error.message)
+    }
   }
 
   const handleSearch = (e) => {
     setSearchQuery(e.target.value)
-  }
-
-  const handleRemoveClient = (id) => {
-    setClients(clients.filter((client) => client.id !== id))
-  }
-
-  const handleAddClient = (newIP) => {
-    const newClient = { id: Date.now(), ip: newIP }
-    setClients([...clients, newClient])
   }
 
   const filteredClients = clients.filter((client) => client.ip.toLowerCase().includes(searchQuery.toLowerCase()))

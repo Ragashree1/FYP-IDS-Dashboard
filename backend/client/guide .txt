@@ -1,97 +1,196 @@
-Step 1: User Adds Malicious IPs via the ProjectWebsite UI.
-The website allows users to:
+# Blocklist Management & Firewall Automation - Step-by-Step Guide
 
-- View the current blocklist.
-- Add new malicious IPs.
-- Remove mistakenly blocked IPs.
+This guide walks through **blocking/unblocking an IP**, how the **firewall updates dynamically**, and how to **ensure persistence after reboot**.
 
-IP-Blocking APIs:
+---
 
+##  Step 1: Add Malicious IPs via the Web UI
+
+###  What Users Can Do
+- View the **current blocklist**.
+- Add **new malicious IPs**.
+- Remove **mistakenly blocked IPs**.
+
+###  API Endpoints
+ **Fetch Blocked IPs**
+```
 GET /ip-blocking/blocked-ips/
-
-Response:
+```
+**Example Response:**
+```
 { "blocked_ips": ["203.0.113.45", "175.156.68.171"] }
-Add an IP to the Blocklist
+```
 
+ **Add an IP to the Blocklist**
+```
 POST /ip-blocking/block-ip/
-Example Request:
+```
+**Example Request:**
+```
 { "ip": "192.168.1.100", "reason": "Malicious activity detected" }
-
-Response:
+```
+**Example Response:**
+```
 { "message": "IP Blocked Successfully", "ip": "192.168.1.100", "reason": "Malicious activity detected" }
+```
 
-Unblock an IP
+ **Unblock an IP**
+```
 DELETE /ip-blocking/unblock-ip/{ip}
-
-Example:
+```
+**Example Request:**
+```
 DELETE /ip-blocking/unblock-ip/192.168.1.100
-Once a user adds an IP, it gets stored in PostgreSQL and fetched by the firewall script.
+```
+Once an IP is added/removed, it is stored in PostgreSQL and fetched by the firewall update script.
 
-Step 2: 
-Firewall Script on the client system fetches Blocked IPs & Updates client iptables
-A cron job runs the script (update_firewall.sh) that:
+---
 
-Fetches blocked IPs from the API.
-Updates client system iptables rules to drop traffic from the blocked IPs.
-Ensures the firewall rules persist after a system reboot.
+##  Step 2: Firewall Updates with `update_firewall.sh`
 
-Step 2.1 : Create update_firewall.sh script
-Place the script in /usr/local/bin/update_firewall.sh and make it executable using:
-sudo chmod +x /usr/local/bin/update_firewall.sh
+###  How the Firewall Updates
+- A **cron job** automatically runs `update_firewall.sh` every few minutes.
+- This script:
+  - Fetches blocked IPs from the API.
+  - Updates `iptables` rules to block/unblock IPs.
+  - Ensures firewall rules persist after a reboot.
 
-Step 3: Automate Firewall Updates with a Cron Job
-The client needs to run the script automatically every few minutes. This can be achieved using a Cron Job
+###  **Step 2.1: Create the Firewall Update Script**
+1. Place the script in `/usr/local/bin/update_firewall.sh`:
+```
+sudo vim /usr/local/bin/update_firewall.sh
+```
 
-Edit crontab:
-sudo crontab -e
-Add this line to run the script every 5 minutes:
-*/5 * * * * /usr/local/bin/update_firewall.sh
-OR to run the script every minute :
-* * * * * /usr/local/bin/update_firewall.sh
-Save and exit.
-Verify cron is working:
-sudo grep CRON /var/log/syslog
-Now, the client’s server will update its firewall rules every 5 minutes or 1 minute.
+2. Copy and paste the following script from update_firewall.sh:
+```
+#!/bin/bash
 
-Next, Run the Script Manually using:
-sudo /usr/local/bin/update_firewall.sh
+# API URL where blocked IPs are fetched from
+API_URL="http://localhost:8000/ip-blocking/blocked-ips-list/"
 
-Then, Verify That the IPs Are Blocked using: 
-sudo iptables -L BLOCKLIST -v -n
+# Path to the firewall log (optional)
+LOG_FILE="/var/log/ids-firewall-update.log"
 
-We should be able to view the current list of blocked ip addresses, and this should match the list of ip addresses in the database.
+# Fetch the list of currently blocked IPs from API
+BLOCKED_IPS=$(curl -s $API_URL | jq -r '.blocked_ips[]')
 
-Step 4: Make iptables Rules Persistent after reboot
-Since iptables rules reset after a reboot, you must save them and restore them automatically.
+# Ensure API request was successful
+if [ $? -ne 0 ]; then
+    echo "$(date) - API request failed." | tee -a $LOG_FILE
+    exit 1
+fi
 
-Step 4.1: Save iptables Rules
-Manually save your current rules to a file:
+# Get the existing blocked IPs in iptables
+EXISTING_IPS=$(sudo iptables -L BLOCKLIST -n | awk '{print $4}' | grep -E '^[0-9]+(\.[0-9]+){3}$')
+
+# Remove IPs that are no longer in the API blocklist
+for ip in $EXISTING_IPS; do
+    if [[ ! " ${BLOCKED_IPS[@]} " =~ " ${ip} " ]]; then
+        echo "$(date) - Removing unblocked IP: $ip" | tee -a $LOG_FILE
+        sudo iptables -D BLOCKLIST -s $ip -j DROP
+    fi
+done
+
+# Ensure BLOCKLIST chain exists
+sudo iptables -N BLOCKLIST 2>/dev/null
+
+# Flush existing BLOCKLIST rules
+sudo iptables -F BLOCKLIST
+
+# Remove previous references to BLOCKLIST in INPUT to prevent duplication
+sudo iptables -D INPUT -j BLOCKLIST 2>/dev/null
+
+# Add new blocked IPs
+if [ -n "$BLOCKED_IPS" ]; then
+    for ip in $BLOCKED_IPS; do
+        echo "$(date) - Blocking IP: $ip" | tee -a $LOG_FILE
+        sudo iptables -A BLOCKLIST -s $ip -j DROP
+    done
+fi
+
+# Reapply BLOCKLIST chain to INPUT
+sudo iptables -I INPUT -j BLOCKLIST
+
+# Persist firewall rules so they survive reboots
 sudo iptables-save | sudo tee /etc/iptables.rules > /dev/null
 
-This stores your firewall rules in /etc/iptables.rules
+echo "$(date) - Firewall updated successfully." | tee -a $LOG_FILE
+exit 0
 
-Step 4.2: Restore iptables Rules on Boot
-To ensure your rules load automatically on startup, do one of the following:
+3. Make the script executable:
+```
+sudo chmod +x /usr/local/bin/update_firewall.sh
+```
 
-Option 1: Use rc.local
-Open or create /etc/rc.local:
-sudo nano /etc/rc.local
+---
 
-Add the following lines into the file:
+## Step 3: Automate Firewall Updates with a Cron Job
+
+### Set Up Cron to Run the Script Periodically
+1. Edit the crontab:
+```
+sudo crontab -e
+```
+
+2. Add this line to run the script **every 5 minutes**:
+```
+*/5 * * * * /usr/local/bin/update_firewall.sh
+```
+
+OR To run the script **every minute**, use:
+```
+* * * * * /usr/local/bin/update_firewall.sh
+```
+
+3. Save and exit.
+
+4. Verify cron is working:
+```
+sudo grep CRON /var/log/syslog
+```
+
+Now, the client’s server will update its firewall rules every 5 minutes.
+
+---
+
+## Step 4: Make `iptables` Rules Persistent After Reboot
+
+Since `iptables` rules reset after a reboot, they must be saved and restored.
+
+### Step 4.1: Save `iptables` Rules
+Save the current rules to a file:
+```
+sudo iptables-save | sudo tee /etc/iptables.rules > /dev/null
+```
+
+### Step 4.2: Restore Rules on Boot
+
+#### **Option 1: Use `rc.local`**
+1. Open or create `/etc/rc.local`:
+```
+sudo vim /etc/rc.local
+```
+
+2. Add the following lines:
+```
 #!/bin/bash
 iptables-restore < /etc/iptables.rules
 exit 0
+```
 
-Make /etc/rc.local executable:
+3. Make it executable:
+```
 sudo chmod +x /etc/rc.local
-Now, iptables rules will be restored every time your system boots.
+```
 
-Option 2: Use a systemd Service
-If /etc/rc.local does not exist, create a systemd service.
+#### **Option 2: Use a `systemd` Service**
+1. Create a new service file:
+```
+sudo vim /etc/systemd/system/iptables-restore.service
+```
 
-Create a new service file:
-sudo nano /etc/systemd/system/iptables-restore.service
-Add the following content:
+2. Add the following content:
+```
 [Unit]
 Description=Restore iptables firewall rules
 Before=network-pre.target
@@ -104,32 +203,59 @@ RemainAfterExit=yes
 
 [Install]
 WantedBy=multi-user.target
-Enable and start the service:
+```
+
+3. Enable and start the service:
+```
 sudo systemctl enable iptables-restore
 sudo systemctl start iptables-restore
-Now, iptables rules will be restored on every reboot.
+```
 
-Step 5: Testing & Verifying the Setup
+Now, `iptables` rules will be restored on every reboot.
 
-Step 5.1: Check If the IPs Are Blocked
+---
+
+## Step 5: Testing & Verifying the Setup
+
+###Step 5.1: Check If the IPs Are Blocked
+```
 curl -X GET http://localhost:8000/ip-blocking/blocked-ips/
+```
 
-Step 5.2 : Check If the Firewall Rules Are Applied
+### Step 5.2: Check If the Firewall Rules Are Applied
+```
 sudo iptables -L BLOCKLIST -v -n
-
-Expected output:
+```
+**Expected output:**
+```
 Chain BLOCKLIST (0 references)
  pkts bytes target     prot opt in     out     source               destination
     0     0 DROP       all  --  *      *       203.0.113.45         0.0.0.0/0
     0     0 DROP       all  --  *      *       175.156.68.171       0.0.0.0/0
+```
 
-Step 5.3 :Try Pinging a Blocked IP
+###Step 5.3: Try Pinging a Blocked IP
+```
 ping 175.156.68.171
-If ping fails, blocking is successfully and malicious attackers are not able to communicate with the client system
+```
+If ping **fails**, blocking is successful.
 
-Step 6:  How to Remove an IP from the Blocklist
-Remove the IP from the database:
+---
+
+##Step 6: How to Remove an IP from the Blocklist
+
+1. Remove the IP from the database:
+```
 curl -X DELETE "http://localhost:8000/ip-blocking/unblock-ip/YOUR_IP_HERE"
-Reapply firewall updates:
+```
+
+2. Reapply firewall updates:
+```
 sudo /usr/local/bin/update_firewall.sh
-This will remove the IP from iptables.
+```
+
+Now, the IP will be removed from `iptables`.
+
+---
+
+

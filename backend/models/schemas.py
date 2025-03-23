@@ -72,3 +72,34 @@ class SnortLogsOut(BaseModel):
 class IPAddressSchema(BaseModel):
     ip: str
     reason : str
+
+    class Config:
+        from_attributes = True
+
+class ClientSchema(BaseModel):
+    name: str
+    email: str
+
+    class Config:
+        from_attributes = True
+
+class VerifyIPRequest(BaseModel):
+    client_id: int
+    ip: str
+
+    class Config:
+        from_attributes = True
+
+class LogRequest(BaseModel):
+    client_id: int
+    log_data: str
+
+    class Config:
+        from_attributes = True  
+
+class ClientRequest(BaseModel):
+    name: str
+    email: str
+
+    class Config:
+        from_attributes = True
