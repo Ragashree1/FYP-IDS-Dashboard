@@ -1,9 +1,11 @@
 import { useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom"
+import { checkPermissions } from "./utils/check_permissions" // Import the checkPermissions function;
 
 import Sidebar from "./Sidebar" // Import the Sidebar component
 
-const userRole = "network-admin"
+const userRole = "2"
+const permission = "Blacklist UI"
 
 const API_URL = "http://localhost:8000/ip-blocking"; // backend API base URL
 
@@ -248,6 +250,15 @@ const BlocklistManagementPage = () => {
     fetchBlockedIPs(setBlocklist);
     checkUserIP(navigate);
   }, [navigate]);
+
+  useEffect(() => {
+    const verifyPermissions = async () => {
+        checkPermissions(navigate, permission);
+    };
+
+    verifyPermissions();
+}, [navigate]);
+
 
   const isActive = (path) => location.pathname.startsWith(path)
 

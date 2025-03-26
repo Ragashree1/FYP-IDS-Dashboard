@@ -1,12 +1,22 @@
-"use client"
+import { useEffect } from "react"
 import { useNavigate, useLocation } from "react-router-dom"
 import Sidebar from "./Sidebar" // Import the Sidebar component
+import { checkPermissions } from "./utils/check_permissions"
 
-const userRole = "network-admin"
+const userRole = "Network Admin"
+const permission = "Reports Page"
 
 const Reports = () => {
   const navigate = useNavigate()
   const location = useLocation()
+
+  useEffect(() => {
+    const verifyPermissions = async () => {
+        checkPermissions(navigate, permission);
+    };
+
+    verifyPermissions();
+}, [navigate]);
 
   const isActive = (path) => location.pathname.startsWith(path)
 

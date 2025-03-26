@@ -1,10 +1,10 @@
-"use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { useNavigate } from "react-router-dom"
 import Sidebar from "./Sidebar"
 
 const userRole = "data-analyst"
+const permission = "Trained Models Page"
 
 const Switch = ({ isOn, onToggle, disabled = false }) => {
   return (
@@ -70,6 +70,13 @@ const TrainedModelsPage = () => {
       isTraining: false,
     },
   ])
+  useEffect(() => {
+    const verifyPermissions = async () => {
+        checkPermissions(navigate, permission);
+    };
+
+    verifyPermissions();
+}, [navigate]);
 
   const handleToggleModel = (modelId) => {
     setModels(

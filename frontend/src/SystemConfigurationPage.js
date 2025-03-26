@@ -1,11 +1,12 @@
-"use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { useNavigate, useLocation } from "react-router-dom"
+import { checkPermissions } from "./utils/check_permissions"
 
 import Sidebar from "./Sidebar" // Import the Sidebar component
+const permission = "System Configuration Page"
 
-const userRole = "network-admin"
+const userRole = "Network Admin"
 const AddIPModal = ({ onClose, onAdd }) => {
   const [newIP, setNewIP] = useState("")
 
@@ -133,6 +134,14 @@ const SystemConfiguration = () => {
   const handleLogout = () => {
     navigate("/login")
   }
+
+  useEffect(() => {
+    const verifyPermissions = async () => {
+        checkPermissions(navigate, permission);
+    };
+
+    verifyPermissions();
+}, [navigate]);
 
   const handleSearch = (e) => {
     setSearchQuery(e.target.value)

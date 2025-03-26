@@ -2,9 +2,12 @@ import React, { useState, useMemo, useEffect } from "react"
 import { useNavigate, useLocation } from "react-router-dom"
 import axios from 'axios';
 import Sidebar from "./Sidebar" // Import the Sidebar component
-import defaultClassifications from "./defaultClassifications" // Import default classifications
+import defaultClassifications from "./defaultClassifications"
+import { checkPermissions } from "./utils/check_permissions"
+ // Import default classifications
 
-const userRole = "network-admin"
+const userRole = "Network Admin"
+const permission = "Offences"
 
 const FilterModal = ({ onClose, onSubmit , initialValues}) => {
 
@@ -745,6 +748,13 @@ const Offences = () => {
     name = name.trim()
     return classifications[name] ? classifications[name].priority : 'Unknown'
   }
+  useEffect(() => {
+    const verifyPermissions = async () => {
+        checkPermissions(navigate, permission);
+    };
+
+    verifyPermissions();
+}, [navigate]);
 
   useEffect(() => {
     axios.get('http://localhost:8000/alerts')
@@ -895,14 +905,18 @@ const Offences = () => {
       return offences.length
     }
 
-  
-  function getHighAlerts() {
+  function getCriticalAlerts() {
     return offences.map((offence, index) => getPriority(offence.classification.toLowerCase().trim() || 'N/A')).filter((val) => val == 1).length;
   }
 
   
+  function getHighAlerts() {
+    return offences.map((offence, index) => getPriority(offence.classification.toLowerCase().trim() || 'N/A')).filter((val) => val == 2).length;
+  }
+
+  
   function getMediumAlerts() {
-    return offences.map((offence, index) => getPriority(offence.classification.toLowerCase().trim() || 'N/A')).filter((val) => val == 2 || val == 3).length;
+    return offences.map((offence, index) => getPriority(offence.classification.toLowerCase().trim() || 'N/A')).filter((val) => val == 3).length;
   }
 
   function getLowAlerts() {
@@ -983,6 +997,12 @@ const Offences = () => {
           <div style={{ background: "#ddd", padding: "12px 20px", borderRadius: "20px", textAlign: "center" }}>
             <p>Total Alerts</p>
             <p style={{ fontSize: "20px", fontWeight: "bold" }}>{getAlertCount()}</p>
+          </div>
+          <div style={{ background: "#ddd", padding: "12px 20px", borderRadius: "20px", textAlign: "center" }}>
+            <p>Total Critical</p>
+            <p style={{ fontSize: "20px", fontWeight: "bold" }}>
+              {getCriticalAlerts()}
+            </p>
           </div>
           <div style={{ background: "#ddd", padding: "12px 20px", borderRadius: "20px", textAlign: "center" }}>
             <p>Total High</p>
@@ -1195,7 +1215,7 @@ const Offences = () => {
                 <th style={{ padding: "10px", textAlign: "center", borderRight: "1px solid #aaa" }}>Date & Time</th>
                 <th style={{ padding: "10px", textAlign: "center", borderRight: "1px solid #aaa" }}>Protocol</th>
                 <th style={{ padding: "10px", textAlign: "center", borderRight: "1px solid #aaa" }}>Alert Category</th>
-                <th style={{ padding: "10px", textAlign: "center", borderRight: "1px solid #aaa" }}>Severity level (1=High, 4=Low)</th>
+                <th style={{ padding: "10px", textAlign: "center", borderRight: "1px solid #aaa" }}>Severity level (1=Critical, 4=Low)</th>
                 <th style={{ padding: "10px", textAlign: "center" }}>View</th>
               </tr>
             </thead>

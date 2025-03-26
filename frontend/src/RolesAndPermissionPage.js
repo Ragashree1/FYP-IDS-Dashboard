@@ -1,10 +1,9 @@
-"use client"
 
-import { useState ,useEffect } from "react"
+import { useState, useEffect } from "react"
 import { useNavigate, useLocation } from "react-router-dom"
 import Sidebar from "./Sidebar"
 
-const role = "organisation-admin"; 
+const role = "Organisation Admin"; 
 
 const DeleteConfirmationModal = ({ onClose, onConfirm }) => {
   return (

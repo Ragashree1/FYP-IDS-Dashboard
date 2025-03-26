@@ -1,10 +1,10 @@
-"use client"
 
-import { useState, useRef } from "react"
+import { useState, useRef, useEffect } from "react"
 import { useNavigate, useLocation } from "react-router-dom"
 import Sidebar from "./Sidebar"
 
 const userRole = "data-analyst"
+const permission = "Train Models"
 
 const FileUploadArea = ({ onFileSelect, uploadProgress, isUploading, onCancelUpload, uploadedFile, onDeleteFile }) => {
   const fileInputRef = useRef(null)
@@ -234,6 +234,14 @@ const TrainModel = () => {
     falseNegative: 17.7,
     trueNegative: 82.3,
   })
+
+  useEffect(() => {
+    const verifyPermissions = async () => {
+        checkPermissions(navigate, permission);
+    };
+
+    verifyPermissions();
+}, [navigate]);
 
   const handleFileSelect = (file) => {
     setIsUploading(true)

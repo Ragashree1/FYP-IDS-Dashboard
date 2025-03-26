@@ -7,6 +7,9 @@ router = APIRouter(prefix="/register", tags=["register"])
 
 @router.post("/", response_model=AccountBase)
 def add_user(user: AccountBase):
-    new_user = registration_service.add_user(user_particulars=user)
-    return new_user
+    try:
+        new_user = registration_service.add_user(user_particulars=user)
+        return new_user
+    except ValueError as e:
+        raise HTTPException(status_code=422, detail=str(e))
 
