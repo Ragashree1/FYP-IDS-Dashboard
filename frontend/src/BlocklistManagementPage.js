@@ -1,5 +1,5 @@
 "use client"
-
+import React from 'react';
 import { useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom"
 
@@ -11,33 +11,37 @@ const API_URL = "http://localhost:8000/ip-blocking"; // Your backend API base UR
 
 const fetchBlockedIPs = async (setBlocklist) => {
   try {
-    const response = await fetch(`${API_URL}/blocked-ips/`);
-    if (response.status === 403) {
-      alert("Access denied: Your IP is blocked.");
+    const orgId = localStorage.getItem("orgId");
+    const clientEmail = localStorage.getItem("clientEmail");
+
+    if (!orgId || !clientEmail) {
+      alert("Missing authentication info. Please log in again.");
       return;
     }
+
+    const response = await fetch(`http://localhost:8000/ip-blocking/${orgId}/blocked-ips`, {
+      headers: {
+        "X-Client-Email": clientEmail
+      }
+    });
+
+    if (response.status === 403) {
+      alert("Access denied: You are not authorized to view this organization's blocklist.");
+      return;
+    }
+
     if (!response.ok) {
       throw new Error(`Failed to fetch: ${response.status} ${response.statusText}`);
     }
 
     const data = await response.json();
-    console.log("Fetched Blocked IPs:", data);  // Debugging log
-
-    // Ensure data.blocked_ips is an array of objects before mapping
-    if (!Array.isArray(data.blocked_ips)) {
-      throw new Error("Invalid API response: expected an array of objects");
-    }
-
-    // Fix: Extract both IP and reason correctly
     setBlocklist(data.blocked_ips.map(({ ip, reason }) => ({
       ip,
-      reason: reason || "No reason provided"  // Use actual reason, fallback if missing
+      reason: reason || "No reason provided"
     })));
   } catch (error) {
     console.error("Error fetching blocked IPs:", error);
-    if (error.message.includes("Failed to fetch")) {
-      alert("Could not connect to the server. Ensure backend is running.");
-    }
+    alert("Could not connect to the server.");
   }
 };
 
@@ -283,21 +287,23 @@ const BlocklistManagementPage = () => {
   const [showRemoveModal, setShowRemoveModal] = useState(false)
   const [selectedIP, setSelectedIP] = useState(null)
   const [blocklist, setBlocklist] = useState([])
+  const handleSearch = (e) => {
+    setSearchQuery(e.target.value);
+  };  
 
   useEffect(() => {
+    const clientEmail = localStorage.getItem("clientEmail");
+    const orgId = localStorage.getItem("orgId");
+  
+    if (!clientEmail || !orgId) {
+      alert("Missing authentication info. Please log in again.");
+      navigate("/login");
+      return;
+    }
+  
     fetchBlockedIPs(setBlocklist);
     checkUserIP(navigate);
-  }, [navigate]);
-
-  const isActive = (path) => location.pathname.startsWith(path)
-
-  const handleLogout = () => {
-    navigate("/login")
-  }
-
-  const handleSearch = (e) => {
-    setSearchQuery(e.target.value)
-  }
+  }, [navigate]);  
 
   const handleRemoveIP = async (ip) => {
     try {

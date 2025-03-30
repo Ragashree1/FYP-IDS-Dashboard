@@ -1,7 +1,22 @@
 from sqlalchemy.orm import Session
-from models.models import BlockedIP
+from models.models import BlockedIP, Client
 from fastapi import HTTPException, Request
 import re
+
+def get_org_blocked_ips(org_id: int, requester_email: str, db: Session):
+    client = db.query(Client).filter(Client.email == requester_email).first()
+
+    if not client:
+        raise HTTPException(status_code=401, detail="Unauthorized client")
+
+    if client.organization_id != org_id:
+        raise HTTPException(status_code=403, detail="You do not belong to this organization")
+
+    blocked_ips = db.query(BlockedIP.ip, BlockedIP.reason).filter(
+        BlockedIP.organization_id == org_id
+    ).all()
+
+    return {"blocked_ips": [{"ip": ip, "reason": reason} for ip, reason in blocked_ips]}
 
 def get_client_ip(request: Request) -> str:
     """Extracts the actual client IP from request headers."""

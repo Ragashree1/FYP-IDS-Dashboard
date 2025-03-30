@@ -1,7 +1,7 @@
 "use client"
-
+import React from 'react';
 import { useState, useEffect } from "react"
-import { useNavigate, useLocation } from "react-router-dom"
+import { useNavigate } from "react-router-dom"
 import Sidebar from "./Sidebar" // Import the Sidebar component
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"
@@ -122,63 +122,51 @@ const AddIPModal = ({ onClose, onAdd }) => {
 
 const SystemConfiguration = () => {
   const navigate = useNavigate()
-  const location = useLocation()
   const [searchQuery, setSearchQuery] = useState("")
   const [clients, setClients] = useState([])
+  const [logs, setLogs] = useState([])
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [isLoading, setLoading] = useState(false)
 
   useEffect(() => {
-    const storedClientId = localStorage.getItem("clientId")
-  
-    if (!storedClientId) {
-      // Redirect to client registration page if no client is found
-      navigate("/client-registration")
+    const organizationId = localStorage.getItem("organizationId");  // Correct: organizationId
+    
+    if (!organizationId) {
+      alert("Organization ID is missing. Please register again.");
+      navigate("/register");
     } else {
-      fetchVerifiedIPs(storedClientId)
+      fetchVerifiedIPs(organizationId);  // Use organizationId instead of clientId
+      fetchLogs(organizationId);  // Use organizationId instead of clientId
     }
-  }, [navigate])
+  }, [navigate]);   
 
-  const fetchClientId = async () => {
+  const fetchVerifiedIPs = async (organizationId) => {
     try {
       setLoading(true)
-      const response = await fetch(`${API_BASE_URL}/clients/get-client`)
-      if (!response.ok) throw new Error("Failed to fetch client ID")
-
-      const data = await response.json()
-      
-      if (!data.client_id) {
-        throw new Error("Client ID is missing in API response.")
-      }
-
-      console.log("Fetched Client ID:", data.client_id) 
-
-      localStorage.setItem("clientId", data.client_id)
-
-      //Ensure client_id is valid before calling fetchVerifiedIPs
-      await fetchVerifiedIPs(data.client_id)
+      const response = await fetch(`${API_BASE_URL}/ip-verification/verified-ips/${organizationId}`);  // Update this to use organizationId
+      if (!response.ok) throw new Error("Failed to fetch verified IPs");
+  
+      const data = await response.json();
+      setClients(data.verified_ips);
     } catch (error) {
-      console.error("Error fetching client ID:", error)
+      console.error("Error fetching verified IPs:", error);
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }
+  };  
 
-  const fetchVerifiedIPs = async (clientId) => {
+  const fetchLogs = async (organizationId) => {
     try {
-      setLoading(true)
-      const response = await fetch(`${API_BASE_URL}/ip-verification/verified-ips/${clientId}`)
-      if (!response.ok) throw new Error("Failed to fetch verified IPs")
-
-      const data = await response.json()
-      setClients(data.verified_ips)
+      const response = await fetch(`${API_BASE_URL}/ip-verification/logs/${organizationId}`);  // Update this to use organizationId
+      if (!response.ok) throw new Error("Failed to fetch logs");
+      const data = await response.json();
+      setLogs(data);
     } catch (error) {
-      console.error("Error fetching verified IPs:", error)
-    } finally {
-      setLoading(false)
+      console.error("Error fetching logs:", error);
+      alert("Failed to fetch logs. Please try again later.");
     }
-  }
-
+  };  
+  
   const handleRemoveClient = async (id) => {
     try {
       const response = await fetch(`${API_BASE_URL}/ip-verification/remove-ip/${id}`, {
@@ -196,29 +184,28 @@ const SystemConfiguration = () => {
     }
   }
 
-  const handleAddClient = async (newIP) => {
-    try {
-      const clientId = localStorage.getItem("clientId") // Get client ID from storage
-      if (!clientId) throw new Error("Client ID is missing. Please register again.")
-
-      console.log("Sending IP Verification request:", { client_id: Number(clientId), ip: newIP })
-
-      const response = await fetch(`${API_BASE_URL}/ip-verification/verify-ip`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ client_id: Number(clientId), ip: newIP }), //Ensure correct JSON format
-      })
-
-      const data = await response.json()
-      console.log("API Response:", data) //Log the API response
-
-      if (!response.ok) throw new Error(data.detail || "Failed to verify IP")
-
-      setClients((prevClients) => [...prevClients, { id: data.id, ip: newIP }])
-    } catch (error) {
-      console.error("Error verifying IP:", error.message)
+  const handleAddIP = async (newIP) => {
+    const organizationId = localStorage.getItem("organizationId");  // Get organization ID instead of clientId
+    if (!organizationId) {
+      alert("Organization ID is missing. Please register again.");
+      return;
     }
-  }
+  
+    // Use organization_id instead of client_id
+    const response = await fetch(`${API_BASE_URL}/ip-verification/verify-ip`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ organization_id: organizationId, ip: newIP })  // Pass organization_id
+    });
+  
+    const data = await response.json();
+    if (response.ok) {
+      alert("IP verified successfully!");
+      fetchLogs(organizationId);  // Fetch logs based on organizationId
+    } else {
+      alert("Error verifying IP.");
+    }
+  };      
 
   const handleSearch = (e) => {
     setSearchQuery(e.target.value)
@@ -357,7 +344,36 @@ const SystemConfiguration = () => {
           </div>
         </div>
       </div>
-      {isModalOpen && <AddIPModal onClose={closeModal} onAdd={handleAddClient} />}
+      {isModalOpen && <AddIPModal onClose={closeModal} onAdd={handleAddIP} />}
+
+      <div style={{ marginTop: "40px" }}>
+  <h2>Forwarded Logs</h2>
+  <div style={{ maxHeight: "300px", overflowY: "auto", background: "white", padding: "10px", borderRadius: "4px" }}>
+    {logs.length === 0 ? (
+      <p>No logs forwarded yet.</p>
+    ) : (
+      <table style={{ width: "100%", borderCollapse: "collapse" }}>
+        <thead>
+          <tr>
+            <th style={{ borderBottom: "1px solid #ccc", textAlign: "left" }}>Timestamp</th>
+            <th style={{ borderBottom: "1px solid #ccc", textAlign: "left" }}>IP</th>
+            <th style={{ borderBottom: "1px solid #ccc", textAlign: "left" }}>Log</th>
+          </tr>
+        </thead>
+        <tbody>
+          {logs.map((log, index) => (
+            <tr key={index}>
+              <td>{new Date(log.timestamp).toLocaleString()}</td>
+              <td>{log.ip}</td>
+              <td>{log.log_data}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    )}
+  </div>
+</div>
+
     </div>
   )
 }

@@ -13,7 +13,6 @@ from controllers.meeting_minutes_controller import router as meeting_minutes_rou
 from controllers.log_controller import router as logs_router
 from controllers.ip_blocking_controller import router as ip_blocking_router
 from controllers.ip_verification_controller import router as ip_verification_router
-from controllers.client_controller import router as client_router
 
 load_dotenv()
 
@@ -77,7 +76,6 @@ app.include_router(meeting_minutes_router)
 app.include_router(logs_router)
 app.include_router(ip_blocking_router)
 app.include_router(ip_verification_router)
-app.include_router(client_router)
 
 @app.get("/")
 def root():

@@ -103,3 +103,11 @@ class ClientRequest(BaseModel):
 
     class Config:
         from_attributes = True
+
+class LogEntryOut(BaseModel):
+    timestamp: str
+    ip: str
+    log_data: str
+
+    class Config:
+        orm_mode = True

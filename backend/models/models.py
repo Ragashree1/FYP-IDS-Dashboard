@@ -1,4 +1,3 @@
-import json
 from sqlalchemy import Column, ForeignKey, Integer, String, ARRAY, DateTime, func, Boolean, Text
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import validates, relationship
@@ -34,8 +33,11 @@ class BlockedIP(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     ip = Column(String, unique=True, nullable=False)
-    reason = Column(String, nullable=False)  # Store reason
+    reason = Column(String, nullable=False)
     created_at = Column(DateTime, server_default=func.now())
+    
+    organization_id = Column(Integer, ForeignKey("organizations.id"), nullable=True)
+    organization = relationship("Organization")
 
 class SnortLogs(Base):
     __tablename__ = 'SnortLogs'
@@ -67,10 +69,24 @@ class Organization(Base):
 class Client(Base):
     __tablename__ = "clients"
     id = Column(Integer, primary_key=True, index=True)
-    name = Column(String, nullable=False)
-    email = Column(String, unique=True, nullable=False)
+    organization_id = Column(Integer, ForeignKey("organizations.id"), nullable=True)
+    organization = relationship("Organization")
+    
+    # Removed name and email since they're no longer needed
+    # name = Column(String, nullable=False)
+    # email = Column(String, unique=True, nullable=False)
 
-    logs = relationship("LogEntry", back_populates="client")
+    logs = relationship(
+        "LogEntry",
+        back_populates="client",
+        cascade="all, delete-orphan"
+    )
+
+    verified_ips = relationship(
+        "VerifiedIP",
+        cascade="all, delete-orphan",
+        backref="client"
+    )
 
 class VerifiedIP(Base):
     __tablename__ = "verified_ips"
@@ -78,6 +94,9 @@ class VerifiedIP(Base):
     client_id = Column(Integer, ForeignKey("clients.id"), nullable=False)
     ip = Column(String, unique=True, nullable=False)
     is_verified = Column(Boolean, default=False)
+
+    organization_id = Column(Integer, ForeignKey("organizations.id"), nullable=True)  # Ensure IP is linked to an organization
+    organization = relationship("Organization")
 
 class LogEntry(Base):
     __tablename__ = "logs"

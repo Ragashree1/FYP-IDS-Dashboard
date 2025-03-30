@@ -1,5 +1,6 @@
 import { useState, useMemo } from "react"
 import { useNavigate, useLocation } from "react-router-dom"
+import React from 'react';
 import Sidebar from "./Sidebar" // Import the Sidebar component
 
 const EventLogPage = () => {
