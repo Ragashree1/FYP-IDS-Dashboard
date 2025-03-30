@@ -5,150 +5,178 @@ import Sidebar from "./Sidebar"
 const userRole = "2"
 
 // New AddPlaybookModal component that matches the design in the images
-const AddPlaybookModal = ({ onClose, onSave }) => {
-  const [playbookName, setPlaybookName] = useState("")
-  const [description, setDescription] = useState("")
-  const [conditions, setConditions] = useState([{ 
-    id: 1, 
-    field: "source_ip",  // Set default field
-    value: "",
-    window_period: "",
-    condition_type: "threshold",
-    operator: "greater than or equal"  // Set default operator
-  }])
-  const [status, setStatus] = useState(true)
-  const [blockIP, setBlockIP] = useState(true)
-  const [sendEmailAlert, setSendEmailAlert] = useState(true)
-  const [emailRecipients, setEmailRecipients] = useState("")
+const PlaybookModal = ({ playbook, onClose, onSave }) => {
+  const [playbookName, setPlaybookName] = useState(playbook?.name || "");
+  const [description, setDescription] = useState(playbook?.description || "");
+  const [status, setStatus] = useState(playbook?.is_active || false);
+  const [blockIP, setBlockIP] = useState(playbook?.actions?.blockIP ??false);
+  const [sendEmailAlert, setSendEmailAlert] = useState(playbook?.actions?.sendEmailAlert ?? false);
+  const [emailRecipients, setEmailRecipients] = useState(playbook?.actions?.emailRecipients || "");
+  const [conditions, setConditions] = useState([]);
 
   const conditionFieldOptions = {
-    threshold: [
-      { value: "source_ip", label: "Source IP" },
-      { value: "alert_count", label: "Alert Count" }
-    ],
-    severity: [
-      { value: "severity", label: "Severity" }
-    ],
-    class_type: [
-      { value: "class_type", label: "Class Type" }
-    ],
-    ip_reputation: [
-      { value: "source_ip", label: "Source IP" }
-    ],
-    geolocation: [
-      { value: "source_ip", label: "Source IP" }
-    ],
-    destination_targeting: [
-      { value: "destination_ip", label: "Destination IP" }
-    ]
+    threshold: [{ value: "source_ip_alert_count", label: "Source IP + alert count" }],
+    severity: [{ value: "severity", label: "Severity" }],
+    class_type: [{ value: "class_type", label: "Class Type" }],
+    ip_reputation: [{ value: "source_ip", label: "Source IP" }],
+    geolocation: [{ value: "source_ip", label: "Source IP" }],
+    destination_targeting: [{ value: "destination_ip", label: "Destination IP" }],
   };
 
   const conditionTypeOptions = [
-    { value: "threshold", label: "threshold" },
+    { value: "threshold", label: "Threshold" },
     { value: "severity", label: "Severity" },
     { value: "class_type", label: "Class Type" },
     { value: "ip_reputation", label: "IP Reputation" },
   ];
 
   const conditionOperatorOptions = {
-    threshold: [
-      {value: "greater than or equal", label: ">="}
-    ],
-    severity: [
-      {value: "greater than or equal", label: ">="}
-    ],
+    threshold: [{ value: "greater than or equal", label: ">=" }],
+    severity: [{ value: "greater than or equal", label: ">=" }],
     class_type: [
-      {value: "equal", label: "equals"},
-      {value: "not equal", label: "not equals"}
+      { value: "equal", label: "Equals" },
+      { value: "not equal", label: "Not Equals" },
     ],
-    ip_reputation: [
-      {value: "exists", label: "exists"},
+    ip_reputation: [{ value: "exists", label: "Exists" }],
+    geolocation: [
+      { value: "equal", label: "Equals" },
+      { value: "not equal", label: "Not Equals" },
     ],
-    geo_location: [
-      {value: "equal", label: "equals"},
-      {value: "not equal", label: "not equals"}
-    ]
-  }
+  };
 
   const conditionValueOptions = {
     severity: [
-    { value: "low", label: "Low" },
-    { value: "medium", label: "Medium" },
-    { value: "high", label: "High" },
-    { value: "critical", label: "Critical" }
+      { value: "low", label: "Low" },
+      { value: "medium", label: "Medium" },
+      { value: "high", label: "High" },
+      { value: "critical", label: "Critical" },
     ],
-    ip_reputation: [
-    { value: "threat_intel_feed", label: "threat intel feed" },
-    ],
-  }
+    ip_reputation: [{ value: "threat_intel_feed", label: "Threat Intel Feed" }],
+  };
+
+  useEffect(() => {
+    if (playbook?.conditions) {
+      const parsedConditions = playbook.conditions.map((condition, index) => ({
+        id: index + 1,
+        condition_type: condition.condition_type || "threshold",
+        field: condition.field || "source_ip_alert_count",
+        operator: condition.operator || "greater than or equal",
+        value: condition.value || "",
+        window_period: condition.window_period || "",
+      }));
+      setConditions(parsedConditions);
+      if (playbook?.actions){
+        setBlockIP(playbook.actions.blockIP);
+        setSendEmailAlert(playbook.actions.sendEmailAlert);
+        setEmailRecipients(playbook.actions.emailRecipients);
+      }
+    } else {
+      setConditions([
+        {
+          id: 1,
+          condition_type: "threshold",
+          field: "source_ip_alert_count",
+          operator: "greater than or equal",
+          value: "",
+          window_period: "",
+        },
+      ]);
+    }
+  }, [playbook]);
 
   const handleAddCondition = () => {
     const newCondition = {
       id: conditions.length + 1,
       condition_type: "threshold",
-      field: "source_ip",  // Set default field based on condition type
+      field: "source_ip_alert_count",
+      operator: "greater than or equal",
       value: "",
-      operator: "greater than or equal",  // Set default operator based on condition type
       window_period: "",
-    }
-    setConditions([...conditions, newCondition])
-  }
+    };
+    setConditions((prevConditions) => [...prevConditions, newCondition]);
+  };
 
   const handleRemoveCondition = (id) => {
     if (conditions.length > 1) {
-      setConditions(conditions.filter((condition) => condition.id !== id))
+      setConditions(conditions.filter((condition) => condition.id !== id));
     }
-  }
+  };
 
   const handleConditionChange = (id, field, value) => {
-    setConditions(conditions.map((condition) => {
-      if (condition.id === id) {
-        const updatedCondition = { ...condition, [field]: value };
-        
-        // If condition type changes, set appropriate defaults
-        if (field === "condition_type") {
-          const defaultField = conditionFieldOptions[value]?.[0]?.value || "";
-          const defaultOperator = conditionOperatorOptions[value]?.[0]?.value || "";
-          const defaultValue = conditionValueOptions[value]?.[0]?.value || "";
-          
-          updatedCondition.field = defaultField;
-          updatedCondition.operator = defaultOperator;
-          updatedCondition.value = defaultValue; // Reset value when type changes
-        }
-        
-        return updatedCondition;
-      }
-      return condition;
-    }))
-  }
+    setConditions(
+      conditions.map((condition) =>
+        condition.id === id
+          ? {
+              ...condition,
+              [field]: value,
+              ...(field === "condition_type" && {
+                field: conditionFieldOptions[value]?.[0]?.value || "",
+                operator: conditionOperatorOptions[value]?.[0]?.value || "",
+                value: "",
+              }),
+            }
+          : condition
+      )
+    );
+  };
 
   const handleSubmit = (e) => {
-    e.preventDefault()
+    e.preventDefault();
 
-    // Determine action type based on selected options
-    let actionType = ""
-    if (blockIP && sendEmailAlert) {
-      actionType = "Block IP + Alert"
-    } else if (blockIP) {
-      actionType = "Block IP"
-    } else if (sendEmailAlert) {
-      actionType = "Alert"
+    // Check for duplicate condition types
+    const conditionTypes = conditions.map((condition) => condition.condition_type);
+    const hasDuplicateConditionTypes = conditionTypes.some(
+      (type, index) => conditionTypes.indexOf(type) !== index
+    );
+    console.log(hasDuplicateConditionTypes)
+
+    if (hasDuplicateConditionTypes) {
+      const alertBox = document.createElement("div");
+      alertBox.style.position = "fixed";
+      alertBox.style.top = "5%";
+      alertBox.style.left = "50%";
+      alertBox.style.transform = "translate(-50%, -50%)";
+      alertBox.style.backgroundColor = "#f44336";
+      alertBox.style.color = "white";
+      alertBox.style.padding = "16px";
+      alertBox.style.borderRadius = "8px";
+      alertBox.style.boxShadow = "0 4px 8px rgba(0, 0, 0, 0.2)";
+      alertBox.style.zIndex = "1000";
+      alertBox.textContent = "The same condition type cannot be added twice.";
+
+      document.body.appendChild(alertBox);
+
+      setTimeout(() => {
+        alertBox.style.transition = "opacity 0.5s";
+        alertBox.style.opacity = "0";
+        setTimeout(() => document.body.removeChild(alertBox), 500);
+      }, 3000);
+      return;
     }
+
+    const actionType = blockIP && sendEmailAlert
+      ? "Block IP + Alert"
+      : blockIP
+      ? "Block IP"
+      : sendEmailAlert
+      ? "Alert"
+      : "";
 
     const playbookData = {
       name: playbookName,
-      description: description,
+      description,
       triggerType: "Alert Category",
-      actionType: actionType,
-      status: status ? "active" : "inactive",
-      triggerConditions: JSON.stringify(conditions),
-      blockIP: blockIP,
-      sendEmailAlert: sendEmailAlert,
-      emailRecipients: emailRecipients,
-    }
-
-    onSave(playbookData)
-  }
+      actionType,
+      is_active: status,
+      conditions,
+      actions: {
+        blockIP,
+        sendEmailAlert,
+        emailRecipients,
+      },
+    };
+    onSave(playbookData, playbook?.id);
+  };
 
   return (
     <div
@@ -204,9 +232,9 @@ const AddPlaybookModal = ({ onClose, onSave }) => {
           >
             ←
           </button>
-          <div>
-            <h2 style={{ margin: "4px 0 0 0" }}>Add New Playbook</h2>
-          </div>
+          <h2 style={{ margin: "4px 0 0 0" }}>
+            {playbook ? "Edit Playbook" : "Add New Playbook"}
+          </h2>
         </div>
 
         {/* Content */}
@@ -214,7 +242,9 @@ const AddPlaybookModal = ({ onClose, onSave }) => {
           <div style={{ padding: "24px" }}>
             {/* Playbook Name */}
             <div style={{ marginBottom: "24px" }}>
-              <label style={{ display: "block", marginBottom: "8px", fontWeight: "500" }}>Playbook Name</label>
+              <label style={{ display: "block", marginBottom: "8px", fontWeight: "500" }}>
+                Playbook Name
+              </label>
               <input
                 type="text"
                 value={playbookName}
@@ -234,7 +264,9 @@ const AddPlaybookModal = ({ onClose, onSave }) => {
 
             {/* Description */}
             <div style={{ marginBottom: "24px" }}>
-              <label style={{ display: "block", marginBottom: "8px", fontWeight: "500" }}>Description</label>
+              <label style={{ display: "block", marginBottom: "8px", fontWeight: "500" }}>
+                Description
+              </label>
               <textarea
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
@@ -257,10 +289,10 @@ const AddPlaybookModal = ({ onClose, onSave }) => {
             <div style={{ marginBottom: "24px" }}>
               <h3 style={{ margin: "0 0 8px 0" }}>Trigger Conditions</h3>
               <p style={{ margin: "0 0 16px 0", color: "#666", fontSize: "14px" }}>
-                Define when this playbook should be triggered. All conditions must be met for the playbook to execute.
+                Define when this playbook should be triggered. All conditions must be met for the
+                playbook to execute.
               </p>
 
-              {/* Conditions */}
               {conditions.map((condition, index) => (
                 <div
                   key={condition.id}
@@ -270,7 +302,6 @@ const AddPlaybookModal = ({ onClose, onSave }) => {
                     padding: "16px",
                     marginBottom: "16px",
                     position: "relative",
-                    overflow: "hidden", // Prevent content from overflowing
                     boxSizing: "border-box",
                   }}
                 >
@@ -296,12 +327,14 @@ const AddPlaybookModal = ({ onClose, onSave }) => {
                     )}
                   </div>
 
-                  
+                  {/* Condition Type */}
                   <div style={{ marginBottom: "16px", width: "100%" }}>
                     <label style={{ display: "block", marginBottom: "8px" }}>Condition Type</label>
                     <select
                       value={condition.condition_type}
-                      onChange={(e) => handleConditionChange(condition.id, "condition_type", e.target.value)}
+                      onChange={(e) =>
+                        handleConditionChange(condition.id, "condition_type", e.target.value)
+                      }
                       style={{
                         width: "100%",
                         padding: "10px",
@@ -311,7 +344,30 @@ const AddPlaybookModal = ({ onClose, onSave }) => {
                         boxSizing: "border-box",
                       }}
                     >
-                      {conditionTypeOptions.map((field) => (
+                      {conditionTypeOptions.map((option) => (
+                        <option key={option.value} value={option.value}>
+                          {option.label}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  {/* Field */}
+                  <div style={{ marginBottom: "16px", width: "100%" }}>
+                    <label style={{ display: "block", marginBottom: "8px" }}>Field</label>
+                    <select
+                      value={condition.field}
+                      onChange={(e) => handleConditionChange(condition.id, "field", e.target.value)}
+                      style={{
+                        width: "100%",
+                        padding: "10px",
+                        border: "1px solid #ddd",
+                        borderRadius: "4px",
+                        backgroundColor: "white",
+                        boxSizing: "border-box",
+                      }}
+                    >
+                      {conditionFieldOptions[condition.condition_type]?.map((field) => (
                         <option key={field.value} value={field.value}>
                           {field.label}
                         </option>
@@ -319,60 +375,41 @@ const AddPlaybookModal = ({ onClose, onSave }) => {
                     </select>
                   </div>
 
-
+                  {/* Operator */}
                   <div style={{ marginBottom: "16px", width: "100%" }}>
-                                      <label style={{ display: "block", marginBottom: "8px" }}>Field</label>
-                                      <select
-                                        value={condition.field}
-                                        onChange={(e) => handleConditionChange(condition.id, "field", e.target.value)}
-                                        style={{
-                                          width: "100%",
-                                          padding: "10px",
-                                          border: "1px solid #ddd",
-                                          borderRadius: "4px",
-                                          backgroundColor: "white",
-                                          boxSizing: "border-box",
-                                        }}
-                                      >
-                                        {conditionFieldOptions[condition.condition_type]?.map((field) => (
-                                          <option key={field.value} value={field.value}>
-                                            {field.label}
-                                          </option>
-                                        ))}
-                                      </select>
-                                    </div>
+                    <label style={{ display: "block", marginBottom: "8px" }}>Operator</label>
+                    <select
+                      value={condition.operator}
+                      onChange={(e) =>
+                        handleConditionChange(condition.id, "operator", e.target.value)
+                      }
+                      style={{
+                        width: "100%",
+                        padding: "10px",
+                        border: "1px solid #ddd",
+                        borderRadius: "4px",
+                        backgroundColor: "white",
+                        boxSizing: "border-box",
+                      }}
+                    >
+                      {conditionOperatorOptions[condition.condition_type]?.map((operator) => (
+                        <option key={operator.value} value={operator.value}>
+                          {operator.label}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
 
-                                    <div style={{ marginBottom: "16px", width: "100%" }}>
-                                      <label style={{ display: "block", marginBottom: "8px" }}>Operator</label>
-                                      <select
-                                        value={condition.operator}
-                                        onChange={(e) => handleConditionChange(condition.id, "operator", e.target.value)}
-                                        style={{
-                                          width: "100%",
-                                          padding: "10px",
-                                          border: "1px solid #ddd",
-                                          borderRadius: "4px",
-                                          backgroundColor: "white",
-                                          boxSizing: "border-box",
-                                        }}
-                                        >
-                                        {conditionOperatorOptions[condition.condition_type]?.map((operator) => (
-                                          <option key={operator.value} value={operator.value}>
-                                            {operator.label}
-                                          </option>
-                                        ))}
-                                      </select>
-                                    </div>
-
-
-                                    <div style={{ width: "100%", marginBottom: "16px" }}>
+                  {/* Value */}
+                  <div style={{ marginBottom: "16px", width: "100%" }}>
                     <label style={{ display: "block", marginBottom: "8px" }}>Value</label>
-                    
                     {condition.condition_type === "threshold" ? (
                       <input
                         type="number"
                         value={condition.value}
-                        onChange={(e) => handleConditionChange(condition.id, "value", e.target.value)}
+                        onChange={(e) =>
+                          handleConditionChange(condition.id, "value", e.target.value)
+                        }
                         placeholder="Enter value"
                         style={{
                           width: "100%",
@@ -383,10 +420,13 @@ const AddPlaybookModal = ({ onClose, onSave }) => {
                         }}
                         required
                       />
-                    ) : ["severity", "ip_reputation"].includes(condition.condition_type.toLowerCase()) ? (
+                    ) : condition.condition_type === "severity" ||
+                      condition.condition_type === "ip_reputation" ? (
                       <select
                         value={condition.value}
-                        onChange={(e) => handleConditionChange(condition.id, "value", e.target.value)}
+                        onChange={(e) =>
+                          handleConditionChange(condition.id, "value", e.target.value)
+                        }
                         style={{
                           width: "100%",
                           padding: "10px",
@@ -396,9 +436,9 @@ const AddPlaybookModal = ({ onClose, onSave }) => {
                           boxSizing: "border-box",
                         }}
                       >
-                        {conditionValueOptions[condition.condition_type]?.map((option, index) => (
-                          <option key={index} value={option.value || ""}>
-                            {option.label || "Unknown"}
+                        {conditionValueOptions[condition.condition_type]?.map((option) => (
+                          <option key={option.value} value={option.value}>
+                            {option.label}
                           </option>
                         ))}
                       </select>
@@ -406,7 +446,9 @@ const AddPlaybookModal = ({ onClose, onSave }) => {
                       <input
                         type="text"
                         value={condition.value}
-                        onChange={(e) => handleConditionChange(condition.id, "value", e.target.value)}
+                        onChange={(e) =>
+                          handleConditionChange(condition.id, "value", e.target.value)
+                        }
                         placeholder="Enter value"
                         style={{
                           width: "100%",
@@ -419,26 +461,6 @@ const AddPlaybookModal = ({ onClose, onSave }) => {
                       />
                     )}
                   </div>
-
-                  {condition.condition_type === "threshold" ? (
-                    <div style={{ width: "100%" }}>
-                    <label style={{ display: "block", marginBottom: "8px" }}>Window Period (mins)</label>
-                      <input
-                      type="number"
-                      value={condition.window_period}
-                      onChange={(e) => handleConditionChange(condition.id, "window_period", e.target.value)}
-                      placeholder="Enter value"
-                      style={{
-                        width: "100%",
-                        padding: "10px",
-                        border: "1px solid #ddd",
-                        borderRadius: "4px",
-                        boxSizing: "border-box",
-                      }}
-                      required
-                      />
-                      </div>
-                    ) : null}
                 </div>
               ))}
 
@@ -464,10 +486,6 @@ const AddPlaybookModal = ({ onClose, onSave }) => {
             {/* Response Actions */}
             <div style={{ marginBottom: "24px" }}>
               <h3 style={{ margin: "0 0 8px 0" }}>Response Actions</h3>
-              <p style={{ margin: "0 0 16px 0", color: "#666", fontSize: "14px" }}>
-                Define what actions should be taken when the trigger conditions are met.
-              </p>
-
               <div
                 style={{
                   border: "1px solid #ddd",
@@ -541,7 +559,7 @@ const AddPlaybookModal = ({ onClose, onSave }) => {
                   <input
                     type="checkbox"
                     checked={status}
-                    onChange={() => {}} // Handled by the onClick on the parent div
+                    onChange={() => {}}
                     style={{ opacity: 0, width: 0, height: 0 }}
                   />
                   <span
@@ -618,668 +636,14 @@ const AddPlaybookModal = ({ onClose, onSave }) => {
                 cursor: "pointer",
               }}
             >
-              Publish
+              {playbook ? "Save" : "Publish"}
             </button>
           </div>
         </form>
       </div>
     </div>
-  )
-}
-
-const PlaybookModal = ({ playbook, onClose, onSave, isEditing }) => {
-  const [playbookName, setPlaybookName] = useState(playbook?.name || "")
-  const [description, setDescription] = useState(playbook?.description || "")
-  const [status, setStatus] = useState(playbook?.status === "active")
-
-  // Parse action details to get blockIP and sendEmailAlert values
-  const actionDetails = playbook?.actionDetails ? JSON.parse(playbook.actionDetails) : {}
-  const [blockIP, setBlockIP] = useState(actionDetails.blockIP !== undefined ? actionDetails.blockIP : true)
-  const [sendEmailAlert, setSendEmailAlert] = useState(
-    actionDetails.sendEmailAlert !== undefined ? actionDetails.sendEmailAlert : false,
-  )
-  const [emailRecipients, setEmailRecipients] = useState(actionDetails.emailRecipients || "")
-  const [conditions, setConditions] = useState([])
-
-  // Parse trigger conditions with proper initialization
-  let initialConditions = [{ 
-    id: 1, 
-    condition_type: "threshold",
-    field: "source_ip",
-    operator: "greater than or equal",
-    value: "",
-    window_period: ""
-  }]
-
-  try {
-    if (playbook?.conditions) {
-      const parsedConditions = playbook.conditions
-      console.log('parsed conditions')
-      console.log(parsedConditions);
-      if (Array.isArray(parsedConditions)) {
-        initialConditions = parsedConditions.map((condition, index) => ({
-          id: index + 1,
-          condition_type: condition.condition_type,
-          field: condition.field,
-          operator: condition.operator,
-          value: condition.value,
-          window_period: condition.window_period 
-        }))
-        console.log('initial conditions')
-        console.log(initialConditions)
-        setConditions(initialConditions)
-      }
-    }else{
-      console.log('not loaded')
-    }
-  } catch (error) {
-    console.error("Error parsing trigger conditions:", error)
-    console.log(error)
-    console.log(playbook)
-  }
-
-  
-
-  const handleAddCondition = () => {
-    const newCondition = {
-      id: conditions.length + 1,
-      field: "Alert Category",
-      value: "",
-      window_period: "",
-      condition_type: "",
-      operator: "",
-    }
-    setConditions([...conditions, newCondition])
-  }
-
-  const handleRemoveCondition = (id) => {
-    if (conditions.length > 1) {
-      setConditions(conditions.filter((condition) => condition.id !== id))
-    }
-  }
-
-  const handleConditionChange = (id, field, value) => {
-    setConditions(conditions.map((condition) => (condition.id === id ? { ...condition, [field]: value } : condition)))
-  }
-
-  const conditionFieldOptions = {
-    threshold: [
-      { value: "source_ip", label: "Source IP" },
-      { value: "alert_count", label: "Alert Count" }
-    ],
-    severity: [
-      { value: "severity", label: "Severity" }
-    ],
-    class_type: [
-      { value: "class_type", label: "Class Type" }
-    ],
-    ip_reputation: [
-      { value: "source_ip", label: "Source IP" }
-    ],
-    geolocation: [
-      { value: "source_ip", label: "Source IP" }
-    ],
-    destination_targeting: [
-      { value: "destination_ip", label: "Destination IP" }
-    ]
-  };
-
-  const conditionTypeOptions = [
-    { value: "threshold", label: "threshold" },
-    { value: "severity", label: "Severity" },
-    { value: "class_type", label: "Class Type" },
-    { value: "ip_reputation", label: "IP Reputation" },
-  ];
-
-  const conditionOperatorOptions = {
-    threshold: [
-      {value: "greater than or equal", label: ">="}
-    ],
-    severity: [
-      {value: "greater than or equal", label: ">="}
-    ],
-    class_type: [
-      {value: "equal", label: "equals"},
-      {value: "not equal", label: "not equals"}
-    ],
-    ip_reputation: [
-      {value: "exists", label: "exists"},
-    ],
-    geo_location: [
-      {value: "equal", label: "equals"},
-      {value: "not equal", label: "not equals"}
-    ]
-  }
-
-  const conditionValueOptions = {
-    severity: [
-    { value: "low", label: "Low" },
-    { value: "medium", label: "Medium" },
-    { value: "high", label: "High" },
-    { value: "critical", label: "Critical" }
-    ],
-    ip_reputation: [
-    { value: "threat_intel_feed", label: "threat intel feed" },
-    ],
-  }
-
-  const handleSubmit = (e) => {
-    e.preventDefault()
-
-    // Determine action type based on selected options
-    let actionType = ""
-    if (blockIP && sendEmailAlert) {
-      actionType = "Block IP + Alert"
-    } else if (blockIP) {
-      actionType = "Block IP"
-    } else if (sendEmailAlert) {
-      actionType = "Alert"
-    }
-
-    const playbookData = {
-      name: playbookName,
-      description,
-      triggerType: "Alert Category",
-      actionType,
-      status: status ? "active" : "inactive",
-      triggerConditions: JSON.stringify(conditions),
-      actionDetails: JSON.stringify({
-        blockIP,
-        sendEmailAlert,
-        emailRecipients,
-      }),
-    }
-
-    onSave(playbookData, playbook?.id)
-  }
-
-  return (
-    <div
-      style={{
-        position: "fixed",
-        top: 0,
-        left: 0,
-        right: 0,
-        bottom: 0,
-        backgroundColor: "rgba(0, 0, 0, 0.5)",
-        display: "flex",
-        justifyContent: "center",
-        alignItems: "center",
-        zIndex: 1000,
-      }}
-    >
-      <div
-        style={{
-          backgroundColor: "white",
-          borderRadius: "8px",
-          width: "90%",
-          maxWidth: "800px",
-          maxHeight: "90vh",
-          overflowY: "auto",
-          boxShadow: "0 4px 8px rgba(0, 0, 0, 0.1)",
-        }}
-      >
-        {/* Header */}
-        <div
-          style={{
-            display: "flex",
-            alignItems: "center",
-            padding: "16px 24px",
-            borderBottom: "1px solid #eee",
-            backgroundColor: "#f9f9f9",
-            borderTopLeftRadius: "8px",
-            borderTopRightRadius: "8px",
-            position: "sticky",
-            top: 0,
-            zIndex: 10,
-          }}
-        >
-          <button
-            onClick={onClose}
-            style={{
-              background: "none",
-              border: "none",
-              fontSize: "20px",
-              cursor: "pointer",
-              marginRight: "16px",
-              color: "#666",
-            }}
-          >
-            ←
-          </button>
-          <div>
-            <div style={{ color: "#666", fontSize: "14px" }}>
-            </div>
-            <h2 style={{ margin: "4px 0 0 0" }}>{isEditing ? "Edit Playbook" : "View Playbook"}</h2>
-          </div>
-        </div>
-
-        {/* Content */}
-        <form onSubmit={handleSubmit}>
-          <div style={{ padding: "24px" }}>
-            {/* Playbook Name */}
-            <div style={{ marginBottom: "24px" }}>
-              <label style={{ display: "block", marginBottom: "8px", fontWeight: "500" }}>Playbook Name</label>
-              <input
-                type="text"
-                value={playbookName}
-                onChange={(e) => setPlaybookName(e.target.value)}
-                placeholder="Enter playbook name"
-                style={{
-                  width: "100%",
-                  padding: "10px",
-                  border: "1px solid #ddd",
-                  borderRadius: "4px",
-                  fontSize: "14px",
-                  boxSizing: "border-box",
-                }}
-                required
-                disabled={!isEditing}
-              />
-            </div>
-
-            {/* Description */}
-            <div style={{ marginBottom: "24px" }}>
-              <label style={{ display: "block", marginBottom: "8px", fontWeight: "500" }}>Description</label>
-              <textarea
-                value={description}
-                onChange={(e) => setDescription(e.target.value)}
-                placeholder="Enter a detailed description of this playbook"
-                style={{
-                  width: "100%",
-                  padding: "10px",
-                  border: "1px solid #ddd",
-                  borderRadius: "4px",
-                  minHeight: "100px",
-                  fontSize: "14px",
-                  resize: "vertical",
-                  boxSizing: "border-box",
-                }}
-                required
-                disabled={!isEditing}
-              />
-            </div>
-
-            {/* Trigger Conditions */}
-            <div style={{ marginBottom: "24px" }}>
-              <h3 style={{ margin: "0 0 8px 0" }}>Trigger Conditions</h3>
-              <p style={{ margin: "0 0 16px 0", color: "#666", fontSize: "14px" }}>
-                Define when this playbook should be triggered. All conditions must be met for the playbook to execute.
-              </p>
-
-              {/* Conditions */}
-              {conditions.map((condition, index) => (
-                <div
-                  key={condition.id}
-                  style={{
-                    border: "1px solid #ddd",
-                    borderRadius: "4px",
-                    padding: "16px",
-                    marginBottom: "16px",
-                    position: "relative",
-                    overflow: "hidden", // Prevent content from overflowing
-                    boxSizing: "border-box",
-                  }}
-                >
-                  <div style={{ marginBottom: "8px", fontWeight: "500" }}>
-                    Condition {index + 1}
-                    {isEditing && conditions.length > 1 && (
-                      <button
-                        type="button"
-                        onClick={() => handleRemoveCondition(condition.id)}
-                        style={{
-                          position: "absolute",
-                          right: "16px",
-                          top: "16px",
-                          background: "none",
-                          border: "none",
-                          color: "#f44336",
-                          cursor: "pointer",
-                          fontSize: "16px",
-                        }}
-                      >
-                        ×
-                      </button>
-                    )}
-                  </div>
-
-                  <div style={{ marginBottom: "16px", width: "100%" }}>
-                      <label style={{ display: "block", marginBottom: "8px" }}>Condition Type</label>
-                      <select
-                        value={condition.condition_type}
-                        onChange={(e) => handleConditionChange(condition.id, "condition_type", e.target.value)}
-                        style={{
-                          width: "100%",
-                          padding: "10px",
-                          border: "1px solid #ddd",
-                          borderRadius: "4px",
-                          backgroundColor: "white",
-                          boxSizing: "border-box",
-                        }}
-                        >
-                        <option value="threshold">Threshold</option>
-                        <option value="severity">Severity</option>
-                        <option value="class_type">class type</option>
-                        <option value="ip_reputation">ip repuation</option>
-                      </select>
-                    </div>
-
-
-                <div style={{ marginBottom: "16px", width: "100%" }}>
-                    <label style={{ display: "block", marginBottom: "8px" }}>Field</label>
-                    <select
-                      value={condition.field}
-                      onChange={(e) => handleConditionChange(condition.id, "field", e.target.value)}
-                      style={{
-                        width: "100%",
-                        padding: "10px",
-                        border: "1px solid #ddd",
-                        borderRadius: "4px",
-                        backgroundColor: "white",
-                        boxSizing: "border-box",
-                      }}
-                      disabled={!isEditing}
-                    >
-                      {conditionFieldOptions[condition.condition_type]?.map((field) => (
-                        <option key={field.value} value={field.value}>
-                          {field.label}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-
-                  <div style={{ marginBottom: "16px", width: "100%" }}>
-                    <label style={{ display: "block", marginBottom: "8px" }}>Operator</label>
-                    <select
-                      value={condition.operator}
-                      onChange={(e) => handleConditionChange(condition.id, "operator", e.target.value)}
-                      style={{
-                        width: "100%",
-                        padding: "10px",
-                        border: "1px solid #ddd",
-                        borderRadius: "4px",
-                        backgroundColor: "white",
-                        boxSizing: "border-box",
-                      }}
-                      disabled={!isEditing}
-                    >
-                      {conditionOperatorOptions[condition.condition_type]?.map((operator) => (
-                        <option key={operator.value} value={operator.value}>
-                          {operator.label}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-
-
-                  <div style={{ width: "100%" }}>
-                    <label style={{ display: "block", marginBottom: "8px" }}>Value</label>
-                    {condition.condition_type === "threshold" ? (
-                      <input
-                      type="number"
-                      value={condition.value}
-                      onChange={(e) => handleConditionChange(condition.id, "value", e.target.value)}
-                      placeholder="Enter value"
-                      style={{
-                        width: "100%",
-                        padding: "10px",
-                        border: "1px solid #ddd",
-                        borderRadius: "4px",
-                        boxSizing: "border-box",
-                      }}
-                      required
-                      />
-                    ) : condition.condition_type === "severity" || condition.condition_type === "ip_reputation" ? (
-                      <select
-                      value={condition.value}
-                      onChange={(e) => handleConditionChange(condition.id, "value", e.target.value)}
-                      style={{
-                        width: "100%",
-                        padding: "10px",
-                        border: "1px solid #ddd",
-                        borderRadius: "4px",
-                        backgroundColor: "white",
-                        boxSizing: "border-box",
-                      }}
-                      >
-                      {conditionValueOptions[condition.condition_type]?.map((option) => (
-                        <option key={option.value} value={option.value}>
-                        {option.label}
-                        </option>
-                      ))}
-                      </select>
-                    ) : (
-                      <input
-                      type="text"
-                      value={condition.value}
-                      onChange={(e) => handleConditionChange(condition.id, "value", e.target.value)}
-                      placeholder="Enter value"
-                      style={{
-                        width: "100%",
-                        padding: "10px",
-                        border: "1px solid #ddd",
-                        borderRadius: "4px",
-                        boxSizing: "border-box",
-                      }}
-                      required
-                      />
-                    )}
-                  </div>
-                  {condition.condition_type === "threshold" ? (
-                    <div style={{ width: "100%" }}>
-                    <label style={{ display: "block", marginBottom: "8px" }}>Window period (mins)</label>
-                      <input
-                      type="number"
-                      value={condition.window_period}
-                      onChange={(e) => handleConditionChange(condition.id, "window_period", e.target.value)}
-                      placeholder="Enter value"
-                      style={{
-                        width: "100%",
-                        padding: "10px",
-                        border: "1px solid #ddd",
-                        borderRadius: "4px",
-                        boxSizing: "border-box",
-                      }}
-                      required
-                      />
-                      </div>
-                    ) : null}
-                </div>
-              ))}
-
-              {isEditing && (
-                <button
-                  type="button"
-                  onClick={handleAddCondition}
-                  style={{
-                    width: "100%",
-                    padding: "12px",
-                    backgroundColor: "#f5f5f5",
-                    border: "1px solid #ddd",
-                    borderRadius: "4px",
-                    cursor: "pointer",
-                    color: "#666",
-                    fontSize: "14px",
-                    boxSizing: "border-box",
-                  }}
-                >
-                  + Add Condition
-                </button>
-              )}
-            </div>
-
-            {/* Response Actions */}
-            <div style={{ marginBottom: "24px" }}>
-              <h3 style={{ margin: "0 0 8px 0" }}>Response Actions</h3>
-              <p style={{ margin: "0 0 16px 0", color: "#666", fontSize: "14px" }}>
-                Define what actions should be taken when the trigger conditions are met.
-              </p>
-
-              <div
-                style={{
-                  border: "1px solid #ddd",
-                  borderRadius: "4px",
-                  padding: "16px",
-                  marginBottom: "16px",
-                  boxSizing: "border-box",
-                }}
-              >
-                <div style={{ marginBottom: "16px" }}>
-                  <label style={{ display: "flex", alignItems: "center", cursor: isEditing ? "pointer" : "default" }}>
-                    <input
-                      type="checkbox"
-                      checked={blockIP}
-                      onChange={() => isEditing && setBlockIP(!blockIP)}
-                      style={{ marginRight: "8px" }}
-                      disabled={!isEditing}
-                    />
-                    <span style={{ fontWeight: "500" }}>Block IP</span>
-                  </label>
-                </div>
-
-                <div style={{ marginBottom: "16px" }}>
-                  <label style={{ display: "flex", alignItems: "center", cursor: isEditing ? "pointer" : "default" }}>
-                    <input
-                      type="checkbox"
-                      checked={sendEmailAlert}
-                      onChange={() => isEditing && setSendEmailAlert(!sendEmailAlert)}
-                      style={{ marginRight: "8px" }}
-                      disabled={!isEditing}
-                    />
-                    <span style={{ fontWeight: "500" }}>Send Email Alert</span>
-                  </label>
-                </div>
-
-                {sendEmailAlert && (
-                  <div style={{ marginTop: "16px", width: "100%" }}>
-                    <label style={{ display: "block", marginBottom: "8px" }}>Recipients</label>
-                    <input
-                      type="text"
-                      value={emailRecipients}
-                      onChange={(e) => setEmailRecipients(e.target.value)}
-                      placeholder="Enter email address(es)"
-                      style={{
-                        width: "100%",
-                        padding: "10px",
-                        border: "1px solid #ddd",
-                        borderRadius: "4px",
-                        boxSizing: "border-box",
-                      }}
-                      disabled={!isEditing}
-                    />
-                  </div>
-                )}
-              </div>
-            </div>
-
-            {/* Playbook Settings */}
-            <div>
-              <h3 style={{ margin: "0 0 16px 0" }}>Playbook Settings</h3>
-
-              <div style={{ marginBottom: "16px", display: "flex", alignItems: "center" }}>
-                <label style={{ marginRight: "16px", fontWeight: "500" }}>Playbook Status:</label>
-                <div
-                  style={{
-                    position: "relative",
-                    display: "inline-block",
-                    width: "50px",
-                    height: "24px",
-                    cursor: isEditing ? "pointer" : "default",
-                  }}
-                  onClick={() => isEditing && setStatus(!status)}
-                >
-                  <input
-                    type="checkbox"
-                    checked={status}
-                    onChange={() => {}} // Handled by the onClick on the parent div
-                    style={{ opacity: 0, width: 0, height: 0 }}
-                    disabled={!isEditing}
-                  />
-                  <span
-                    style={{
-                      position: "absolute",
-                      top: 0,
-                      left: 0,
-                      right: 0,
-                      bottom: 0,
-                      backgroundColor: status ? "#4CAF50" : "#ccc",
-                      transition: "0.4s",
-                      borderRadius: "34px",
-                      opacity: isEditing ? 1 : 0.7,
-                    }}
-                  >
-                    <span
-                      style={{
-                        position: "absolute",
-                        content: "",
-                        height: "16px",
-                        width: "16px",
-                        left: status ? "30px" : "4px",
-                        bottom: "4px",
-                        backgroundColor: "white",
-                        transition: "0.4s",
-                        borderRadius: "50%",
-                      }}
-                    ></span>
-                  </span>
-                </div>
-                <span style={{ marginLeft: "8px", color: status ? "#4CAF50" : "#666" }}>
-                  {status ? "Active" : "Inactive"}
-                </span>
-              </div>
-            </div>
-          </div>
-
-          {/* Footer */}
-          <div
-            style={{
-              padding: "16px 24px",
-              borderTop: "1px solid #eee",
-              display: "flex",
-              justifyContent: "flex-end",
-              backgroundColor: "#f9f9f9",
-              borderBottomLeftRadius: "8px",
-              borderBottomRightRadius: "8px",
-              position: "sticky",
-              bottom: 0,
-              zIndex: 10,
-            }}
-          >
-            <button
-              type="button"
-              onClick={onClose}
-              style={{
-                padding: "10px 20px",
-                backgroundColor: "#f5f5f5",
-                border: "1px solid #ddd",
-                borderRadius: "4px",
-                marginRight: "12px",
-                cursor: "pointer",
-              }}
-            >
-              Cancel
-            </button>
-            {isEditing && (
-              <button
-                type="submit"
-                style={{
-                  padding: "10px 20px",
-                  backgroundColor: "#4CAF50",
-                  color: "white",
-                  border: "none",
-                  borderRadius: "4px",
-                  cursor: "pointer",
-                }}
-              >
-                Save
-              </button>
-            )}
-          </div>
-        </form>
-      </div>
-    </div>
-  )
-}
+  );
+};
 
 const PlaybooksPage = () => {
   const navigate = useNavigate()
@@ -1361,6 +725,7 @@ const PlaybooksPage = () => {
   }
 
   const handleEditPlaybook = (playbook) => {
+    console.log(playbook)
     setSelectedPlaybook(playbook)
     setIsEditing(true)
     setShowPlaybookModal(true)
@@ -1376,19 +741,29 @@ const PlaybooksPage = () => {
   const handleSavePlaybook = async (formData, id) => {
     console.log(formData);
     try {
+      let actionType = ""
+      if (formData.blockIP && formData.sendEmailAlert) {
+        actionType = "Block IP + Alert"
+      } else if (formData.blockIP) {
+        actionType = "Block IP"
+      } else if (formData.sendEmailAlert) {
+        actionType = "Alert"
+      }
+
+      console.log('saving playbook');
+      console.log('form data: ', formData)
       const playbookData = {
         name: formData.name,
         description: formData.description,
-        conditions: [
-          JSON.parse(formData.triggerConditions),
-        ],
-        actions: {
-          blockIP: formData.blockIP,
-          sendEmailAlert: formData.sendEmailAlert,
-          emailRecipients: formData.emailRecipients,
-        },
-        is_active: formData.status === 'active'
+        actionType: formData.actionType,
+        status: formData.status ? "active" : "inactive",
+        conditions: formData.conditions,
+        actions: formData.actions,
+        blockIP: formData.blockIP,
+        sendEmailAlert: formData.sendEmailAlert,
+        emailRecipients: formData.emailRecipients,
       };
+      console.log('obj ', playbookData);
 
       let response;
       if (id) {
@@ -1396,15 +771,14 @@ const PlaybooksPage = () => {
         response = await fetch(`http://localhost:8000/playbooks/${id}`, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(playbookData)
+          body: JSON.stringify(playbookData),
         });
       } else {
-        console.log(playbookData);
         // Create new playbook
         response = await fetch('http://localhost:8000/playbooks', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(playbookData)
+          body: JSON.stringify(playbookData),
         });
       }
 
@@ -1488,7 +862,8 @@ const PlaybooksPage = () => {
 
   const formatActionType = (actions) => {
     const actionsList = [];
-    
+    console.log("printing actions")
+    console.log(actions)
     if (actions.blockIP) {
       actionsList.push('Block IP');
     }
@@ -1783,7 +1158,7 @@ const PlaybooksPage = () => {
         />
       )}
 
-      {showAddPlaybookModal && <AddPlaybookModal onClose={handleCloseModal} onSave={handleSavePlaybook} />}
+      {showAddPlaybookModal && <PlaybookModal onClose={handleCloseModal} onSave={handleSavePlaybook} />}
     </div>
   )
 }
