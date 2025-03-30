@@ -149,6 +149,10 @@ class Report(Base):
     class Config:
         orm_mode = True
 
+class InternationalBlacklist(Base):
+    __tablename__ = "international_blacklist"
+    ip = Column(String, primary_key=True, nullable=False)
+
 class TokenTable(Base):
     __tablename__ = "token"
     id = Column(Integer,primary_key=True, index=True)
@@ -191,3 +195,68 @@ class Playbook(Base):
 
     class Config:
         orm_mode = True
+
+    def evaluate_conditions(self, logs, blocked_ips):
+        """
+        Evaluate playbook conditions against logs and return IPs to block.
+        """
+        ips_to_block = set()
+
+        for condition in self.conditions:
+            condition_type = condition.get("condition_type")
+            field = condition.get("field")
+            operator = condition.get("operator")
+            value = condition.get("value")
+            window_period = int(condition.get("window_period", 0))  # in minutes
+
+            if condition_type == "threshold":
+                ips_to_block.update(self._check_threshold(logs, field, operator, value, window_period))
+            elif condition_type == "ip_reputation":
+                ips_to_block.update(self._check_ip_reputation(logs, value))
+            elif condition_type == "geo_location":
+                ips_to_block.update(self._check_geo_location(logs, value))
+            # Add more condition types as needed...
+
+        # Exclude already blocked IPs
+        return ips_to_block - set(blocked_ips)
+
+    def _check_threshold(self, logs, field, operator, value, window_period):
+        """
+        Check if logs exceed the threshold for a specific field within the window period.
+        """
+        from datetime import datetime, timedelta
+
+        now = datetime.utcnow()
+        threshold_time = now - timedelta(minutes=window_period)
+        filtered_logs = [log for log in logs if datetime.strptime(log.timestamp, "%Y-%m-%d %H:%M:%S") >= threshold_time]
+
+        ip_counts = {}
+        for log in filtered_logs:
+            ip = getattr(log, "src_ip", None)
+            if ip and getattr(log, field, None):
+                ip_counts[ip] = ip_counts.get(ip, 0) + 1
+
+        ips_to_block = set()
+        for ip, count in ip_counts.items():
+            if operator == "greater than or equal" and count >= int(value):
+                ips_to_block.add(ip)
+
+        return ips_to_block
+
+    def _check_ip_reputation(self, logs, value):
+        """
+        Check if IPs are part of an international blocklist or threat feed.
+        """
+        # Simulate checking against an external blocklist (e.g., threat intel feed)
+        threat_feed = {"192.168.1.1", "203.0.113.5"}  # Example blocklist
+        return {log.src_ip for log in logs if log.src_ip in threat_feed}
+
+    def _check_geo_location(self, logs, value):
+        """
+        Check if IPs belong to a specific geolocation.
+        """
+        # Simulate geolocation check (e.g., using a geolocation API)
+        restricted_countries = {"North Korea", "Iran"}  # Example restricted countries
+        geo_ip_map = {"192.168.1.1": "North Korea", "203.0.113.5": "USA"}  # Example IP-to-country mapping
+
+        return {log.src_ip for log in logs if geo_ip_map.get(log.src_ip) in restricted_countries}

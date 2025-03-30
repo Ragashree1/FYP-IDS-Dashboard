@@ -296,7 +296,7 @@ const RegistrationPage = () => {
       case "username":
         return value.trim() !== ""
           ? ""
-          : "Login ID is required."
+          : "username is required."
       case "userFirstName":
         return value.trim() !== ""
           ? ""
@@ -531,7 +531,7 @@ const RegistrationPage = () => {
                 type="text"
                 name="username"
                 id="username"
-                placeholder="Login ID"
+                placeholder="username"
                 value={formData.username}
                 onChange={handleChange}
                 required
