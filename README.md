@@ -54,8 +54,9 @@ Make sure you have the following installed:
 
 ## Environment Variables
 Make sure to create a `.env` file based on `.env.example` and update the necessary configuration values. This file should include:
-- Database connection settings
-- Other application configurations
+- Database connection settings (DATABASE_URL, POSTGRES_USER, POSTGRES_PASSWORD, POSTGRES_DB)
+- API_KEY (go to https://www.abuseipdb.com/ and sign up to get api key)
+- Set SECRET_KEY, ALGORITHM and ACCESS_EXPIRE_MINUTES
 
 ## Additional Notes
 - The backend runs on FastAPI using Uvicorn.
