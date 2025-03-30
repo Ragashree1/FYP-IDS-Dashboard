@@ -26,6 +26,8 @@ import models
 from init_db import init_database
 from fastapi.security import OAuth2PasswordBearer
 from jose import JWTError, jwt
+from services.ip_blocking_service import evaluate_and_block_ips
+import time
 
 load_dotenv()
 
@@ -45,9 +47,9 @@ async def startup_event():
 
 # CORS settings
 origins = [
-    "http://localhost:3000",  # Frontend origin
-    "http://127.0.0.1:3000",  # Alternate localhost origin
-    "http://localhost:3006",  # Add any other origins as needed
+    "http://localhost:3000",  
+    "http://127.0.0.1:3000",  
+    "http://localhost:3006",  
     "http://localhost:9600"
 ]
 app.add_middleware(
@@ -68,13 +70,12 @@ async def log_requests(request: Request, call_next):
 @app.get("/login/get_token")
 async def get_token(token: str = Depends(oauth2_scheme)):
     try:
-        # Replace 'your-secret-key' and 'your-algorithm' with actual values
         payload = jwt.decode(token, os.getenv("SECRET_KEY"), algorithms=[os.getenv("ALGORITHM")])
         print('Payload:', payload)
         print('valid')
         return {"message": "Token is valid"}
     except JWTError as e:
-        print(f"Token validation error: {e}")  # Debug log
+        print(f"Token validation error: {e}")  
         raise HTTPException(status_code=403, detail="Invalid or expired token")
 
 # Include the routers
@@ -93,6 +94,14 @@ app.include_router(playbooks_router)
 def fetch_alerts_job():
     update_and_fetch_alerts()
 
+def periodic_task(interval_minutes=5):
+    """
+    Run periodic tasks at the specified interval.
+    """
+    while True:
+        evaluate_and_block_ips()
+        time.sleep(interval_minutes * 60)
+
 if __name__ == "__main__":
     scheduler = BackgroundScheduler()
     scheduler.add_job(fetch_alerts_job, 'interval', minutes=5)
@@ -104,5 +113,8 @@ if __name__ == "__main__":
             pass
     except (KeyboardInterrupt, SystemExit):
         scheduler.shutdown()
+
+    # Start periodic task
+    periodic_task()
 
     uvicorn.run(app, host="0.0.0.0", port=8000, reload=True)

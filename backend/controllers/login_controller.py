@@ -9,9 +9,10 @@ from models.schemas import AccountBase, AccountLogin, RoleBase
 from fastapi.security import OAuth2PasswordRequestForm, OAuth2PasswordBearer
 from services import login_service
 from datetime import timedelta, datetime
+import os
 
-SECRET_KEY = 's3cr3tk3y'  #Could be anything
-ALGORITHM = 'HS256'
+SECRET_KEY = os.getenv("SECRET_KEY", "default_secret_key")  
+ALGORITHM = os.getenv("ALGORITHM", "HS256")
 
 bcrypt_context = CryptContext(schemes=['bcrypt'], deprecated='auto')
 oauth2_bearer = OAuth2PasswordBearer(tokenUrl="login/token")
