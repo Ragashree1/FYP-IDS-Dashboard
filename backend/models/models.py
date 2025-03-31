@@ -48,7 +48,7 @@ class BlockedIP(Base):
 class SnortAlerts(Base):
     __tablename__ = 'SnortAlerts'
     id = Column(Integer, primary_key=True, index=True)
-    timestamp = Column(String)
+    timestamp = Column(DateTime)
     priority = Column(Integer)
     protocol = Column(String)
     raw = Column(String)

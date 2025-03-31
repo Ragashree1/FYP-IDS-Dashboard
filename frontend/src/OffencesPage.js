@@ -764,7 +764,7 @@ const Offences = () => {
   
   // Updated filter logic to filter rows based on both filter type and search query
   const filteredOffences = useMemo(() => {
-    let filtered = offences;
+    let filtered = offences.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
 
     if (hideUncategorized) {
       filtered = filtered.filter(offence => getPriority(offence.classification.toLowerCase().trim() || 'N/A') !== 'Unknown');

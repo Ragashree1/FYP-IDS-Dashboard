@@ -36,14 +36,30 @@ SECRET_KEY = os.getenv("SECRET_KEY", "default_secret_key")  # Default for safety
 ALGORITHM = os.getenv("ALGORITHM", "HS256")
 
 app = FastAPI()
+scheduler = BackgroundScheduler()
 Base.metadata.create_all(bind=engine)
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
+
+def fetch_alerts_job():
+    update_and_fetch_alerts()
+
+def execute_playbook_rules_job():
+    """
+    Periodically execute playbook rules.
+    """
+    print('Executing playbook rules...')
+    execute_playbook_rules()
 
 # Initialize database with roles on startup
 @app.on_event("startup")
 async def startup_event():
     init_database()
+    scheduler.add_job(fetch_alerts_job, "interval", minutes=5)
+    scheduler.add_job(execute_playbook_rules_job, "interval", minutes=1)
+    scheduler.start()
+    print('Scheduler started.')
+
 
 # CORS settings
 origins = [
@@ -62,9 +78,9 @@ app.add_middleware(
 
 @app.middleware("http")
 async def log_requests(request: Request, call_next):
-    print(f"Incoming request: {request.method} {request.url}")
+    # print(f"Incoming request: {request.method} {request.url}")
     response = await call_next(request)
-    print(f"Response status: {response.status_code}")
+    # print(f"Response status: {response.status_code}")
     return response
 
 @app.get("/login/get_token")
@@ -90,37 +106,13 @@ app.include_router(role_permission_router)
 app.include_router(ip_blocking_router)
 app.include_router(playbooks_router)
 
-def fetch_alerts_job():
-    update_and_fetch_alerts()
 
-def execute_playbook_rules_job():
-    """
-    Periodically execute playbook rules.
-    """
-    execute_playbook_rules()
-
-def periodic_task(interval_minutes=5):
-    """
-    Run periodic tasks at the specified interval.
-    """
-    while True:
-        evaluate_and_block_ips()
-        time.sleep(interval_minutes * 60)
 
 if __name__ == "__main__":
-    scheduler = BackgroundScheduler()
-    scheduler.add_job(fetch_alerts_job, 'interval', minutes=5)
-    scheduler.add_job(execute_playbook_rules_job, 'interval', minutes=5)  # Add the new job
-    scheduler.start()
+    # scheduler = BackgroundScheduler()
+    # scheduler.add_job(fetch_alerts_job, 'interval', minutes=5)
+    # scheduler.add_job(execute_playbook_rules_job, 'interval', minutes=1)  # Schedule playbook rules job
+    # scheduler.start()
 
-    try:
-        # Keep the main thread alive
-        while True:
-            pass
-    except (KeyboardInterrupt, SystemExit):
-        scheduler.shutdown()
-
-    # Start periodic task
-    periodic_task()
-
+    # Remove the blocking while loop
     uvicorn.run(app, host="0.0.0.0", port=8000, reload=True)

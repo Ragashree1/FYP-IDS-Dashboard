@@ -5,7 +5,6 @@ from models.models import Logs
 from apscheduler.schedulers.background import BackgroundScheduler
 
 def fetch_logs():
-    print('bef fetch logs')
     es_url = "http://localhost:9200/apache-*/_search"
     query = {
         "size": 100,
@@ -20,14 +19,11 @@ def fetch_logs():
     return logs
 
 def get_last_log_time():
-    print('bef get last log time')
     with SessionLocal() as db:
         last_log = db.query(Logs).order_by(Logs.timestamp.desc()).first()
         return last_log.timestamp if last_log else None
 
 def preprocess_log(log):
-    print('bef preprocess log')
-    print(log['_source'])
     try:
         source = log['_source']
         return {

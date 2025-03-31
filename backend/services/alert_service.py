@@ -4,6 +4,7 @@ from database import SessionLocal
 from models.models import SnortAlerts
 from apscheduler.schedulers.background import BackgroundScheduler
 
+
 def fetch_alerts():
     es_url = "http://localhost:9200/snort-logs-*/_search"
     query = {
@@ -21,7 +22,7 @@ def fetch_alerts():
 def get_last_alert_time():
     with SessionLocal() as db:
         last_alert = db.query(SnortAlerts).order_by(SnortAlerts.timestamp.desc()).first()
-        return datetime.strptime(last_alert.timestamp, "%Y-%m-%dT%H:%M:%S.%fZ") if last_alert else None
+        return last_alert.timestamp if last_alert else None
 
 def preprocess_alert(alert):
     try:

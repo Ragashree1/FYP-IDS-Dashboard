@@ -22,12 +22,12 @@ const fetchBlockedIPs = async (setBlocklist) => {
     console.log("Fetched Blocked IPs:", data);  // Debugging log
 
     // Ensure data.blocked_ips is an array of objects before mapping
-    if (!Array.isArray(data.blocked_ips)) {
+    if (!Array.isArray(data)) {
       throw new Error("Invalid API response: expected an array of objects");
     }
 
     // Fix: Extract both IP and reason correctly
-    setBlocklist(data.blocked_ips.map(({ ip, reason }) => ({
+    setBlocklist(data.map(({ ip, reason }) => ({
       ip,
       reason: reason || "No reason provided"  // Use actual reason, fallback if missing
     })));
