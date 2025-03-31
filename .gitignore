@@ -1,5 +1,5 @@
-"# Python compiled files" 
-"*.pyc" 
-"__pycache__/" 
-"**/__pycache__/" 
-"**/*.pyc" 
+# Python compiled files
+*.pyc
+__pycache__/
+**/__pycache__/
+**/*.pyc
