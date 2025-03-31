@@ -1,8 +1,7 @@
-"use client"
 import { useNavigate, useLocation } from "react-router-dom"
 import Sidebar from "./Sidebar" // Import the Sidebar component
 
-const userRole = "network-admin"
+const userRole = "2"
 
 const Reports = () => {
   const navigate = useNavigate()

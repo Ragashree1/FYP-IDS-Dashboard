@@ -1,11 +1,10 @@
-"use client"
 
 import { useState } from "react"
 import { useNavigate, useLocation } from "react-router-dom"
 
 import Sidebar from "./Sidebar" // Import the Sidebar component
 
-const userRole = "network-admin"
+const userRole = "2"
 const AddIPModal = ({ onClose, onAdd }) => {
   const [newIP, setNewIP] = useState("")
 
