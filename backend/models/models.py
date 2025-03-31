@@ -1,28 +1,29 @@
-import json
-from sqlalchemy import Column, ForeignKey, Integer, String, ARRAY, DateTime,Boolean, Table
+import uuid  
+from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy import Column, ForeignKey, Integer, String, ARRAY, TIMESTAMP, JSON, DateTime, func, Boolean, Table, UniqueConstraint
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import validates, relationship
 from database import Base
-import datetime
+from datetime import datetime 
+import json
 
 class MeetingMinutes(Base):
     __tablename__= 'Meeting'
-    id = Column(Integer,primary_key=True, index=True)
+    id = Column(Integer, primary_key=True, index=True)
     date = Column(String)
     startTime = Column(String)
     endTime = Column(String)
-    pplpresent= Column(ARRAY(String))
-    agenda =  Column(String)
+    pplpresent = Column(ARRAY(String))
+    agenda = Column(String)
     discussion = Column(String)
     actions = Column(String)
 
     class Config:
         from_attributes = True  # Updated from orm_mode = True
 
-
 class Journal(Base):
     __tablename__= 'Journal'
-    id = Column(Integer,primary_key=True, index=True)
+    id = Column(Integer, primary_key=True, index=True)
     jName = Column(String, index=True)
     jDescription = Column(String)
     jWeek = Column(String)
@@ -30,8 +31,22 @@ class Journal(Base):
     class Config:
         from_attributes = True  # Updated from orm_mode = True
 
-class SnortLogs(Base):
-    __tablename__ = 'SnortLogs'
+class Organization(Base):
+    __tablename__ = "Organizations"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    name = Column(String, unique=True, nullable=False)
+
+class BlockedIP(Base):
+    __tablename__ = "blocked_ips"
+
+    id = Column(Integer, primary_key=True, index=True)
+    ip = Column(String, unique=True, nullable=False)
+    reason = Column(String, nullable=False)
+    created_at = Column(DateTime, server_default=func.now())
+
+class SnortAlerts(Base):
+    __tablename__ = 'SnortAlerts'
     id = Column(Integer, primary_key=True, index=True)
     timestamp = Column(String)
     priority = Column(Integer)
@@ -46,7 +61,7 @@ class SnortLogs(Base):
     classification = Column(String)
     action = Column(String)
     message = Column(String)
-    description = Column(String)
+    signature_id = Column(String)
     host = Column(String)
 
     class Config:
@@ -55,13 +70,8 @@ class SnortLogs(Base):
 
 class Account(Base):
     __tablename__= 'Account'
-<<<<<<< Updated upstream
-    id = Column(Integer,primary_key=True, index=True)
-    userid = Column(String,unique=True)
-=======
     id = Column(Integer, primary_key=True, index=True)
     username = Column(String)
->>>>>>> Stashed changes
     userFirstName = Column(String)
     userLastName = Column(String)
     passwd = Column(String)
@@ -72,8 +82,11 @@ class Account(Base):
     userSuspend = Column(Boolean)
     userRejected = Column(Boolean, default=False)  # Added userRejected field
    
-   
     role = relationship("Role", back_populates="accounts")
+    
+    __table_args__ = (
+        UniqueConstraint('username', 'userComName', name='unique_username_company'),
+    )
     
     class Config:
         from_attributes = True  # Updated from orm_mode = True
@@ -88,7 +101,7 @@ class CreditCard(Base):
     creditCVV = Column(Integer)
     subscription = Column(String)
     total = Column(String)
-    userid = Column(String, ForeignKey('Account.userid')) #Encountered error while trying to import userid as a foreign key, remember to come back when free and try solve this issue
+    userid = Column(String, ForeignKey('Account.id')) #Encountered error while trying to import username as a foreign key, remember to come back when free and try solve this issue
 
 
     class Config:
@@ -137,28 +150,12 @@ class Report(Base):
     class Config:
         from_attributes = True  # Updated from orm_mode = True
 
-class Log(Base):
-    __tablename__= 'log'
-    id = Column(Integer,primary_key=True, index=True)
-    logType = Column(String)
-    logName = Column(String)
-    logDateTime = Column(String)
-    logSource = Column(String)
-    logDestinationIP = Column(String)
-    logEventCount = Column(String)
-
-    class Config:
-        orm_mode = True
-
 class TokenTable(Base):
     __tablename__ = "token"
     id = Column(Integer,primary_key=True, index=True)
     access_token = Column(String)
     refresh_token = Column(String,nullable=False)
     status = Column(Boolean)
-<<<<<<< Updated upstream
-    created_date = Column(DateTime, default=datetime.datetime.now)
-=======
     created_date = Column(DateTime, default=datetime.now)
 
 class Logs(Base):
@@ -195,4 +192,3 @@ class Playbook(Base):
 
     class Config:
         from_attributes = True  # Updated from orm_mode = True
->>>>>>> Stashed changes

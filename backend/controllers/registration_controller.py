@@ -8,11 +8,6 @@ from database import get_db
 router = APIRouter(prefix="/register", tags=["register"])
 
 @router.post("/", response_model=AccountBase)
-<<<<<<< Updated upstream
-def add_user(user: AccountBase):
-    new_user = registration_service.add_user(user_particulars=user)
-    return new_user
-=======
 async def add_user(request: Request, user: AccountBase, response: Response = None):
     try:
         # Set CORS headers
@@ -61,5 +56,4 @@ async def options_handler(response: Response):
     response.headers["Access-Control-Allow-Headers"] = "Content-Type, Authorization"
     response.headers["Access-Control-Allow-Credentials"] = "true"
     return {}
->>>>>>> Stashed changes
 

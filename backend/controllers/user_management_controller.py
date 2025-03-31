@@ -1,26 +1,7 @@
-<<<<<<< Updated upstream
-from fastapi import APIRouter, HTTPException
-=======
 from fastapi import APIRouter, HTTPException, Depends, Header, Response
->>>>>>> Stashed changes
 from starlette import status
 from models.schemas import AccountBase, RoleOut, AccountStatusCheck
 from services import user_management_service
-<<<<<<< Updated upstream
-from typing import List
-
-router = APIRouter(prefix="/user-management", tags=["user-management"])
-
-@router.post("/", response_model=AccountBase)
-def add_user(user: AccountBase):
-    new_user = user_management_service.add_user(user_particulars=user)
-    return new_user
-
-@router.get("/", response_model=List[AccountBase])
-def fetch_user():# -> Any:
-    users = user_management_service.get_all_users()
-    return users
-=======
 from typing import List, Dict, Any
 from services.auth_service import get_company_name_from_token, check_user_status
 from database import get_db
@@ -95,7 +76,6 @@ def fetch_user(
             status_code=500,
             detail=f"Error fetching users: {str(e)}"
         )
->>>>>>> Stashed changes
 
 @router.get("/roles", response_model=List[RoleOut])
 def fetch_roles(response: Response = None):
@@ -146,13 +126,6 @@ def remove_user(account_id: int, response: Response = None):
     return {"message": "User deleted successfully"}
 
 @router.put("/{account_id}", response_model=AccountBase)
-<<<<<<< Updated upstream
-def modify_account(account_id: int, update_data: AccountBase):
-    updated_account = user_management_service.update_account(account_id=account_id, update_data=update_data)
-    if not updated_account:
-        raise HTTPException(status_code=404, detail="User not found")
-    return updated_account
-=======
 def modify_account(account_id: int, update_data: AccountBase, response: Response = None):
     try:
         # Set CORS headers
@@ -212,4 +185,3 @@ async def options_handler(response: Response):
     response.headers["Access-Control-Allow-Headers"] = "Content-Type, Authorization"
     response.headers["Access-Control-Allow-Credentials"] = "true"
     return {}
->>>>>>> Stashed changes

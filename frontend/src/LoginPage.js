@@ -1,14 +1,9 @@
-<<<<<<< Updated upstream
-import React, { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
-=======
 "use client"
 
 import { useState } from "react"
 import { useNavigate } from "react-router-dom"
 import { useAuth } from "./context/AuthContext" // Import AuthContext
 import { jwtDecode } from "jwt-decode" // Import jwt-decode
->>>>>>> Stashed changes
 
 const styles = {
   loginContainer: {
@@ -80,42 +75,6 @@ const styles = {
 }
 
 export default function LoginPage() {
-<<<<<<< Updated upstream
-  const [userComName, setCompany] = useState("");
-  const [loginId, setLoginId] = useState("");
-  const [password, setPassword] = useState("");
-  const [error, setError] = useState("");
-  const navigate = useNavigate();
-
-  useEffect(() => {
-    const checkToken = async () => {
-      const token = localStorage.getItem("token");
-      if (!token) return; // If no token, do nothing
-
-      try {
-        const response = await fetch("http://127.0.0.1:8000/login/get_token", {
-          method: "GET",
-          headers: { Authorization: `Bearer ${token}` },
-        });
-
-        if (response.ok) {
-          navigate("/dashboard"); // Only navigate if the token is valid
-        } else {
-          localStorage.removeItem("token"); // Clear invalid token
-        }
-      } catch (error) {
-        console.error("Token validation failed:", error);
-        localStorage.removeItem("token"); // Clear token on error
-      }
-    };
-
-    checkToken();
-  }, [navigate]);
-
-  const handleLogin = async (e) => {
-    e.preventDefault();
-    // Check if userComName is empty
-=======
   const [userComName, setCompany] = useState("")
   const [loginId, setLoginId] = useState("")
   const [password, setPassword] = useState("")
@@ -129,7 +88,6 @@ export default function LoginPage() {
     setIsLoading(true)
     setError("")
 
->>>>>>> Stashed changes
     if (!userComName) {
       setError("Company/Organisation name is required.")
       setIsLoading(false)
@@ -165,9 +123,6 @@ export default function LoginPage() {
     }
 
     try {
-<<<<<<< Updated upstream
-
-=======
       // First, check if the account exists and its status
       const checkStatusResponse = await fetch("http://127.0.0.1:8000/user-management/check-status", {
         method: "POST",
@@ -202,37 +157,18 @@ export default function LoginPage() {
       }
 
       // If account status check passes, proceed with login
->>>>>>> Stashed changes
       const loginResponse = await fetch("http://127.0.0.1:8000/login/token", {
         method: "POST",
         headers: {
-          "Content-Type": "application/json", // Update content type to application/json
+          "Content-Type": "application/json",
         },
         body: JSON.stringify({
           userComName: userComName,
-          userid: loginId, // Adjust the field name to match backend expectations
+          username: loginId,
           passwd: password,
         }),
       })
 
-<<<<<<< Updated upstream
-      const loginData = await loginResponse.json();
-      console.log("Response data:", loginData); // Log the entire response data
-      if (!loginResponse.ok) throw new Error(loginData.detail || "Login failed");
-
-      localStorage.setItem("token", loginData.access_token);
-        // Check if userRole is defined
-      if (loginData.userRole === undefined) {
-        throw new Error("User role is not defined in the response");
-      }
-
-      const userRole = loginData.userRole;
-      console.log("Userrole:", userRole); // Logging userRole
-      if (userRole === 1) {
-        navigate("/roles-permission");
-      } else {
-        navigate("/dashboard");
-=======
       if (!loginResponse.ok) {
         const errorData = await loginResponse.json()
         throw new Error(errorData.detail || "Incorrect credentials. Please check your login details and try again.")
@@ -291,9 +227,7 @@ export default function LoginPage() {
         console.error("Error decoding token:", decodeError)
         setError("Error processing login response. Please try again.")
         setIsLoading(false)
->>>>>>> Stashed changes
       }
-
     } catch (err) {
       console.error("Login failed:", err)
       setError(err.message)
@@ -311,7 +245,7 @@ export default function LoginPage() {
               src="https://hebbkx1anhila5yf.public.blob.vercel-storage.com/image-AwHpatwUXOxUSYkvlo8tVkBUyL8vzm.png"
               alt="SecuBoard Logo"
               className="logo"
-              style={{ width: "70px", height: "70px" }} // Adjust width as needed
+              style={{ width: "70px", height: "70px" }}
             />
             <h1 style={styles.title}>SecuBoard</h1>
           </div>

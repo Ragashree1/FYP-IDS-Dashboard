@@ -336,20 +336,17 @@ const RegistrationPage = () => {
 
   // Form state
   const [formData, setFormData] = useState({
-    userid: "",
+    id: "",
+    username: "",
     userFirstName: "",
     userLastName: "",
     passwd: "",
     userComName: "",
     userEmail: "",
     userPhoneNum: "",
-<<<<<<< Updated upstream
-    userRole: 0,
-=======
     userRole: 1, // Set default role
     userSuspend: true, // Set default suspend status to true (pending approval)
     userRejected: false, // Not rejected initially
->>>>>>> Stashed changes
   })
 
   const [message, setMessage] = useState("")
@@ -372,7 +369,9 @@ const RegistrationPage = () => {
           ? ""
           : "Please enter a valid email format (e.g., name@example.com)."
       case "userPhoneNum":
-        return value.match(/^\d{10,15}$/) ? "" : "Phone number must be 10-15 digits."
+        return value.match(/^\+[1-9]\d{0,2}\d{6,14}$/)
+          ? ""
+          : "Phone number must start with + followed by a country code (1-3 digits) and 6-14 digits."
       case "passwd":
         if (value.length < 6) {
           return "Password must be at least 6 characters long."
@@ -384,8 +383,6 @@ const RegistrationPage = () => {
           return "Password must contain symbols, numbers and capital letters."
         }
         return ""
-<<<<<<< Updated upstream
-=======
       case "username":
         return value.trim() !== "" ? "" : "Login ID is required."
       case "userFirstName":
@@ -394,7 +391,6 @@ const RegistrationPage = () => {
         return value.trim() !== "" ? "" : "Last Name is required."
       case "userComName":
         return value.trim() !== "" ? "" : "Company Name is required."
->>>>>>> Stashed changes
       default:
         return ""
     }
@@ -435,14 +431,8 @@ const RegistrationPage = () => {
     if (!formData.userEmail.match(/^[^\s@]+@[^\s@]+\.[^\s@]+$/)) {
       newErrors.userEmail = "Please enter a valid email format (e.g., name@example.com)."
     }
-<<<<<<< Updated upstream
-
-    if (!formData.userPhoneNum.match(/^\d{10,15}$/)) {
-      newErrors.userPhoneNum = "Phone number must be 10-15 digits."
-=======
     if (!formData.userPhoneNum.match(/^\+[1-9]\d{0,2}\d{6,14}$/)) {
       newErrors.userPhoneNum = "Phone number must start with + followed by a country code (1-3 digits) and 6-14 digits."
->>>>>>> Stashed changes
     }
 
     if (formData.passwd.length < 6) {
@@ -485,8 +475,6 @@ const RegistrationPage = () => {
     }
   }
 
-<<<<<<< Updated upstream
-=======
   const handlePhoneChange = (e) => {
     const value = e.target.value
     // Allow only + and digits
@@ -495,7 +483,6 @@ const RegistrationPage = () => {
     }
   }
 
->>>>>>> Stashed changes
   // Handle continue button click in success popup
   const handleContinue = () => {
     setShowSuccessPopup(false)
@@ -521,9 +508,6 @@ const RegistrationPage = () => {
     e.preventDefault()
     if (!validateForm()) return
 
-<<<<<<< Updated upstream
-    console.log("Submitting form...")
-=======
     // Ensure userSuspend is set to true for new registrations
     const registrationData = {
       ...formData,
@@ -532,7 +516,6 @@ const RegistrationPage = () => {
     }
 
     console.log("Submitting registration data:", registrationData)
->>>>>>> Stashed changes
 
     try {
       const response = await fetch("http://127.0.0.1:8000/register/", {
@@ -543,23 +526,6 @@ const RegistrationPage = () => {
         body: JSON.stringify(registrationData),
       })
 
-<<<<<<< Updated upstream
-      const data = await response.json()
-      if (response.ok) {
-        setMessage("User registered successfully!")
-        // Show success popup instead of redirecting
-        setShowSuccessPopup(true)
-      } else {
-        setMessage(`Error: ${data.detail || "Registration failed"}`)
-      }
-    } catch (error) {
-      // For demo purposes, show success popup even if API call fails
-      // In production, you would want to remove this and only show success on actual success
-      setShowSuccessPopup(true)
-
-      setMessage("Network error. Please try again.")
-      console.error(error)
-=======
       if (!response.ok) {
         const errorData = await response.json()
         console.error("Registration error:", errorData)
@@ -592,7 +558,6 @@ const RegistrationPage = () => {
       console.error("Registration error:", error)
       setErrorMessage("Network error. Please try again.")
       setShowErrorPopup(true)
->>>>>>> Stashed changes
     }
   }
 
@@ -713,10 +678,10 @@ const RegistrationPage = () => {
             <div className="form-group">
               <input
                 type="text"
-                name="userid"
-                id="userid"
+                name="username"
+                id="username"
                 placeholder="Login ID"
-                value={formData.userid}
+                value={formData.username}
                 onChange={handleChange}
                 required
               />
@@ -757,16 +722,14 @@ const RegistrationPage = () => {
               type="tel"
               name="userPhoneNum"
               id="userPhoneNum"
-              placeholder="Phone Number"
+              placeholder="Phone Number (e.g., +6591234567)"
               value={formData.userPhoneNum}
-              onChange={handleChange}
+              onChange={handlePhoneChange} // Use the new handler
               onBlur={handleBlur}
+              pattern="^\+[1-9]\d{0,2}\d{6,14}$"
               required
             />
-<<<<<<< Updated upstream
-=======
             <small className="input-hint">Format: +[country code][number] (e.g., +65 for Singapore)</small>
->>>>>>> Stashed changes
             {errors.userPhoneNum && touched.userPhoneNum && <small className="error-hint">{errors.userPhoneNum}</small>}
           </div>
 

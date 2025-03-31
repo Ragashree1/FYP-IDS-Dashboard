@@ -9,7 +9,7 @@ from fastapi.security import OAuth2PasswordRequestForm, OAuth2PasswordBearer
 from fastapi import APIRouter, Depends, HTTPException
 
 
-SECRET_KEY = 'IWannaShootMyself'  #Could be anything
+SECRET_KEY = 's3cr3tk3y'  #Could be anything
 ALGORITHM = 'HS256'
 
 bcrypt_context = CryptContext(schemes=['bcrypt'], deprecated='auto') 
@@ -18,19 +18,6 @@ bcrypt_context = CryptContext(schemes=['bcrypt'], deprecated='auto')
 oauth2_bearer = OAuth2PasswordBearer(tokenUrl='/token')
 
 def add_user(user_particulars: AccountBase):
-<<<<<<< Updated upstream
-    with SessionLocal() as db: 
-        hashed_password = bcrypt_context.hash(user_particulars.passwd)
-        user_data = user_particulars.model_dump()
-        user_data.pop("passwd", None)
-        user_data.pop("userRole", None)
-        user_data.pop("userSuspend", None)
-        create_user = Account(**user_data,passwd=hashed_password,userRole = 1,userSuspend = False)# Ragashree asked for default value as 'organizational-admin', putting system-admin, if wrong rmb to change
-        db.add(create_user)
-        db.commit()
-        db.refresh(create_user)
-        return create_user
-=======
     with SessionLocal() as db:
         try:
             # Check if username already exists for this company
@@ -97,15 +84,18 @@ def add_user(user_particulars: AccountBase):
             db.rollback()
             print(f"Error in add_user: {str(e)}")  # Add logging
             raise HTTPException(status_code=422, detail=str(e))
->>>>>>> Stashed changes
 
 
-def create_access_token(username: str, user_id: str, expires_delta: timedelta):
-    encode = {'sub': username, 'id': user_id}
-    expires = datetime.now(timezone.utc) + expires_delta
-    #encode.update({'exp':expires})
-    encode = {**encode, 'exp': expires}
-    return jwt.encode(encode, SECRET_KEY, algorithm= ALGORITHM)
+def create_access_token(username: str, user_id: str, userRole: str, userComName: str, userSuspend: bool, expires_delta: timedelta):
+    payload = {
+        "sub": username,  # Username
+        "id": user_id,  # User ID
+        "role": userRole,  # User Role
+        "company": userComName,  # Company Name
+        "suspend": userSuspend,  # Suspension Status
+        "exp": datetime.utcnow() + expires_delta  # Expiration Time
+    }
+    return jwt.encode(payload, SECRET_KEY, algorithm=ALGORITHM)
 
 
 async def get_current_user(token: Annotated[str, Depends(oauth2_bearer)]):

@@ -1,5 +1,6 @@
 import React from "react";
 import { BrowserRouter as Router, Route, Routes, Navigate } from 'react-router-dom';
+import { useAuth } from "./context/AuthContext";
 import LoginPage from './LoginPage';
 import OffencesPage from './OffencesPage';
 import DashboardPage from './DashboardPage';
@@ -18,6 +19,12 @@ import TrainedModelsPage from "./TrainedModelsPage";
 import PlayBooksPage from "./PlayBooksPage";
 import OrganizationRequestsPage from "./OrganizationRequestsPage";
 
+const ProtectedRoute = ({ children }) => {
+  const { user } = useAuth();
+  console.log("ProtectedRoute user:", user); // Debug log
+  return user ? children : <Navigate to="/login" />;
+};
+
 function App() {
   return (
     <Router>
@@ -27,20 +34,6 @@ function App() {
         <Route path="/register" element={<RegistrationPage />} />
         <Route path="/payment" element={<PaymentPage />} />
         <Route path="/login" element={<LoginPage />} />
-<<<<<<< Updated upstream
-        <Route path="/dashboard" element={<DashboardPage />} />
-        <Route path="/offences" element={<OffencesPage />} />
-        <Route path="/reports" element={<ReportsPage />} />
-        <Route path="/event-log" element={<EventLogPage />} />
-        <Route path="/system-config" element={<SystemConfigurationPage />} />
-        <Route path="/blocklist" element={<BlocklistManagementPage />} />
-        <Route path="/roles-permission" element={<RolesAndPermissionPage />} />
-        <Route path="/user-management" element={<UserManagementPage />} />
-        <Route path="/sidebar" element={<Sidebar />} />
-        <Route path="/train-model" element={<TrainModelPage />} />
-        <Route path="/trained-models" element={<TrainedModelsPage />} />
-		<Route path="/playbooks" element={<PlayBooksPage />} />
-=======
 
         {/* Protected Routes */}
         <Route
@@ -81,7 +74,6 @@ function App() {
 		<Route path="/playbooks" element={<ProtectedRoute> <PlayBooksPage />   </ProtectedRoute>   }  />
 	    <Route path="/organization-requests" element={<OrganizationRequestsPage />} />
         {/* Add other protected routes here */}
->>>>>>> Stashed changes
       </Routes>
     </Router>
   );
