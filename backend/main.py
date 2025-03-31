@@ -27,6 +27,7 @@ from init_db import init_database
 from fastapi.security import OAuth2PasswordBearer
 from jose import JWTError, jwt
 from services.ip_blocking_service import evaluate_and_block_ips
+from services.playbook_service import execute_playbook_rules  # Import the method
 import time
 
 load_dotenv()
@@ -35,7 +36,6 @@ SECRET_KEY = os.getenv("SECRET_KEY", "default_secret_key")  # Default for safety
 ALGORITHM = os.getenv("ALGORITHM", "HS256")
 
 app = FastAPI()
-load_dotenv()
 Base.metadata.create_all(bind=engine)
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
@@ -94,6 +94,12 @@ app.include_router(playbooks_router)
 def fetch_alerts_job():
     update_and_fetch_alerts()
 
+def execute_playbook_rules_job():
+    """
+    Periodically execute playbook rules.
+    """
+    execute_playbook_rules()
+
 def periodic_task(interval_minutes=5):
     """
     Run periodic tasks at the specified interval.
@@ -105,6 +111,7 @@ def periodic_task(interval_minutes=5):
 if __name__ == "__main__":
     scheduler = BackgroundScheduler()
     scheduler.add_job(fetch_alerts_job, 'interval', minutes=5)
+    scheduler.add_job(execute_playbook_rules_job, 'interval', minutes=5)  # Add the new job
     scheduler.start()
 
     try:

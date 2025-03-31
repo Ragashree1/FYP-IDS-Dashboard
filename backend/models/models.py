@@ -161,6 +161,12 @@ class TokenTable(Base):
     status = Column(Boolean)
     created_date = Column(DateTime, default=datetime.now)
 
+class PriorityClassification(Base):
+    __tablename__ = "priority_classification"
+    id = Column(Integer, primary_key=True, index=True)
+    priority = Column(Integer, nullable=False)
+    classification = Column(String, nullable=False)
+
 class Logs(Base):
     __tablename__ = "Logs"
     
