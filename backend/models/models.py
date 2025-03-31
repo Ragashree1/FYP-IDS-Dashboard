@@ -17,7 +17,7 @@ class MeetingMinutes(Base):
     actions = Column(String)
 
     class Config:
-        orm_mode = True  
+        from_attributes = True  # Updated from orm_mode = True
 
 
 class Journal(Base):
@@ -28,7 +28,7 @@ class Journal(Base):
     jWeek = Column(String)
 
     class Config:
-        orm_mode = True
+        from_attributes = True  # Updated from orm_mode = True
 
 class SnortLogs(Base):
     __tablename__ = 'SnortLogs'
@@ -50,13 +50,18 @@ class SnortLogs(Base):
     host = Column(String)
 
     class Config:
-        orm_mode = True
+        from_attributes = True  # Updated from orm_mode = True
 
 
 class Account(Base):
     __tablename__= 'Account'
+<<<<<<< Updated upstream
     id = Column(Integer,primary_key=True, index=True)
     userid = Column(String,unique=True)
+=======
+    id = Column(Integer, primary_key=True, index=True)
+    username = Column(String)
+>>>>>>> Stashed changes
     userFirstName = Column(String)
     userLastName = Column(String)
     passwd = Column(String)
@@ -65,12 +70,13 @@ class Account(Base):
     userPhoneNum = Column(String)
     userRole = Column(Integer, ForeignKey("role.id"))
     userSuspend = Column(Boolean)
+    userRejected = Column(Boolean, default=False)  # Added userRejected field
    
    
     role = relationship("Role", back_populates="accounts")
     
     class Config:
-        orm_mode = True
+        from_attributes = True  # Updated from orm_mode = True
 
 class CreditCard(Base):
     __tablename__= 'creditcard'
@@ -86,7 +92,7 @@ class CreditCard(Base):
 
 
     class Config:
-        orm_mode = True
+        from_attributes = True  # Updated from orm_mode = True
 
 role_permission_association = Table(
     'role_permission_association', Base.metadata,
@@ -107,7 +113,7 @@ class Role(Base):
     permissions = relationship('Permission', secondary=role_permission_association, back_populates='roles')
 
     class Config:
-        orm_mode = True
+        from_attributes = True  # Updated from orm_mode = True
 
 class Permission(Base):
     __tablename__ = 'permission'
@@ -118,7 +124,7 @@ class Permission(Base):
     roles = relationship('Role', secondary=role_permission_association, back_populates='permissions')
 
     class Config:
-        orm_mode = True
+        from_attributes = True  # Updated from orm_mode = True
 
 
 class Report(Base):
@@ -129,7 +135,7 @@ class Report(Base):
     reportType = Column(String)
 
     class Config:
-        orm_mode = True
+        from_attributes = True  # Updated from orm_mode = True
 
 class Log(Base):
     __tablename__= 'log'
@@ -150,4 +156,43 @@ class TokenTable(Base):
     access_token = Column(String)
     refresh_token = Column(String,nullable=False)
     status = Column(Boolean)
+<<<<<<< Updated upstream
     created_date = Column(DateTime, default=datetime.datetime.now)
+=======
+    created_date = Column(DateTime, default=datetime.now)
+
+class Logs(Base):
+    __tablename__ = "Logs"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    timestamp = Column(TIMESTAMP, default=datetime.utcnow)  
+    log_type = Column(String, index=True)
+    source_ip = Column(String)
+    host = Column(String)
+    message = Column(String)
+    event_data = Column(JSON)
+    http_method = Column(String, nullable=True)
+    http_status = Column(Integer, nullable=True)
+    url = Column(String, nullable=True)
+    user_agent = Column(String, nullable=True)
+    log_path = Column(String, nullable=True)
+
+    class Config:
+        from_attributes = True  # Updated from orm_mode = True
+
+class Playbook(Base):
+    __tablename__ = "Playbooks"
+
+    id = Column(Integer, primary_key=True, index=True)
+    organization_id = Column(UUID(as_uuid=True), ForeignKey("Organizations.id", ondelete="SET NULL"), nullable=True, index=True)  # Foreign key to an Organization table
+    name = Column(String, unique=True, nullable=False)  # Name of the playbook
+    description = Column(String, nullable=True)  # Optional description of what the playbook does
+    conditions = Column(JSON, nullable=False)  # JSON structure to define rules (e.g., {"log_type": "alert", "priority": ">3"})
+    actions = Column(JSON, nullable=False)  # JSON array to store multiple actions (e.g., ["block_ip", "alert"])
+    is_active = Column(Boolean, default=True)  
+    created_at = Column(TIMESTAMP, server_default=func.now())  
+    updated_at = Column(TIMESTAMP, server_default=func.now(), onupdate=func.now())  # Timestamp of last update
+
+    class Config:
+        from_attributes = True  # Updated from orm_mode = True
+>>>>>>> Stashed changes

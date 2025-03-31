@@ -16,6 +16,7 @@ import Sidebar from "./Sidebar";
 import TrainModelPage from "./TrainModelPage";
 import TrainedModelsPage from "./TrainedModelsPage";
 import PlayBooksPage from "./PlayBooksPage";
+import OrganizationRequestsPage from "./OrganizationRequestsPage";
 
 function App() {
   return (
@@ -26,6 +27,7 @@ function App() {
         <Route path="/register" element={<RegistrationPage />} />
         <Route path="/payment" element={<PaymentPage />} />
         <Route path="/login" element={<LoginPage />} />
+<<<<<<< Updated upstream
         <Route path="/dashboard" element={<DashboardPage />} />
         <Route path="/offences" element={<OffencesPage />} />
         <Route path="/reports" element={<ReportsPage />} />
@@ -38,6 +40,48 @@ function App() {
         <Route path="/train-model" element={<TrainModelPage />} />
         <Route path="/trained-models" element={<TrainedModelsPage />} />
 		<Route path="/playbooks" element={<PlayBooksPage />} />
+=======
+
+        {/* Protected Routes */}
+        <Route
+          path="/dashboard"
+          element={
+            <ProtectedRoute>
+              <DashboardPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/roles-permission"
+          element={
+            <ProtectedRoute>
+              <RolesAndPermissionPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/user-management"
+          element={
+            <ProtectedRoute>
+              <UserManagementPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route path="/dashboard" element={<ProtectedRoute> <DashboardPage />   </ProtectedRoute>   }  />
+        <Route path="/offences" element={<ProtectedRoute> <OffencesPage />   </ProtectedRoute>   }  />
+        <Route path="/reports" element={<ProtectedRoute> <ReportsPage />   </ProtectedRoute>   }  />
+        <Route path="/event-log" element={<ProtectedRoute> <EventLogPage />   </ProtectedRoute>   }  />
+        <Route path="/system-config" element={<ProtectedRoute> <SystemConfigurationPage />   </ProtectedRoute>   }  />
+        <Route path="/blocklist" element={<ProtectedRoute> <BlocklistManagementPage />   </ProtectedRoute>   }  />
+        <Route path="/roles-permission" element={<ProtectedRoute> <RolesAndPermissionPage />   </ProtectedRoute>   }  />
+        <Route path="/user-management" element={<ProtectedRoute> <UserManagementPage />   </ProtectedRoute>   }  />
+        <Route path="/sidebar" element={<ProtectedRoute> <Sidebar />   </ProtectedRoute>   }  />
+        <Route path="/train-model" element={<ProtectedRoute> <TrainModelPage />   </ProtectedRoute>   }  />
+        <Route path="/trained-models" element={<ProtectedRoute> <TrainedModelsPage />   </ProtectedRoute>   }  />
+		<Route path="/playbooks" element={<ProtectedRoute> <PlayBooksPage />   </ProtectedRoute>   }  />
+	    <Route path="/organization-requests" element={<OrganizationRequestsPage />} />
+        {/* Add other protected routes here */}
+>>>>>>> Stashed changes
       </Routes>
     </Router>
   );
