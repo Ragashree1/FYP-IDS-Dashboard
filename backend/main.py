@@ -15,7 +15,7 @@ from controllers.log_controller import router as logs_router
 from controllers.playbook_controller import router as playbooks_router
 from controllers.login_controller import router as login_router
 from controllers.registration_controller import router as registration_router 
-from controllers.payment_controller import router as payment_router 
+# from controllers.payment_controller import router as payment_router 
 from controllers.user_management_controller import router as user_management_router 
 from controllers.role_permission_controller import router as role_permission_router 
 from controllers.ip_blocking_controller import router as ip_blocking_router
@@ -85,7 +85,6 @@ app.include_router(alerts_router)
 app.include_router(logs_router)
 app.include_router(login_router)
 app.include_router(registration_router)
-app.include_router(payment_router)
 app.include_router(user_management_router)
 app.include_router(role_permission_router)
 app.include_router(ip_blocking_router)
