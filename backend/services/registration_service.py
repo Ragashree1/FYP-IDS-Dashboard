@@ -66,7 +66,7 @@ def add_user(user_particulars: AccountBase):
                         user_data[key] = value
             
             # Ensure userSuspend and userRejected are set correctly
-            user_data["userSuspend"] = True  # Account pending approval
+            user_data["userSuspend"] = False  # Changed to False - no approval needed
             user_data["userRejected"] = False
             
             # Create user object with hashed password

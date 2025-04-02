@@ -582,8 +582,7 @@ const RegistrationPage = () => {
         </div>
         <div className="success-popup-content">
           <div className="success-popup-message">
-            Congratulations, your account has been successfully created. Your account is pending approval by an
-            administrator.
+            Congratulations, your account has been successfully created. 
           </div>
           <button className="success-popup-button" onClick={handleContinue}>
             Continue

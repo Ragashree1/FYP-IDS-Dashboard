@@ -21,22 +21,15 @@ async def login_for_access_token(form_data: AccountLogin, db: Session = Depends(
         # First check if the user exists and their status
         status_data = check_user_status(db, form_data.username, form_data.userComName)
         
-        # If user exists and is suspended, prevent login with appropriate message
-        if status_data.exists and status_data.userSuspend:
-            if status_data.userRejected:
-                raise HTTPException(
-                    status_code=status.HTTP_401_UNAUTHORIZED,
-                    detail="Your account request has been rejected. Please contact your administrator.",
-                    headers={"WWW-Authenticate": "Bearer"},
-                )
-            else:
-                raise HTTPException(
-                    status_code=status.HTTP_401_UNAUTHORIZED,
-                    detail="Account is pending approval. Please wait for administrator approval.",
-                    headers={"WWW-Authenticate": "Bearer"},
-                )
+        # Only check for rejected status, not suspended status
+        if status_data.exists and status_data.userRejected:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Your account request has been rejected. Please contact your administrator.",
+                headers={"WWW-Authenticate": "Bearer"},
+            )
         
-        # If user is not suspended or doesn't exist, proceed with authentication
+        # If user is not rejected or doesn't exist, proceed with authentication
         user = authenticate_user(db, form_data.username, form_data.passwd, form_data.userComName)
         if not user:
             raise HTTPException(

@@ -23,8 +23,8 @@ async def add_user(request: Request, user: AccountBase, response: Response = Non
         if hasattr(user, 'id') and (user.id is None or user.id == ""):
             user.id = None
         
-        # Ensure new users are suspended by default (pending approval)
-        user.userSuspend = True
+        # Set userSuspend to False for new registrations (allow immediate login)
+        user.userSuspend = False
         user.userRejected = False
         
         # Set default role to Organisation Admin (role ID 1) if not provided
@@ -56,4 +56,3 @@ async def options_handler(response: Response):
     response.headers["Access-Control-Allow-Headers"] = "Content-Type, Authorization"
     response.headers["Access-Control-Allow-Credentials"] = "true"
     return {}
-
