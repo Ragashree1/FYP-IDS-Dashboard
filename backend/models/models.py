@@ -90,21 +90,6 @@ class Account(Base):
     class Config:
         orm_mode = True
 
-class CreditCard(Base):
-    __tablename__= 'creditcard'
-    id = Column(Integer,primary_key=True, index=True)
-    creditFirstName = Column(String) #Maybe later make it so that it retreives the userFirstName
-    creditLastName = Column(String) #Maybe later make it so that it retreives the userLastName
-    creditNum = Column(String)
-    creditDate= Column(String)
-    creditCVV = Column(Integer)
-    subscription = Column(String)
-    total = Column(String)
-    userid = Column(String, ForeignKey('Account.id')) #Encountered error while trying to import username as a foreign key, remember to come back when free and try solve this issue
-
-
-    class Config:
-        orm_mode = True
 
 role_permission_association = Table(
     'role_permission_association', Base.metadata,
