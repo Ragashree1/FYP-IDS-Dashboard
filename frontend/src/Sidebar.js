@@ -1,4 +1,3 @@
-"use client"
 import { useNavigate, useLocation } from "react-router-dom"
 import React from 'react';
 
@@ -9,7 +8,7 @@ const Sidebar = ({ userRole }) => {
   const isActive = (path) => location.pathname.startsWith(path)
 
   const handleLogout = () => {
-    navigate("/login")
+    navigate("/LandingPage")
   }
 
   // Updated sidebar container styles
@@ -62,7 +61,7 @@ const Sidebar = ({ userRole }) => {
   }
 
   // Render Organisation Admin sidebar
-  if (userRole === "organisation-admin") {
+  if (userRole === "1") {
     return (
       <div style={{ display: "flex" }}>
         <div style={spacerStyle} />
@@ -131,7 +130,7 @@ const Sidebar = ({ userRole }) => {
             </ul>
           </div>
           <div style={logoutContainerStyle}>
-            <button onClick={() => navigate("/login")} style={logoutButtonStyle}>
+            <button onClick={() => navigate("/LandingPage")} style={logoutButtonStyle}>
               <span style={{ fontSize: "18px" }}>🚪</span>
               Logout
             </button>
@@ -142,7 +141,7 @@ const Sidebar = ({ userRole }) => {
   }
 
   // Render Network Admin sidebar
-  if (userRole === "network-admin") {
+  if (userRole === "2") {
     return (
       <div style={{ display: "flex" }}>
         <div style={spacerStyle} />

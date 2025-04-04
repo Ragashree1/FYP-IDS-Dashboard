@@ -1,10 +1,8 @@
-"use client"
-import React from 'react';
-import { useState } from "react"
+import React, { useState ,useEffect } from "react"
 import { useNavigate, useLocation } from "react-router-dom"
 import Sidebar from "./Sidebar"
 
-const userRole = "organisation-admin"
+const role = "1"; 
 
 const DeleteConfirmationModal = ({ onClose, onConfirm }) => {
   return (
@@ -68,36 +66,63 @@ const DeleteConfirmationModal = ({ onClose, onConfirm }) => {
 }
 
 const RoleDetailModal = ({ onClose, onConfirm, role = null }) => {
+  const [searchQuery, setSearchQuery] = useState("");
   const [formData, setFormData] = useState({
-    role: role?.name || "",
-    permissions: role?.permissions || [],
+    roleName: role?.roleName || "",
+    //permissions_id: role?.permission?.id || [],
+    permission_id: role?.permission?.map(p => p.id) || [],
   })
-  const [searchPermissions, setSearchPermissions] = useState("")
+  const [searchPermissions , setSearchPermissions] = useState([])
 
-  const permissions = [
-    "Blacklist UI",
-    "Summarized Reports",
-    "Approve Changes",
-    "View Audit Logs",
-    "View Audit Logs of users account",
-    "System Configuration",
-  ]
+  useEffect(() => {
+    if (role) {
+      setFormData({
+        roleName: role.roleName || "",
+        permission_id: role.permission?.map(p => p.id) || [],
+      });
+    }
+  }, [role]);
 
-  const filteredPermissions = permissions.filter((permission) =>
-    permission.toLowerCase().includes(searchPermissions.toLowerCase()),
+
+  const fetchPermission = async () => {
+    try {
+      const response = await fetch ("http://127.0.0.1:8000/roles-permission/permission/", {
+          method: "GET",
+        });
+
+      if (response.ok) {
+        const data = await response.json();
+        setSearchPermissions(data); // Assuming the response is an array of permissions
+      }else {
+        throw new Error('Failed to fetch permissions');
+      } 
+    }
+      catch (err) {
+      console.error("Failed to fetch permissions:", err);
+    }
+  };
+  
+
+  useEffect(() => {
+    fetchPermission();
+  }, []);
+
+  const filteredPermissions = searchPermissions.filter((permission) =>
+    permission.permissionName?.toLowerCase().includes(searchQuery?.toLowerCase()|| ""),
   )
 
   const handlePermissionToggle = (permission) => {
     setFormData((prev) => ({
       ...prev,
-      permissions: prev.permissions.includes(permission)
-        ? prev.permissions.filter((p) => p !== permission)
-        : [...prev.permissions, permission],
-    }))
+      permission_id: prev.permission_id?.includes(permission.id)
+        ? prev.permission_id.filter((p) => p !== permission.id)
+        //: [...prev.permissions_id || [], permission.id],
+        : [...prev.permission_id, permission.id],
+    }));
   }
 
   const handleConfirm = () => {
-    if (!formData.role.trim()) {
+    if (!formData.roleName.trim()) {
       alert("Please enter a role name")
       return
     }
@@ -146,8 +171,8 @@ const RoleDetailModal = ({ onClose, onConfirm, role = null }) => {
               <label style={{ display: "block", marginBottom: "8px" }}>Role Name</label>
               <input
                 type="text"
-                value={formData.role}
-                onChange={(e) => setFormData((prev) => ({ ...prev, role: e.target.value }))}
+                value={formData.roleName}
+                onChange={(e) => setFormData((prev) => ({ ...prev, roleName: e.target.value }))}
                 placeholder="Enter role name"
                 style={{
                   width: "100%",
@@ -167,8 +192,8 @@ const RoleDetailModal = ({ onClose, onConfirm, role = null }) => {
             <input
               type="text"
               placeholder="Search permissions"
-              value={searchPermissions}
-              onChange={(e) => setSearchPermissions(e.target.value)}
+              value={formData.permission_id}
+              onChange={(e) => setSearchQuery(e.target.value)}
               style={{
                 width: "100%",
                 padding: "8px",
@@ -190,7 +215,7 @@ const RoleDetailModal = ({ onClose, onConfirm, role = null }) => {
             >
               {filteredPermissions.map((permission) => (
                 <div
-                  key={permission}
+                  key={permission.id}
                   style={{
                     display: "flex",
                     alignItems: "center",
@@ -199,12 +224,13 @@ const RoleDetailModal = ({ onClose, onConfirm, role = null }) => {
                 >
                   <input
                     type="checkbox"
-                    id={permission}
-                    checked={formData.permissions.includes(permission)}
+                    id={permission.id}
+                    //checked={formData.permissions_id?.includes(permission.id)?? false}
+                    checked={formData.permission_id?.includes(permission.id)} // Checking if the permission id is in the array
                     onChange={() => handlePermissionToggle(permission)}
                     style={{ marginRight: "8px" }}
                   />
-                  <label htmlFor={permission}>{permission}</label>
+                  <label htmlFor={permission.id}>{permission.permissionName}</label>
                 </div>
               ))}
             </div>
@@ -255,39 +281,47 @@ const RolesAndPermissionPage = () => {
   const [searchQuery, setSearchQuery] = useState("")
   const [showRoleModal, setShowRoleModal] = useState(false)
   const [selectedRole, setSelectedRole] = useState(null)
-  const [roles, setRoles] = useState([
-    {
-      id: 1,
-      name: "Organisation Admin",
-      permissions: ["Blacklist UI", "Summarized Reports", "System Configuration"],
-    },
-    {
-      id: 2,
-      name: "Network Admin",
-      permissions: ["View Audit Logs", "System Configuration"],
-    },
-    {
-      id: 3,
-      name: "Data Analyst",
-      permissions: ["View Audit Logs", "View Audit Logs of users account"],
-    },
-    {
-      id: 4,
-      name: "IT Manager",
-      permissions: ["Approve Changes", "System Configuration"],
-    },
-  ])
-
+  const [roles, setRoles] = useState([ ])
   const [roleFilter, setRoleFilter] = useState("All Roles")
   const [showRoleFilter, setShowRoleFilter] = useState(false)
   const [showDeleteModal, setShowDeleteModal] = useState(false)
   const [roleToDelete, setRoleToDelete] = useState(null)
+  const [error, setError] = useState(null)
+  const [loading, setLoading] = useState(false);
 
-  const uniqueRoles = ["All Roles", ...new Set(roles.map((role) => role.name))]
+
+  const fetchRoles = async () => {
+    try {
+      const response = await fetch ("http://127.0.0.1:8000/roles-permission/", {
+          method: "GET",
+        });
+
+      if (response.ok) {
+        const data = await response.json();
+        console.log("Fetched user:", data); // Add this line to inspect the fetched data
+        setRoles(data); // Assuming the response is an array of roles
+      }else {
+        throw new Error('Failed to fetch roles');
+      } 
+    }
+      catch (err) {
+      setError("Failed to fetch roles");
+      setLoading(false);
+    }
+  };
+  
+
+  useEffect(() => {
+    fetchRoles();
+  }, []);
+
+
+  const uniqueRoles = ["All Roles", ...new Set(roles.map((role) => role.roleName))]
+
 
   const filteredRoles = roles.filter((role) => {
-    const matchesSearch = role.name.toLowerCase().includes(searchQuery.toLowerCase())
-    const matchesFilter = roleFilter === "All Roles" || role.name === roleFilter
+    const matchesSearch = role?.roleName?.toLowerCase()?.includes(searchQuery.toLowerCase())
+    const matchesFilter = roleFilter === "All Roles" || role.roleName === roleFilter
     return matchesSearch && matchesFilter
   })
 
@@ -303,38 +337,70 @@ const RolesAndPermissionPage = () => {
   const handleConfirmRole = (formData) => {
     if (selectedRole) {
       // Modify existing role
-      setRoles(
-        roles.map((role) =>
-          role.id === selectedRole.id
-            ? {
-                ...role,
-                name: formData.role,
-                permissions: formData.permissions,
-              }
-            : role,
-        ),
-      )
+      updateRole({ ...formData, id: selectedRole?.id });
     } else {
       // Add new role
       const newRole = {
-        id: roles.length + 1,
-        name: formData.role,
-        permissions: formData.permissions,
+        roleName: formData.roleName,
+        permission_id: formData.permission_id,
       }
-      setRoles([...roles, newRole])
+      addRole(newRole)
     }
     setShowRoleModal(false)
   }
+  
+  const updateRole = async (role) => {
+    try {
+      const response = await fetch (`http://127.0.0.1:8000/roles-permission/${role.id}/`, { method: "PUT", headers: {
+        "Content-Type": "application/json", // Add this header to indicate the body is JSON
+      },
+        body: JSON.stringify(role), // Send userData as the payload to update the role
+      });
+  
+      if (!response.ok) {
+        throw new Error("Failed to update role");
+      }
+  
+      fetchRoles(); // Refresh the roles list
+    } catch (err) {
+      setError("Failed to edit role");
+    }
+  };
 
-  const handleDelete = (role) => {
-    setRoleToDelete(role)
-    setShowDeleteModal(true)
+
+  const addRole = async (role) => {
+    try {
+      await fetch(`http://127.0.0.1:8000/roles-permission/`, { method: "POST" , headers: {
+        "Content-Type": "application/json", // Add this header to indicate the body is JSON
+      },
+        body: JSON.stringify(role), // Send userData as the payload to add the user
+      });
+      fetchRoles() 
+    } catch (err) {
+      setError("Failed to add role");
+    }
+  };
+
+  const handleDelete = async (role) => {
+    await deleteUser(role)
+    fetchRoles()
   }
+
+
+  const deleteUser = async (role) => {
+    try {
+      await fetch(`http://127.0.0.1:8000/roles-permission/${role.id}/`, { method: "DELETE" });
+      fetchRoles()
+    } catch (err) {
+      setError("Failed to delete role");
+    }
+  };
 
   const handleConfirmDelete = () => {
     setRoles(roles.filter((role) => role.id !== roleToDelete.id))
     setShowDeleteModal(false)
     setRoleToDelete(null)
+    fetchRoles()
   }
 
   const handleCloseDeleteModal = () => {
@@ -351,7 +417,7 @@ const RolesAndPermissionPage = () => {
         overflow: "hidden", // Added to prevent horizontal scrolling
       }}
     >
-      <Sidebar userRole={userRole} />
+      <Sidebar userRole={role} />
 
       <div
         style={{
@@ -405,6 +471,7 @@ const RolesAndPermissionPage = () => {
             }}
           >
             <button
+              onClick={() => fetchRoles()}
               style={{
                 background: "none",
                 border: "none",
@@ -444,7 +511,7 @@ const RolesAndPermissionPage = () => {
                 >
                   {uniqueRoles.map((role) => (
                     <div
-                      key={role}
+                      key={role.id}
                       onClick={() => {
                         setRoleFilter(role)
                         setShowRoleFilter(false)
@@ -516,7 +583,7 @@ const RolesAndPermissionPage = () => {
               {filteredRoles.map((role) => (
                 <tr key={role.id} style={{ borderBottom: "1px solid #eee" }}>
                   <td style={{ padding: "16px" }}>{role.id}</td>
-                  <td style={{ padding: "16px", textAlign: "center" }}>{role.name}</td>
+                  <td style={{ padding: "16px", textAlign: "center" }}>{role.roleName}</td>
                   <td style={{ padding: "16px", textAlign: "center" }}>
                     <div style={{ display: "flex", justifyContent: "center", gap: "16px" }}>
                       <button

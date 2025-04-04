@@ -213,32 +213,61 @@ const PaymentPage = () => {
     };
   }, []);
 
-  // Try to get registration data from sessionStorage
+
+    // Form state
+    const [formData, setFormData] = useState({
+      subscription: '',
+      total: '',
+      creditFirstName: '',
+      creditLastName: '',
+      creditNum: '',
+      creditCVV: '',
+      creditDate: ''
+    });
+  
+    const [message, setMessage] = useState("");
+    const [errors, setErrors] = useState({});
+    
   useEffect(() => {
-    try {
-      const registrationData = JSON.parse(sessionStorage.getItem('registrationData') || '{}');
-      if (registrationData.firstName && registrationData.lastName) {
-        setFormData(prevData => ({
-          ...prevData,
-          firstName: registrationData.firstName,
-          lastName: registrationData.lastName
-        }));
+    document.title = "Payment Information";
+
+    // Fetch the logged-in user's ID from backend
+    const fetchUserId = async () => {
+      try {
+        const response = await fetch("http://127.0.0.1:8000/user/", {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem("token")}`,
+          },
+        });
+        
+        if (response.ok) {
+          const data = await response.json();
+          setFormData((prevData) => ({ ...prevData, userid: data.id }));
+        } else {
+          console.error("Failed to fetch user ID");
+        }
+      } catch (error) {
+        console.error("Error fetching user ID", error);
       }
-    } catch (error) {
-      console.error('Error parsing registration data:', error);
-    }
+    };
+
+    fetchUserId();
   }, []);
 
-  // Form state
-  const [formData, setFormData] = useState({
-    subscription: '',
-    total: '',
-    firstName: '',
-    lastName: '',
-    cardNumber: '',
-    cvv: '',
-    expiry: ''
-  });
+  const validateForm = () => {
+    let newErrors = {};
+    if (!formData.creditNum.match(/^\d{16}$/)) {
+      newErrors.creditNum = "Credit card number must be 16 digits.";
+    }
+    if (!formData.creditDate.match(/^(0[1-9]|1[0-2])\/\d{2}$/)) {
+      newErrors.creditDate = "Expiration date format must be MM/YY.";
+    }
+    if (!formData.creditCVV.match(/^\d{3,4}$/)) {
+      newErrors.creditCVV = "CVV must be 3 or 4 digits.";
+    }
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
 
   // Handle input changes
   const handleChange = (e) => {
@@ -281,7 +310,7 @@ const PaymentPage = () => {
     
     setFormData({
       ...formData,
-      cardNumber: value
+      creditNum: value
     });
   };
 
@@ -294,7 +323,7 @@ const PaymentPage = () => {
     
     setFormData({
       ...formData,
-      expiry: value
+      creditDate: value
     });
   };
 
@@ -304,50 +333,35 @@ const PaymentPage = () => {
     
     setFormData({
       ...formData,
-      cvv: value
+      creditCVV: value
     });
   };
 
   // Handle form submission
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
+    if (!validateForm()) return;
 
-    // Validate subscription selection
-    if (!formData.subscription) {
-      alert('Please select a subscription plan');
-      return;
+    try {
+      const response = await fetch("http://127.0.0.1:8000/payment/", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${localStorage.getItem("token")}`,
+        },
+        body: JSON.stringify(formData),
+      });
+
+      if (response.ok) {
+        setMessage("Payment details saved successfully!");
+        setTimeout(() => navigate("/dashboard"), 2000);
+      } else {
+        const errorData = await response.json();
+        setMessage(`Error: ${errorData.detail || "Payment failed"}`);
+      }
+    } catch (error) {
+      setMessage("Network error. Please try again.");
     }
-
-    // Basic validation
-    if (formData.cardNumber.replace(/\s/g, '').length < 15) {
-      alert('Please enter a valid card number');
-      return;
-    }
-
-    if (formData.cvv.length < 3) {
-      alert('Please enter a valid CVV');
-      return;
-    }
-
-    const [month, year] = formData.expiry.split('/');
-    if (!month || !year || month > 12 || month < 1) {
-      alert('Please enter a valid expiry date');
-      return;
-    }
-
-    // Log form data (in a real app, you would send this to your server)
-    console.log('Payment submitted:', formData);
-
-    // Show success message
-    alert('Payment successful! You have subscribed to the ' +
-          (formData.subscription === 'monthly' ? 'Monthly' : 'Annual') +
-          ' plan.');
-          
-    // Clear registration data from sessionStorage
-    sessionStorage.removeItem('registrationData');
-    
-    // Navigate to login page
-    navigate('/login');
   };
 
   return (
@@ -396,10 +410,10 @@ const PaymentPage = () => {
             <div className="form-group">
               <input 
                 type="text"
-                name="firstName"
-                id="firstName"
+                name="creditFirstName"
+                id="creditFirstName"
                 placeholder="First Name"
-                value={formData.firstName}
+                value={formData.creditFirstName}
                 onChange={handleChange}
                 required
               />
@@ -407,10 +421,10 @@ const PaymentPage = () => {
             <div className="form-group">
               <input 
                 type="text"
-                name="lastName"
-                id="lastName"
+                name="creditLastName"
+                id="creditLastName"
                 placeholder="Last Name"
-                value={formData.lastName}
+                value={formData.creditLastName}
                 onChange={handleChange}
                 required
               />
@@ -420,11 +434,11 @@ const PaymentPage = () => {
           <div className="form-group">
             <input 
               type="text"
-              name="cardNumber"
-              id="cardNumber"
+              name="creditNum"
+              id="creditNum"
               placeholder="Card Number"
               maxLength="19"
-              value={formData.cardNumber}
+              value={formData.creditNum}
               onChange={handleCardNumberChange}
               required
             />
@@ -434,11 +448,11 @@ const PaymentPage = () => {
             <div className="form-group small">
               <input 
                 type="text"
-                name="cvv"
-                id="cvv"
+                name="creditCVV"
+                id="creditCVV"
                 placeholder="CVV"
                 maxLength="4"
-                value={formData.cvv}
+                value={formData.creditCVV}
                 onChange={handleCvvChange}
                 required
               />
@@ -446,11 +460,11 @@ const PaymentPage = () => {
             <div className="form-group small">
               <input 
                 type="text"
-                name="expiry"
-                id="expiry"
+                name="creditDate"
+                id="creditDate"
                 placeholder="MM/YY"
                 maxLength="5"
-                value={formData.expiry}
+                value={formData.creditDate}
                 onChange={handleExpiryChange}
                 required
               />

@@ -3,7 +3,7 @@ from sqlalchemy.orm import Session
 from database import get_db
 from models.schemas import IPAddressSchema
 from services.ip_blocking_service import (
-    get_client_ip, block_ip, check_ip, get_blocked_ips_with_reasons,
+    get_client_ip, block_ip, check_ip_blocked, get_blocked_ips_with_reasons,
     get_blocked_ips_list, unblock_ip, get_org_blocked_ips
 )
 
@@ -16,7 +16,7 @@ def block_ip_api(ip_data: IPAddressSchema, db: Session = Depends(get_db)):
 @router.get("/check-my-ip/")
 def check_my_ip(request: Request, db: Session = Depends(get_db)):
     client_ip = get_client_ip(request)
-    return check_ip(client_ip, db)
+    return check_ip_blocked(client_ip, db)
 
 @router.get("/blocked-ips/")
 def get_blocked_ips_with_reasons_api(db: Session = Depends(get_db)):

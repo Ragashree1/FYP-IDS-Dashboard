@@ -1,9 +1,289 @@
-import React, { useState, useMemo, useEffect} from "react"
+import React, { useState, useMemo, useEffect } from "react"
 import { useNavigate, useLocation } from "react-router-dom"
 import axios from 'axios';
 import Sidebar from "./Sidebar" // Import the Sidebar component
+import defaultClassifications from "./defaultClassifications" // Import default classifications
 
-const userRole = "network-admin"
+const userRole = "2"
+
+const FilterModal = ({ onClose, onSubmit , initialValues}) => {
+
+  const [formData, setFormData] = useState(() => ({
+    startDateTime: initialValues?.startDateTime || '',
+    endDateTime: initialValues?.endDateTime || '',
+    src_ip: initialValues?.src_ip || '',
+    dest_ip: initialValues?.dest_ip || '',
+    src_port: initialValues?.src_port || '',
+    dest_port: initialValues?.dest_port || '',
+    protocol: initialValues?.protocol || '',
+    message: initialValues?.message || '',
+    classification: initialValues?.classification || '',
+    host: initialValues?.host || '',
+  }));
+
+
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({
+      ...prev,
+      [name]: value
+    }));
+  };
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    onSubmit(formData);
+  };
+
+  return (
+    <div style={{
+      position: 'fixed',
+      top: 0,
+      left: 0,
+      right: 0,
+      bottom: 0,
+      backgroundColor: 'rgba(0, 0, 0, 0.5)',
+      display: 'flex',
+      justifyContent: 'center',
+      alignItems: 'center',
+      zIndex: 1000
+    }}>
+      <div style={{
+        backgroundColor: 'white',
+        padding: '20px',
+        borderRadius: '8px',
+        width: '90%',
+        maxWidth: '600px',
+        maxHeight: '90vh',
+        overflowY: 'auto'
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', marginBottom: '20px' }}>
+          <button
+            onClick={onClose}
+            style={{
+              background: 'none',
+              border: 'none',
+              fontSize: '24px',
+              cursor: 'pointer',
+              marginRight: '10px'
+            }}
+          >
+            ←
+          </button>
+          <h2 style={{ margin: 0 }}>Advanced Filter:</h2>
+        </div>
+
+        <div style={{
+          backgroundColor: '#f5f5f5',
+          padding: '20px',
+          borderRadius: '8px'
+        }}>
+          <h3 style={{ marginTop: 0 }}>Filter Criteria:</h3>
+
+          <form onSubmit={handleSubmit}>
+            <div style={{ marginBottom: '15px' }}>
+              <label style={{ display: 'block', marginBottom: '5px' }}>Start Date:</label>
+              <input
+                type="datetime-local"
+                name="startDateTime"
+                value={formData.startDateTime}
+                onChange={handleChange}
+                style={{
+                  width: '100%',
+                  padding: '8px',
+                  border: '1px solid #ddd',
+                  borderRadius: '4px'
+                }}
+              />
+            </div>
+
+            <div style={{ marginBottom: '15px' }}>
+              <label style={{ display: 'block', marginBottom: '5px' }}>End Date:</label>
+              <input
+                type="datetime-local"
+                name="endDateTime"
+                value={formData.endDateTime}
+                onChange={handleChange}
+                style={{
+                  width: '100%',
+                  padding: '8px',
+                  border: '1px solid #ddd',
+                  borderRadius: '4px'
+                }}
+              />
+            </div>
+
+            <div style={{ marginBottom: '15px' }}>
+              <label style={{ display: 'block', marginBottom: '5px' }}>Source IP:</label>
+              <input
+                type="text"
+                name="src_ip"
+                value={formData.src_ip}
+                onChange={handleChange}
+                placeholder="Enter Source IP"
+                style={{
+                  width: '100%',
+                  padding: '8px',
+                  border: '1px solid #ddd',
+                  borderRadius: '4px'
+                }}
+              />
+            </div>
+
+            <div style={{ marginBottom: '15px' }}>
+              <label style={{ display: 'block', marginBottom: '5px' }}>Destination IP:</label>
+              <input
+                type="text"
+                name="dest_ip"
+                value={formData.dest_ip}
+                onChange={handleChange}
+                placeholder="Enter Destination IP"
+                style={{
+                  width: '100%',
+                  padding: '8px',
+                  border: '1px solid #ddd',
+                  borderRadius: '4px'
+                }}
+              />
+            </div>
+
+            <div style={{ marginBottom: '15px' }}>
+              <label style={{ display: 'block', marginBottom: '5px' }}>Source Port:</label>
+              <input
+                type="text"
+                name="src_port"
+                value={formData.src_port}
+                onChange={handleChange}
+                placeholder="Enter Source Port"
+                style={{
+                  width: '100%',
+                  padding: '8px',
+                  border: '1px solid #ddd',
+                  borderRadius: '4px'
+                }}
+              />
+            </div>
+
+            <div style={{ marginBottom: '15px' }}>
+              <label style={{ display: 'block', marginBottom: '5px' }}>Destination Port:</label>
+              <input
+                type="text"
+                name="dest_port"
+                value={formData.dest_port}
+                onChange={handleChange}
+                placeholder="Enter Destination Port"
+                style={{
+                  width: '100%',
+                  padding: '8px',
+                  border: '1px solid #ddd',
+                  borderRadius: '4px'
+                }}
+              />
+            </div>
+
+            <div style={{ marginBottom: '15px' }}>
+              <label style={{ display: 'block', marginBottom: '5px' }}>Protocol:</label>
+              <input
+                type="text"
+                name="protocol"
+                value={formData.protocol}
+                onChange={handleChange}
+                placeholder="Enter Protocol"
+                style={{
+                  width: '100%',
+                  padding: '8px',
+                  border: '1px solid #ddd',
+                  borderRadius: '4px'
+                }}
+              />
+            </div>
+
+            <div style={{ marginBottom: '15px' }}>
+              <label style={{ display: 'block', marginBottom: '5px' }}>Message:</label>
+              <input
+                type="text"
+                name="message"
+                value={formData.message}
+                onChange={handleChange}
+                placeholder="Enter Message"
+                style={{
+                  width: '100%',
+                  padding: '8px',
+                  border: '1px solid #ddd',
+                  borderRadius: '4px'
+                }}
+              />
+            </div>
+
+            <div style={{ marginBottom: '15px' }}>
+              <label style={{ display: 'block', marginBottom: '5px' }}>Category:</label>
+              <input
+                type="text"
+                name="classification"
+                value={formData.classification}
+                onChange={handleChange}
+                placeholder="Enter classification"
+                style={{
+                  width: '100%',
+                  padding: '8px',
+                  border: '1px solid #ddd',
+                  borderRadius: '4px'
+                }}
+              />
+            </div>
+
+            <div style={{ marginBottom: '15px' }}>
+              <label style={{ display: 'block', marginBottom: '5px' }}>Host:</label>
+              <input
+                type="text"
+                name="host"
+                value={formData.host}
+                onChange={handleChange}
+                placeholder="Enter Host"
+                style={{
+                  width: '100%',
+                  padding: '8px',
+                  border: '1px solid #ddd',
+                  borderRadius: '4px'
+                }}
+              />
+            </div>
+
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
+              <button
+                type="submit"
+                style={{
+                  padding: '8px 16px',
+                  backgroundColor: '#4CAF50',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '4px',
+                  cursor: 'pointer'
+                }}
+              >
+                Apply Filter
+              </button>
+              <button
+                type="button"
+                onClick={onClose}
+                style={{
+                  padding: '8px 16px',
+                  backgroundColor: '#333',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '4px',
+                  cursor: 'pointer'
+                }}
+              >
+                Cancel
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  );
+};
 
 const AutomatedReportForm = ({ onClose, onSubmit }) => {
   const [formData, setFormData] = useState({
@@ -12,8 +292,6 @@ const AutomatedReportForm = ({ onClose, onSubmit }) => {
     alertCriticality: '',
     repeatNumber: '',
     repeatPeriod: '',
-    startDate: '',
-    endDate: '',
     reportFormat: '',
     reportType: 'summarized'
   });
@@ -173,38 +451,6 @@ const AutomatedReportForm = ({ onClose, onSubmit }) => {
                   <option value="year">Year</option>
                 </select>
               </div>
-            </div>
-
-            <div style={{ marginBottom: '15px' }}>
-              <label style={{ display: 'block', marginBottom: '5px' }}>Start Date:</label>
-              <input
-                type="date"
-                name="startDate"
-                value={formData.startDate}
-                onChange={handleChange}
-                style={{
-                  width: '100%',
-                  padding: '8px',
-                  border: '1px solid #ddd',
-                  borderRadius: '4px'
-                }}
-              />
-            </div>
-
-            <div style={{ marginBottom: '15px' }}>
-              <label style={{ display: 'block', marginBottom: '5px' }}>End Date:</label>
-              <input
-                type="date"
-                name="endDate"
-                value={formData.endDate}
-                onChange={handleChange}
-                style={{
-                  width: '100%',
-                  padding: '8px',
-                  border: '1px solid #ddd',
-                  borderRadius: '4px'
-                }}
-              />
             </div>
 
             <div style={{ marginBottom: '15px' }}>
@@ -476,56 +722,32 @@ const Offences = () => {
   const [showReportForm, setShowReportForm] = useState(false)
   const [showGenerateReport, setShowGenerateReport] = useState(false)
   const [selectedRows, setSelectedRows] = useState([])
+  const [hideUncategorized, setHideUncategorized] = useState(false);
+  const [filterCriteria, setFilterCriteria] = useState({});
+  const [isFilterModalOpen, setIsFilterModalOpen] = useState(false);
   const navigate = useNavigate()
   const location = useLocation()
   const [logs, setLogs] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [offences, setOffences] = useState([]);
-  const classifications = {
-    "not suspicious": { priority: 3, text: "Not Suspicious Traffic" },
-    "unknown": { priority: 3, text: "Unknown Traffic" },
-    "bad unknown": { priority: 2, text: "Potentially Bad Traffic" },
-    "attempted recon": { priority: 2, text: "Attempted Information Leak" },
-    "successful recon limited": { priority: 2, text: "Information Leak" },
-    "successful recon largescale": { priority: 2, text: "Large Scale Information Leak" },
-    "attempted dos": { priority: 2, text: "Attempted Denial of Service" },
-    "successful dos": { priority: 2, text: "Denial of Service" },
-    "attempted user": { priority: 1, text: "Attempted User Privilege Gain" },
-    "unsuccessful user": { priority: 1, text: "Unsuccessful User Privilege Gain" },
-    "successful user": { priority: 1, text: "Successful User Privilege Gain" },
-    "attempted admin": { priority: 1, text: "Attempted Administrator Privilege Gain" },
-    "successful admin": { priority: 1, text: "Successful Administrator Privilege Gain" },
-    "rpc portmap decode": { priority: 2, text: "Decode of an RPC Query" },
-    "shellcode detect": { priority: 1, text: "Executable code was detected" },
-    "string detect": { priority: 3, text: "A suspicious string was detected" },
-    "suspicious filename detect": { priority: 2, text: "A suspicious filename was detected" },
-    "suspicious login": { priority: 2, text: "An attempted login using a suspicious username was detected" },
-    "system call detect": { priority: 2, text: "A system call was detected" },
-    "tcp connection": { priority: 4, text: "A TCP connection was detected" },
-    "trojan activity": { priority: 1, text: "A Network Trojan was detected" },
-    "unusual client port connection": { priority: 2, text: "A client was using an unusual port" },
-    "network scan": { priority: 3, text: "Detection of a Network Scan" },
-    "denial of service": { priority: 2, text: "Detection of a Denial of Service Attack" },
-    "non standard protocol": { priority: 2, text: "Detection of a non standard protocol or event" },
-    "protocol command decode": { priority: 3, text: "Generic Protocol Command Decode" },
-    "web application activity": { priority: 2, text: "Access to a potentially vulnerable web application" },
-    "web application attack": { priority: 1, text: "Web Application Attack" },
-    "misc activity": { priority: 3, text: "Misc activity" },
-    "misc attack": { priority: 2, text: "Misc Attack" },
-    "icmp event": { priority: 3, text: "Generic ICMP event" },
-    "inappropriate content": { priority: 1, text: "Inappropriate Content was Detected" },
-    "policy violation": { priority: 1, text: "Potential Corporate Privacy Violation" },
-    "default login attempt": { priority: 2, text: "Attempt to login by a default username and password" },
-    "sdf": { priority: 2, text: "Sensitive Data" },
-    "file format": { priority: 1, text: "Known malicious file or file based exploit" },
-    "malware cnc": { priority: 1, text: "Known malware command and control traffic" },
-    "client side exploit": { priority: 1, text: "Known client side exploit attempt" }
-};
+  
+  function convertToKeyValuePair(data) {
+    return data.reduce((acc, item) => {
+      acc[item.text.toLowerCase()] = { name: item.name, priority: item.priority };
+      return acc;
+    }, {});
+  }
+  
+  const classifications = convertToKeyValuePair(defaultClassifications);
 
+  function getPriority(name) {
+    name = name.trim()
+    return classifications[name] ? classifications[name].priority : 'Unknown'
+  }
 
   useEffect(() => {
-    axios.get('http://localhost:8000/logs')
+    axios.get('http://localhost:8000/alerts')
       .then(response => {
         setLogs(response.data);
         setOffences(response.data);
@@ -542,58 +764,105 @@ const Offences = () => {
   
   // Updated filter logic to filter rows based on both filter type and search query
   const filteredOffences = useMemo(() => {
-    if (!filterType && !searchQuery) {
-      return offences
+    let filtered = offences;
+
+    if (hideUncategorized) {
+      filtered = filtered.filter(offence => getPriority(offence.classification.toLowerCase().trim() || 'N/A') !== 'Unknown');
     }
 
-    return offences.filter((offence) => {
-      const query = searchQuery.toLowerCase()
-      
-      // If we have a filter type but no search query, show all logs
-      if (filterType && !searchQuery) {
-        return true
+    // Advanced filter logic
+    filtered = filtered.filter(offence => {
+      let match = true;
+
+      if (filterCriteria.startDateTime) {
+        match = match && new Date(offence.timestamp) >= new Date(filterCriteria.startDateTime);
       }
-      
-      // If we have a search query but no filter type, search across all fields
-      if (searchQuery && !filterType) {
-        return (
-          offence.description.toLowerCase().includes(query) ||
-          offence.name.toLowerCase().includes(query) ||
-          offence.timestamp.toLowerCase().includes(query) ||
-          offence.category.toLowerCase().includes(query) ||
-          offence.message.toLowerCase().includes(query)  ||
-          offence.timestamp.toLowerCase().includes(query) ||
-          offence.src_ip.toLowerCase().includes(query) ||
-          offence.dest_ip.toLowerCase().includes(query) ||
-          offence.src_port.toLowerCase().includes(query) ||
-          offence.dest_port.toLowerCase().includes(query) ||
-          offence.protocol.toLowerCase().includes(query)
-        )
+      if (filterCriteria.endDateTime) {
+        match = match && new Date(offence.timestamp) <= new Date(filterCriteria.endDateTime);
       }
-      
-      // If we have both filter type and search query, search only in the specified field
-      switch (filterType) {
-        case "Alert Category":
-          return offence.description.toLowerCase().includes(query)
-        case "Alert Name":
-          return offence.message.toLowerCase().includes(query)
-        case "Date & Time":
-          return offence.timestamp.toLowerCase().includes(query)
-        case "Source IP":
-          return offence.src_ip.toLowerCase().includes(query)
-        case "Destination IP":
-          return offence.dest_ip.toLowerCase().includes(query)
-        case "Source Port": 
-          return offence.src_port.toLowerCase().includes(query)
-        case "Destination Port":
-          return offence.dest_port.toLowerCase().includes(query)
-        case "Protocol":
-          return offence.protocol.toLowerCase().includes(query)
-        default:
-          return false
+      if (filterCriteria.src_ip) {
+        match = match && offence.src_ip.toLowerCase().includes(filterCriteria.src_ip.toLowerCase());
       }
-    })
-  }, [offences, filterType, searchQuery])
+      if (filterCriteria.dest_ip) {
+        match = match && offence.dest_ip.toLowerCase().includes(filterCriteria.dest_ip.toLowerCase());
+      }
+      if (filterCriteria.src_port) {
+        match = match && offence.src_port.toString().includes(filterCriteria.src_port);
+      }
+      if (filterCriteria.dest_port) {
+        match = match && offence.dest_port.toString().includes(filterCriteria.dest_port);
+      }
+      if (filterCriteria.protocol) {
+        match = match && offence.protocol.toLowerCase().includes(filterCriteria.protocol.toLowerCase());
+      }
+      if (filterCriteria.message) {
+        match = match && offence.message.toLowerCase().includes(filterCriteria.message.toLowerCase());
+      }
+      if (filterCriteria.classification) {
+        match = match && offence.classification.toLowerCase().includes(filterCriteria.classification.toLowerCase());
+      }
+       if (filterCriteria.host) {
+         match = match && offence.host.toLowerCase().includes(filterCriteria.host.toLowerCase());
+       }
+
+       if (searchQuery && !filterType){
+          match = match && (
+            offence.classification.toLowerCase().includes(searchQuery.toLowerCase()) ||
+            offence.src_ip.toLowerCase().includes(searchQuery.toLowerCase()) ||
+            offence.dest_ip.toLowerCase().includes(searchQuery.toLowerCase()) ||
+            offence.src_port.toString().includes(searchQuery) ||
+            offence.dest_port.toString().includes(searchQuery) ||
+            offence.protocol.toLowerCase().includes(searchQuery.toLowerCase()) ||
+            offence.message.toLowerCase().includes(searchQuery.toLowerCase()) ||
+            (new Date(offence.timestamp).toLocaleString()).toLowerCase().includes(searchQuery.toLowerCase()) ||
+            offence.host.toLowerCase().includes(searchQuery.toLowerCase())
+          )
+       }else if (searchQuery && filterType){
+          switch (filterType.toLowerCase()) {
+            case "alert category":
+              match = match && offence.classification.toLowerCase().includes(searchQuery.toLowerCase());
+              break;
+            case "severity":
+              match = match && String(getPriority(offence.classification.toLowerCase().trim() || 'N/A')).toLowerCase().includes(searchQuery.toLowerCase());
+              break;
+            case "source ip":
+              match = match && offence.src_ip.toLowerCase().includes(searchQuery.toLowerCase());
+              break;
+            case "destination ip":
+              match = match && offence.dest_ip.toLowerCase().includes(searchQuery.toLowerCase());
+              break;
+            case "source port":
+              match = match && offence.src_port.toString().includes(searchQuery);
+              break;
+            case "destination port":
+              match = match && offence.dest_port.toString().includes(searchQuery);
+              break;
+            case "protocol":
+              match = match && offence.protocol.toLowerCase().includes(searchQuery.toLowerCase());
+              break;
+            case "alert name":
+              match = match && offence.message.toLowerCase().includes(searchQuery.toLowerCase());
+              break;
+            case "date & time":
+              match = match && (new Date(offence.timestamp).toLocaleString()).includes(searchQuery.toLowerCase());
+              break;
+            default:
+              break;
+          }
+       }
+
+      return match;
+    });
+
+    return filtered;
+  }, [offences, hideUncategorized, filterCriteria, searchQuery, filterType]);
+
+  const resetFilters = () => {
+    setFilterType("");
+    setSearchQuery("");
+    setHideUncategorized(false);
+    setFilterCriteria({});
+  }
 
   // Function to handle "select all" checkbox
   const handleSelectAll = (e) => {
@@ -626,22 +895,26 @@ const Offences = () => {
       return offences.length
     }
 
+  function getCriticalAlerts() {
+    return offences.map((offence, index) => getPriority(offence.classification.toLowerCase().trim() || 'N/A')).filter((val) => val == 1).length;
+  }
+
   
   function getHighAlerts() {
-    return offences.map((offence, index) => getPriority(offence.description.toLowerCase().trim() || 'N/A')).filter((val) => val == 1).length;
+    return offences.map((offence, index) => getPriority(offence.classification.toLowerCase().trim() || 'N/A')).filter((val) => val == 2).length;
   }
 
   
   function getMediumAlerts() {
-    return offences.map((offence, index) => getPriority(offence.description.toLowerCase().trim() || 'N/A')).filter((val) => val == 2 || val == 3).length;
+    return offences.map((offence, index) => getPriority(offence.classification.toLowerCase().trim() || 'N/A')).filter((val) => val == 3).length;
   }
 
   function getLowAlerts() {
-    return offences.map((offence, index) => getPriority(offence.description.toLowerCase().trim() || 'N/A')).filter((val) => val == 4).length;
+    return offences.map((offence, index) => getPriority(offence.classification.toLowerCase().trim() || 'N/A')).filter((val) => val == 4).length;
   }
 
   function getUncategorizedAlerts() {
-    return offences.filter((offence, index) => getPriority(offence.description.toLowerCase().trim() || 'N/A') == 'Unknown').length;
+    return offences.filter((offence, index) => getPriority(offence.classification.toLowerCase().trim() || 'N/A') == 'Unknown').length;
   }
 
 
@@ -650,10 +923,7 @@ const Offences = () => {
     setIsModalOpen(true)
   }
 
-  function getPriority(name) {
-    name = name.trim()
-    return classifications[name] ? classifications[name].priority : 'Unknown'
-  }
+  
 
   const closeModal = () => {
     setIsModalOpen(false)
@@ -690,6 +960,19 @@ const Offences = () => {
     setShowGenerateReport(false)
   }
 
+  const handleOpenFilterModal = () => {
+    setIsFilterModalOpen(true);
+  };
+
+  const handleCloseFilterModal = () => {
+    setIsFilterModalOpen(false);
+  };
+
+  const handleSubmitFilter = (formData) => {
+    setFilterCriteria(formData);
+    setIsFilterModalOpen(false);
+  };
+
   return (
     <div style={{ display: "flex", height: "100vh", background: "#f4f4f4" }}>
       {/* Use the Sidebar component */}
@@ -700,10 +983,16 @@ const Offences = () => {
         <h1>Offences (Alert) Interface:</h1>
 
         {/* Statistics */}
-        <div style={{ display: "flex", gap: "10px", marginBottom: "20px" }}>
+         <div style={{ display: "flex", gap: "10px", marginBottom: "20px" }}>
           <div style={{ background: "#ddd", padding: "12px 20px", borderRadius: "20px", textAlign: "center" }}>
             <p>Total Alerts</p>
             <p style={{ fontSize: "20px", fontWeight: "bold" }}>{getAlertCount()}</p>
+          </div>
+          <div style={{ background: "#ddd", padding: "12px 20px", borderRadius: "20px", textAlign: "center" }}>
+            <p>Total Critical</p>
+            <p style={{ fontSize: "20px", fontWeight: "bold" }}>
+              {getCriticalAlerts()}
+            </p>
           </div>
           <div style={{ background: "#ddd", padding: "12px 20px", borderRadius: "20px", textAlign: "center" }}>
             <p>Total High</p>
@@ -732,8 +1021,22 @@ const Offences = () => {
         </div>
 
         {/* Filter and Buttons */}
-        <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "20px" }}>
+        <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "20px", flexWrap: "wrap" }}>
+        
           <div style={{ display: "flex", gap: "10px", flex: 1, maxWidth: "600px" }}>
+          <select
+              value={hideUncategorized}
+              onChange={(e) => setHideUncategorized(e.target.value === "true")}
+              style={{
+                padding: "10px",
+                border: "1px solid #ccc",
+                borderRadius: "4px",
+                minWidth: "180px"
+              }}
+            >
+              <option value="false">Show All Alerts</option>
+              <option value="true">Hide Uncategorized Alerts</option>
+            </select>
             <select
               value={filterType}
               onChange={(e) => setFilterType(e.target.value)}
@@ -746,6 +1049,7 @@ const Offences = () => {
             >
               <option value="">Filter By (All Fields)</option>
               <option value="Alert Category">Alert Category</option>
+              <option value="Severity">Severity</option>
               <option value="Source IP">Source IP</option>
               <option value="Destination IP">Destination IP</option>
               <option value="Source Port">Source Port</option>
@@ -758,7 +1062,8 @@ const Offences = () => {
             <div style={{ 
               position: "relative", 
               flex: 1,
-              display: "flex"
+              display: "flex",
+              minWidth: "200px" // Ensure minimum width to prevent overlap
             }}>
               <input
                 type="text"
@@ -788,14 +1093,40 @@ const Offences = () => {
             </div>
           </div>
           
-          <div>
+          <div style={{ display: "flex", gap: "10px", flexWrap: "wrap" }}>
+            
+            <button
+              onClick={resetFilters}
+              style={{
+                background: "grey",
+                color: "#fff",
+                padding: "12px 20px",
+                border: "none",
+                borderRadius: "20px",
+                cursor: "pointer",
+              }}
+            >
+              Reset Filters
+            </button>
+            <button
+              onClick={handleOpenFilterModal}
+              style={{
+                background: "blue",
+                color: "#fff",
+                padding: "12px 20px",
+                border: "none",
+                borderRadius: "20px",
+                cursor: "pointer",
+              }}
+            >
+              Advanced Filter
+            </button>
             <button
               onClick={handleOpenReportForm}
               style={{
                 background: "green",
                 color: "#fff",
                 padding: "12px 20px",
-                marginRight: "10px",
                 border: "none",
                 borderRadius: "20px",
                 cursor: "pointer",
@@ -816,6 +1147,7 @@ const Offences = () => {
             >
               Generate Report
             </button>
+            
           </div>
         </div>
 
@@ -847,70 +1179,70 @@ const Offences = () => {
         )}
 
         {/* Offences Table */}
-        <div style={{ width: "100%", overflowX: "auto", maxHeight: "900px", overflowY: "auto" }}>
-        <table
-          style={{
-            width: "100%",
-            background: "#fff",
-            borderCollapse: "collapse",
-            boxShadow: "0 0 10px rgba(0,0,0,0.1)",
-            minWidth: "800px"
-          }}
-        >
-          <thead style={{ position: "sticky", top: 0, background: "#fff", zIndex: 2, boxShadow: "0 2px 2px rgba(0,0,0,0.1)" }}>
-            <tr style={{ background: "#ccc", borderBottom: "2px solid #aaa" }}>
-              <th style={{ padding: "10px", textAlign: "center", borderRight: "1px solid #aaa" }}>
-                <input 
-                  type="checkbox" 
-                  checked={areAllSelected}
-                  onChange={handleSelectAll}
-                  style={{ cursor: "pointer" }}
-                /> Select
-              </th>
-              <th style={{ padding: "10px", textAlign: "center", borderRight: "1px solid #aaa" }}>
-                  Alert Message
-                </th>
-              <th style={{ padding: "10px", textAlign: "center", borderRight: "1px solid #aaa" }}>Date & Time</th>
-              <th style={{ padding: "10px", textAlign: "center", borderRight: "1px solid #aaa" }}>Protocol</th>
-              <th style={{ padding: "10px", textAlign: "center", borderRight: "1px solid #aaa" }}>Alert Category</th>
-              <th style={{ padding: "10px", textAlign: "center", borderRight: "1px solid #aaa" }}>Severity level (1=High, 4=Low)</th>
-              <th style={{ padding: "10px", textAlign: "center" }}>View</th>
-            </tr>
-          </thead>
-          <tbody>
-            {filteredOffences.map((offence, index) => (
-              <tr 
-                key={index} 
-                style={{ 
-                  borderBottom: "1px solid #ddd",
-                  backgroundColor: selectedRows.includes(index) ? "#f0f7ff" : "inherit"
-                }}
-              >
-                <td style={{ padding: "10px", textAlign: "center" }}>
+        <div style={{ width: "100%", maxHeight: "700px", overflowY: "auto" }}>
+          <table
+            style={{
+              width: "100%",
+              background: "#fff",
+              borderCollapse: "collapse",
+              boxShadow: "0 0 10px rgba(0,0,0,0.1)",
+              minWidth: "800px"
+            }}
+          >
+            <thead style={{ position: "sticky", top: 0, background: "#fff", zIndex: 2, boxShadow: "0 2px 2px rgba(0,0,0,0.1)" }}>
+              <tr style={{ background: "#ccc", borderBottom: "2px solid #aaa" }}>
+                <th style={{ padding: "10px", textAlign: "center", borderRight: "1px solid #aaa" }}>
                   <input 
                     type="checkbox" 
-                    checked={selectedRows.includes(index)}
-                    onChange={(e) => handleSelectRow(index, e)}
+                    checked={areAllSelected}
+                    onChange={handleSelectAll}
                     style={{ cursor: "pointer" }}
-                  />
-                </td>
-                <td style={{ padding: "10px", textAlign: "center" }}>{offence.message}</td>
-                <td style={{ padding: "10px", textAlign: "center" }}>{new Date(offence.timestamp).toLocaleString()}</td>
-                <td style={{ padding: "10px", textAlign: "center" }}>{offence.protocol}</td>
-                <td style={{ padding: "10px", textAlign: "center" }}>{offence.description.toLowerCase() || 'N/A'}</td>
-                <td style={{ padding: "10px", textAlign: "center" }}>{getPriority(offence.description.toLowerCase().trim() || 'N/A')}</td>
-                <td style={{ padding: "10px", textAlign: "center" }}>
-                  <button
-                    style={{ background: "purple", color: "#fff", padding: "5px 10px", borderRadius: "5px" }}
-                    onClick={() => openModal(offence)}
-                  >
-                    View
-                  </button>
-                </td>
+                  /> Select
+                </th>
+                <th style={{ padding: "10px", textAlign: "center", borderRight: "1px solid #aaa" }}>
+                  Alert Message
+                </th>
+                <th style={{ padding: "10px", textAlign: "center", borderRight: "1px solid #aaa" }}>Date & Time</th>
+                <th style={{ padding: "10px", textAlign: "center", borderRight: "1px solid #aaa" }}>Protocol</th>
+                <th style={{ padding: "10px", textAlign: "center", borderRight: "1px solid #aaa" }}>Alert Category</th>
+                <th style={{ padding: "10px", textAlign: "center", borderRight: "1px solid #aaa" }}>Severity level (1=Critical, 4=Low)</th>
+                <th style={{ padding: "10px", textAlign: "center" }}>View</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {filteredOffences.map((offence, index) => (
+                <tr 
+                  key={index} 
+                  style={{ 
+                    borderBottom: "1px solid #ddd",
+                    backgroundColor: selectedRows.includes(index) ? "#f0f7ff" : "inherit"
+                  }}
+                >
+                  <td style={{ padding: "10px", textAlign: "center" }}>
+                    <input 
+                      type="checkbox" 
+                      checked={selectedRows.includes(index)}
+                      onChange={(e) => handleSelectRow(index, e)}
+                      style={{ cursor: "pointer" }}
+                    />
+                  </td>
+                  <td style={{ padding: "10px", textAlign: "center" }}>{offence.message.replace(/^"|"$/g, '')}</td>
+                  <td style={{ padding: "10px", textAlign: "center" }}>{new Date(offence.timestamp).toLocaleString()}</td>
+                  <td style={{ padding: "10px", textAlign: "center" }}>{offence.protocol}</td>
+                  <td style={{ padding: "10px", textAlign: "center" }}>{offence.classification.toLowerCase() || 'N/A'}</td>
+                  <td style={{ padding: "10px", textAlign: "center" }}>{getPriority(offence.classification.toLowerCase().trim() || 'N/A')}</td>
+                  <td style={{ padding: "10px", textAlign: "center" }}>
+                    <button
+                      style={{ background: "purple", color: "#fff", padding: "5px 10px", borderRadius: "5px" }}
+                      onClick={() => openModal(offence)}
+                    >
+                      View
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
 
         {/* Modal */}
@@ -926,6 +1258,7 @@ const Offences = () => {
               display: "flex",
               justifyContent: "center",
               alignItems: "center",
+              zIndex: 3,
             }}
             onClick={closeModal}
           >
@@ -963,7 +1296,7 @@ const Offences = () => {
               {selectedOffence && (
   <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "20px" }}>
     <div>
-      <p style={{ fontWeight: "bold", marginBottom: "5px" }}>Alert Name:</p>
+      <p style={{ fontWeight: "bold", marginBottom: "5px" }}>Alert Message:</p>
       <div style={{ background: "#f0f0f0", padding: "8px", borderRadius: "4px", marginBottom: "15px" }}>
         {selectedOffence.message || 'N/A'}
       </div>
@@ -971,24 +1304,45 @@ const Offences = () => {
       <div style={{ background: "#f0f0f0", padding: "8px", borderRadius: "4px", marginBottom: "15px" }}>
         {selectedOffence.timestamp ? new Date(selectedOffence.timestamp).toLocaleString() : 'N/A'}
       </div>
+      <p style={{ fontWeight: "bold", marginBottom: "5px" }}>Source Port:</p>
+      <div style={{ background: "#f0f0f0", padding: "8px", borderRadius: "4px", marginBottom: "15px" }}>
+        {selectedOffence.src_port || 'N/A'}
+      </div>
       <p style={{ fontWeight: "bold", marginBottom: "5px" }}>Source IP:</p>
       <div style={{ background: "#f0f0f0", padding: "8px", borderRadius: "4px", marginBottom: "15px" }}>
         {selectedOffence.src_ip || 'N/A'}
       </div>
+      <p style={{ fontWeight: "bold", marginBottom: "5px" }}>Direction:</p>
+      <div style={{ background: "#f0f0f0", padding: "8px", borderRadius: "4px", marginBottom: "15px" }}>
+        {selectedOffence.direction || 'N/A'}
+      </div>
     </div>
     <div>
-      <p style={{ fontWeight: "bold", marginBottom: "5px" }}>Alert Type:</p>
+    <p style={{ fontWeight: "bold", marginBottom: "5px" }}>Alert Category:</p>
       <div style={{ background: "#f0f0f0", padding: "8px", borderRadius: "4px", marginBottom: "15px" }}>
-        {selectedOffence.description || 'N/A'}
+        {selectedOffence.classification || 'N/A'}
+      </div>
+      <p style={{ fontWeight: "bold", marginBottom: "5px" }}>Signature ID:</p>
+      <div style={{ background: "#f0f0f0", padding: "8px", borderRadius: "4px", marginBottom: "15px" }}>
+        {selectedOffence.signature_id || 'N/A'}
       </div>
       <p style={{ fontWeight: "bold", marginBottom: "5px" }}>Alert Protocol:</p>
       <div style={{ background: "#f0f0f0", padding: "8px", borderRadius: "4px", marginBottom: "15px" }}>
       {selectedOffence.protocol || 'N/A'}
       </div>
+      <p style={{ fontWeight: "bold", marginBottom: "5px" }}>Destination Port:</p>
+      <div style={{ background: "#f0f0f0", padding: "8px", borderRadius: "4px", marginBottom: "15px" }}>
+        {selectedOffence.dest_port || 'N/A'}
+      </div>
       <p style={{ fontWeight: "bold", marginBottom: "5px" }}>Destination IP:</p>
       <div style={{ background: "#f0f0f0", padding: "8px", borderRadius: "4px", marginBottom: "15px" }}>
         {selectedOffence.dest_ip || 'N/A'}
       </div>
+      <p style={{ fontWeight: "bold", marginBottom: "5px" }}>Severity Level:</p>
+      <div style={{ background: "#f0f0f0", padding: "8px", borderRadius: "4px", marginBottom: "15px" }}>
+        {getPriority(selectedOffence.classification.toLowerCase().trim() || 'N/A')}
+      </div>
+
     </div>
   </div>
 )}
@@ -1004,9 +1358,12 @@ const Offences = () => {
         {showGenerateReport && (
           <GenerateReportModal onClose={handleCloseGenerateReport} onSubmit={handleSubmitGenerateReport} />
         )}
-        
+
+        {isFilterModalOpen && (
+          <FilterModal onClose={handleCloseFilterModal} onSubmit={handleSubmitFilter}  initialValues={filterCriteria}/>
+        )}
+      </div>  
       </div>
-    </div>
   )
 }
 

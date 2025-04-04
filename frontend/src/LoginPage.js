@@ -165,14 +165,14 @@ export default function LoginPage() {
 
           <div style={styles.formGroup}>
             <label htmlFor="loginId" style={styles.label}>
-              Login ID
+              username
             </label>
             <input
               id="loginId"
               type="text"
               value={loginId}
               onChange={(e) => setLoginId(e.target.value)}
-              placeholder="Enter your login ID"
+              placeholder="Enter your username"
               style={styles.input}
             />
           </div>

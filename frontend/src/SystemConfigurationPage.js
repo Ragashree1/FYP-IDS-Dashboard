@@ -1,23 +1,33 @@
-"use client"
-import React from 'react';
-import { useState, useEffect } from "react"
-import { useNavigate } from "react-router-dom"
-import Sidebar from "./Sidebar" // Import the Sidebar component
+import React, { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
+import Sidebar from "./Sidebar";
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
-const userRole = "network-admin"
+const userRole = "network-admin";
 
 const AddIPModal = ({ onClose, onAdd }) => {
-  const [newIP, setNewIP] = useState("")
+  const [newIP, setNewIP] = useState("");
 
   const handleSubmit = (e) => {
-    e.preventDefault()
+    e.preventDefault();
     if (newIP) {
-      onAdd(newIP)
-      onClose()
+      onAdd(newIP);
+      onClose();
     }
-  }
+  };
+
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (e.key === "Escape") {
+        onClose();
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => {
+      window.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [onClose]);
 
   return (
     <div
@@ -79,7 +89,7 @@ const AddIPModal = ({ onClose, onAdd }) => {
                 border: "1px solid #ddd",
                 borderRadius: "4px",
                 marginBottom: "15px",
-                boxSizing: "border-box", // Added to prevent overflow
+                boxSizing: "border-box",
               }}
             />
             <div style={{ display: "flex", justifyContent: "space-between", gap: "10px" }}>
@@ -117,109 +127,125 @@ const AddIPModal = ({ onClose, onAdd }) => {
         </form>
       </div>
     </div>
-  )
-}
+  );
+};
 
 const SystemConfiguration = () => {
-  const navigate = useNavigate()
-  const [searchQuery, setSearchQuery] = useState("")
-  const [clients, setClients] = useState([])
-  const [logs, setLogs] = useState([])
-  const [isModalOpen, setIsModalOpen] = useState(false)
-  const [isLoading, setLoading] = useState(false)
+  const [logType, setLogType] = useState("all");
+  const navigate = useNavigate();
+  const [searchQuery, setSearchQuery] = useState("");
+  const [clients, setClients] = useState([]);
+  const [logs, setLogs] = useState([]);
+  const [isModalOpen, setIsModalOpen] = useState(false);
 
-  useEffect(() => {
-    const organizationId = localStorage.getItem("organizationId");  // Correct: organizationId
-    
-    if (!organizationId) {
-      alert("Organization ID is missing. Please register again.");
-      navigate("/register");
-    } else {
-      fetchVerifiedIPs(organizationId);  // Use organizationId instead of clientId
-      fetchLogs(organizationId);  // Use organizationId instead of clientId
-    }
-  }, [navigate]);   
-
-  const fetchVerifiedIPs = async (organizationId) => {
+  const fetchVerifiedIPs = async (orgId) => {
     try {
-      setLoading(true)
-      const response = await fetch(`${API_BASE_URL}/ip-verification/verified-ips/${organizationId}`);  // Update this to use organizationId
-      if (!response.ok) throw new Error("Failed to fetch verified IPs");
-  
+      const response = await fetch(`${API_BASE_URL}/ip-verification/verified-ips/${orgId}`);
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || "Failed to fetch verified IPs");
+      }
       const data = await response.json();
       setClients(data.verified_ips);
     } catch (error) {
-      console.error("Error fetching verified IPs:", error);
-    } finally {
-      setLoading(false);
+      console.error("Error fetching verified IPs:", error.message);
+      alert(`Error: ${error.message}`);
     }
-  };  
+  };
 
-  const fetchLogs = async (organizationId) => {
+  const fetchLogs = async (orgId) => {
     try {
-      const response = await fetch(`${API_BASE_URL}/ip-verification/logs/${organizationId}`);  // Update this to use organizationId
-      if (!response.ok) throw new Error("Failed to fetch logs");
+      let endpoint = `/ip-verification/logs/${orgId}`;
+      if (logType === "client") {
+        endpoint = `/ip-verification/logs/client-only/${orgId}`;
+      } else if (logType === "snort") {
+        endpoint = `/ip-verification/logs/snort-only/${orgId}`;
+      }
+
+      const response = await fetch(`${API_BASE_URL}${endpoint}`);
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || "Failed to fetch logs");
+      }
       const data = await response.json();
       setLogs(data);
     } catch (error) {
-      console.error("Error fetching logs:", error);
-      alert("Failed to fetch logs. Please try again later.");
+      console.error("Error fetching logs:", error.message);
+      alert(`Error: ${error.message}`);
     }
-  };  
-  
+  };
+
   const handleRemoveClient = async (id) => {
     try {
       const response = await fetch(`${API_BASE_URL}/ip-verification/remove-ip/${id}`, {
         method: "DELETE",
-      })
+      });
 
-      if (!response.ok) throw new Error("Failed to remove IP")
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || "Failed to remove IP");
+      }
 
-      setClients((prevClients) => prevClients.filter((client) => client.id !== id))
-
-      alert("IP removed successfully!")
+      setClients((prevClients) => prevClients.filter((client) => client.id !== id));
+      alert("IP removed successfully!");
     } catch (error) {
-      console.error("Error removing IP:", error)
-      alert("Error removing IP. Please try again.")
+      console.error("Error removing IP:", error.message);
+      alert(`Error: ${error.message}`);
     }
-  }
+  };
 
   const handleAddIP = async (newIP) => {
-    const organizationId = localStorage.getItem("organizationId");  // Get organization ID instead of clientId
-    if (!organizationId) {
+    const orgId = localStorage.getItem("orgId");
+    if (!orgId) {
       alert("Organization ID is missing. Please register again.");
       return;
     }
-  
-    // Use organization_id instead of client_id
-    const response = await fetch(`${API_BASE_URL}/ip-verification/verify-ip`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ organization_id: organizationId, ip: newIP })  // Pass organization_id
-    });
-  
-    const data = await response.json();
-    if (response.ok) {
+
+    try {
+      const response = await fetch(`${API_BASE_URL}/ip-verification/verify-ip`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ organization_id: orgId, ip: newIP }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || "Failed to verify IP");
+      }
+
       alert("IP verified successfully!");
-      fetchLogs(organizationId);  // Fetch logs based on organizationId
-    } else {
-      alert("Error verifying IP.");
+      fetchLogs(orgId);
+    } catch (error) {
+      console.error("Error verifying IP:", error.message);
+      alert(`Error: ${error.message}`);
     }
-  };      
+  };
+
+  useEffect(() => {
+    const orgId = localStorage.getItem("orgId");
+
+    if (!orgId) {
+      alert("Organization ID is missing. Please register again.");
+      navigate("/register");
+    } else {
+      fetchVerifiedIPs(orgId);
+      fetchLogs(orgId);
+    }
+  }, [navigate, logType]);
 
   const handleSearch = (e) => {
-    setSearchQuery(e.target.value)
-  }
+    setSearchQuery(e.target.value);
+  };
 
-  const filteredClients = clients.filter((client) => client.ip.toLowerCase().includes(searchQuery.toLowerCase()))
+  const filteredClients = clients.filter((client) => client.ip.toLowerCase().includes(searchQuery.toLowerCase()));
 
   const openModal = () => {
-    setIsModalOpen(true)
-  }
+    setIsModalOpen(true);
+  };
 
   const closeModal = () => {
-    setIsModalOpen(false)
-  }
+    setIsModalOpen(false);
+  };
 
   return (
     <div
@@ -227,24 +253,21 @@ const SystemConfiguration = () => {
         display: "flex",
         height: "100vh",
         background: "#f4f4f4",
-        overflow: "hidden", // Added to prevent horizontal scrolling
+        overflow: "hidden",
       }}
     >
-      {/* Use the Sidebar component instead of hardcoded sidebar */}
       <Sidebar userRole={userRole} />
 
-      {/* Main Content */}
       <div
         style={{
           flex: 1,
           padding: "20px",
-          overflowY: "auto", // Allow vertical scrolling
-          overflowX: "hidden", // Prevent horizontal scrolling
+          overflowY: "auto",
+          overflowX: "hidden",
         }}
       >
         <h1>Log Forwarding Configuration</h1>
 
-        {/* Search Bar */}
         <div
           style={{
             position: "relative",
@@ -263,7 +286,7 @@ const SystemConfiguration = () => {
               border: "1px solid #ddd",
               fontSize: "14px",
               backgroundColor: "#f5f5f5",
-              boxSizing: "border-box", // Added to prevent overflow
+              boxSizing: "border-box",
             }}
           />
           <span
@@ -279,7 +302,6 @@ const SystemConfiguration = () => {
           </span>
         </div>
 
-        {/* Client List */}
         <div>
           <div
             style={{
@@ -311,8 +333,8 @@ const SystemConfiguration = () => {
             style={{
               background: "white",
               borderRadius: "4px",
-              overflow: "auto", // Changed from "hidden" to "auto" to allow scrolling if needed
-              maxWidth: "100%", // Added to prevent overflow
+              overflow: "auto",
+              maxWidth: "100%",
             }}
           >
             {filteredClients.map((client) => (
@@ -343,40 +365,71 @@ const SystemConfiguration = () => {
             ))}
           </div>
         </div>
+
+        <div style={{ marginBottom: "20px", display: "flex", gap: "10px", alignItems: "center" }}>
+          <label>Filter by Log Type:</label>
+          <select
+            value={logType}
+            onChange={(e) => setLogType(e.target.value)}
+            style={{
+              padding: "6px",
+              borderRadius: "4px",
+              border: "1px solid #ccc",
+            }}
+          >
+            <option value="all">All Logs</option>
+            <option value="client">Client Forwarded</option>
+            <option value="snort">Snort Detected</option>
+          </select>
+        </div>
+
+        <div style={{ marginTop: "40px" }}>
+          <h2>Forwarded Logs</h2>
+          <div
+            style={{
+              maxHeight: "300px",
+              overflowY: "auto",
+              background: "white",
+              padding: "10px",
+              borderRadius: "4px",
+            }}
+          >
+            {logs.length === 0 ? (
+              <p>No logs forwarded yet.</p>
+            ) : (
+              <table style={{ width: "100%", borderCollapse: "collapse" }}>
+                <thead>
+                  <tr>
+                    <th style={{ borderBottom: "1px solid #ccc", textAlign: "left" }}>Timestamp</th>
+                    <th style={{ borderBottom: "1px solid #ccc", textAlign: "left" }}>IP</th>
+                    <th style={{ borderBottom: "1px solid #ccc", textAlign: "left" }}>Log</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {logs.map((log, index) => (
+                    <tr key={index}>
+                      <td>{new Date(log.timestamp).toLocaleString()}</td>
+                      <td>{log.source}</td>
+                      <td>
+                        {log.message || log.log_data}
+                        {log.type && (
+                          <span style={{ marginLeft: "8px", fontSize: "0.8em", color: "#888" }}>
+                            [{log.type}]
+                          </span>
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
+          </div>
+        </div>
       </div>
       {isModalOpen && <AddIPModal onClose={closeModal} onAdd={handleAddIP} />}
-
-      <div style={{ marginTop: "40px" }}>
-  <h2>Forwarded Logs</h2>
-  <div style={{ maxHeight: "300px", overflowY: "auto", background: "white", padding: "10px", borderRadius: "4px" }}>
-    {logs.length === 0 ? (
-      <p>No logs forwarded yet.</p>
-    ) : (
-      <table style={{ width: "100%", borderCollapse: "collapse" }}>
-        <thead>
-          <tr>
-            <th style={{ borderBottom: "1px solid #ccc", textAlign: "left" }}>Timestamp</th>
-            <th style={{ borderBottom: "1px solid #ccc", textAlign: "left" }}>IP</th>
-            <th style={{ borderBottom: "1px solid #ccc", textAlign: "left" }}>Log</th>
-          </tr>
-        </thead>
-        <tbody>
-          {logs.map((log, index) => (
-            <tr key={index}>
-              <td>{new Date(log.timestamp).toLocaleString()}</td>
-              <td>{log.ip}</td>
-              <td>{log.log_data}</td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    )}
-  </div>
-</div>
-
     </div>
-  )
-}
+  );
+};
 
-export default SystemConfiguration
+export default SystemConfiguration;
 
