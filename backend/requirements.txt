@@ -4,6 +4,13 @@ SQLAlchemy
 pydantic
 pydantic-settings
 python-dotenv
+psycopg2
+passlib
+python-jose
+python-multipart
+starlette
+bcrypt
 psycopg2-binary
 requests
 apscheduler
+pydantic[email]

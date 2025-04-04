@@ -40,10 +40,10 @@ def preprocess_alert(alert):
             "src_port": int(message_parts[6].split(':')[1].strip()),
             "dest_ip": message_parts[7].split(':')[0].strip(),
             "dest_port": int(message_parts[7].split(':')[1].strip()),
-            "classification": message_parts[8].strip(),
+            "signature_id": message_parts[8].strip(),
             "action": message_parts[9].strip(),
             "message": message_parts[10].strip().replace('"', ''),
-            "description": message_parts[11].strip(),
+            "classification": message_parts[11].strip(),
             "host": alert['_source']['host']['ip'][0]
         }
     except (IndexError, ValueError, KeyError) as e:

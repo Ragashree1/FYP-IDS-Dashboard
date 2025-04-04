@@ -1,27 +1,95 @@
-"use client"
-
-import { useState } from "react"
+import React, { useState, useEffect } from "react"
 import { useNavigate, useLocation } from "react-router-dom"
 import Sidebar from "./Sidebar"
 
-const userRole = "network-admin"
+const userRole = "2"
 
 // New AddPlaybookModal component that matches the design in the images
 const AddPlaybookModal = ({ onClose, onSave }) => {
   const [playbookName, setPlaybookName] = useState("")
   const [description, setDescription] = useState("")
-  const [occurrenceThreshold, setOccurrenceThreshold] = useState(3)
-  const [conditions, setConditions] = useState([{ id: 1, field: "Alert Category", value: "" }])
+  const [conditions, setConditions] = useState([{ 
+    id: 1, 
+    field: "source_ip",  // Set default field
+    value: "",
+    window_period: "",
+    condition_type: "threshold",
+    operator: "greater than or equal"  // Set default operator
+  }])
   const [status, setStatus] = useState(true)
   const [blockIP, setBlockIP] = useState(true)
   const [sendEmailAlert, setSendEmailAlert] = useState(true)
   const [emailRecipients, setEmailRecipients] = useState("")
 
+  const conditionFieldOptions = {
+    threshold: [
+      { value: "source_ip", label: "Source IP" },
+      { value: "alert_count", label: "Alert Count" }
+    ],
+    severity: [
+      { value: "severity", label: "Severity" }
+    ],
+    class_type: [
+      { value: "class_type", label: "Class Type" }
+    ],
+    ip_reputation: [
+      { value: "source_ip", label: "Source IP" }
+    ],
+    geolocation: [
+      { value: "source_ip", label: "Source IP" }
+    ],
+    destination_targeting: [
+      { value: "destination_ip", label: "Destination IP" }
+    ]
+  };
+
+  const conditionTypeOptions = [
+    { value: "threshold", label: "threshold" },
+    { value: "severity", label: "Severity" },
+    { value: "class_type", label: "Class Type" },
+    { value: "ip_reputation", label: "IP Reputation" },
+  ];
+
+  const conditionOperatorOptions = {
+    threshold: [
+      {value: "greater than or equal", label: ">="}
+    ],
+    severity: [
+      {value: "greater than or equal", label: ">="}
+    ],
+    class_type: [
+      {value: "equal", label: "equals"},
+      {value: "not equal", label: "not equals"}
+    ],
+    ip_reputation: [
+      {value: "exists", label: "exists"},
+    ],
+    geo_location: [
+      {value: "equal", label: "equals"},
+      {value: "not equal", label: "not equals"}
+    ]
+  }
+
+  const conditionValueOptions = {
+    severity: [
+    { value: "low", label: "Low" },
+    { value: "medium", label: "Medium" },
+    { value: "high", label: "High" },
+    { value: "critical", label: "Critical" }
+    ],
+    ip_reputation: [
+    { value: "threat_intel_feed", label: "threat intel feed" },
+    ],
+  }
+
   const handleAddCondition = () => {
     const newCondition = {
       id: conditions.length + 1,
-      field: "Alert Category",
+      condition_type: "threshold",
+      field: "source_ip",  // Set default field based on condition type
       value: "",
+      operator: "greater than or equal",  // Set default operator based on condition type
+      window_period: "",
     }
     setConditions([...conditions, newCondition])
   }
@@ -33,7 +101,25 @@ const AddPlaybookModal = ({ onClose, onSave }) => {
   }
 
   const handleConditionChange = (id, field, value) => {
-    setConditions(conditions.map((condition) => (condition.id === id ? { ...condition, [field]: value } : condition)))
+    setConditions(conditions.map((condition) => {
+      if (condition.id === id) {
+        const updatedCondition = { ...condition, [field]: value };
+        
+        // If condition type changes, set appropriate defaults
+        if (field === "condition_type") {
+          const defaultField = conditionFieldOptions[value]?.[0]?.value || "";
+          const defaultOperator = conditionOperatorOptions[value]?.[0]?.value || "";
+          const defaultValue = conditionValueOptions[value]?.[0]?.value || "";
+          
+          updatedCondition.field = defaultField;
+          updatedCondition.operator = defaultOperator;
+          updatedCondition.value = defaultValue; // Reset value when type changes
+        }
+        
+        return updatedCondition;
+      }
+      return condition;
+    }))
   }
 
   const handleSubmit = (e) => {
@@ -51,17 +137,14 @@ const AddPlaybookModal = ({ onClose, onSave }) => {
 
     const playbookData = {
       name: playbookName,
-      description,
-      occurrenceThreshold,
+      description: description,
       triggerType: "Alert Category",
-      actionType,
+      actionType: actionType,
       status: status ? "active" : "inactive",
       triggerConditions: JSON.stringify(conditions),
-      actionDetails: JSON.stringify({
-        blockIP,
-        sendEmailAlert,
-        emailRecipients,
-      }),
+      blockIP: blockIP,
+      sendEmailAlert: sendEmailAlert,
+      emailRecipients: emailRecipients,
     }
 
     onSave(playbookData)
@@ -213,38 +296,12 @@ const AddPlaybookModal = ({ onClose, onSave }) => {
                     )}
                   </div>
 
-                  {/* Occurrence Threshold - Moved inside Condition 1 */}
-                  {index === 0 && (
-                    <div style={{ marginBottom: "16px", width: "100%" }}>
-                      <label style={{ display: "block", marginBottom: "8px", fontWeight: "500" }}>
-                        Occurrence Threshold
-                      </label>
-                      <input
-                        type="number"
-                        value={occurrenceThreshold}
-                        onChange={(e) => setOccurrenceThreshold(e.target.value)}
-                        min="1"
-                        style={{
-                          width: "100%",
-                          padding: "10px",
-                          border: "1px solid #ddd",
-                          borderRadius: "4px",
-                          fontSize: "14px",
-                          boxSizing: "border-box",
-                        }}
-                        required
-                      />
-                      <p style={{ margin: "4px 0 0 0", fontSize: "12px", color: "#666" }}>
-                        Number of occurrences required to trigger the playbook
-                      </p>
-                    </div>
-                  )}
-
+                  
                   <div style={{ marginBottom: "16px", width: "100%" }}>
-                    <label style={{ display: "block", marginBottom: "8px" }}>Field</label>
+                    <label style={{ display: "block", marginBottom: "8px" }}>Condition Type</label>
                     <select
-                      value={condition.field}
-                      onChange={(e) => handleConditionChange(condition.id, "field", e.target.value)}
+                      value={condition.condition_type}
+                      onChange={(e) => handleConditionChange(condition.id, "condition_type", e.target.value)}
                       style={{
                         width: "100%",
                         padding: "10px",
@@ -254,17 +311,122 @@ const AddPlaybookModal = ({ onClose, onSave }) => {
                         boxSizing: "border-box",
                       }}
                     >
-                      <option value="Alert Category">Alert Category</option>
-                      <option value="Severity">Severity</option>
+                      {conditionTypeOptions.map((field) => (
+                        <option key={field.value} value={field.value}>
+                          {field.label}
+                        </option>
+                      ))}
                     </select>
                   </div>
 
-                  <div style={{ width: "100%" }}>
+
+                  <div style={{ marginBottom: "16px", width: "100%" }}>
+                                      <label style={{ display: "block", marginBottom: "8px" }}>Field</label>
+                                      <select
+                                        value={condition.field}
+                                        onChange={(e) => handleConditionChange(condition.id, "field", e.target.value)}
+                                        style={{
+                                          width: "100%",
+                                          padding: "10px",
+                                          border: "1px solid #ddd",
+                                          borderRadius: "4px",
+                                          backgroundColor: "white",
+                                          boxSizing: "border-box",
+                                        }}
+                                      >
+                                        {conditionFieldOptions[condition.condition_type]?.map((field) => (
+                                          <option key={field.value} value={field.value}>
+                                            {field.label}
+                                          </option>
+                                        ))}
+                                      </select>
+                                    </div>
+
+                                    <div style={{ marginBottom: "16px", width: "100%" }}>
+                                      <label style={{ display: "block", marginBottom: "8px" }}>Operator</label>
+                                      <select
+                                        value={condition.operator}
+                                        onChange={(e) => handleConditionChange(condition.id, "operator", e.target.value)}
+                                        style={{
+                                          width: "100%",
+                                          padding: "10px",
+                                          border: "1px solid #ddd",
+                                          borderRadius: "4px",
+                                          backgroundColor: "white",
+                                          boxSizing: "border-box",
+                                        }}
+                                        >
+                                        {conditionOperatorOptions[condition.condition_type]?.map((operator) => (
+                                          <option key={operator.value} value={operator.value}>
+                                            {operator.label}
+                                          </option>
+                                        ))}
+                                      </select>
+                                    </div>
+
+
+                                    <div style={{ width: "100%", marginBottom: "16px" }}>
                     <label style={{ display: "block", marginBottom: "8px" }}>Value</label>
-                    <input
-                      type="text"
-                      value={condition.value}
-                      onChange={(e) => handleConditionChange(condition.id, "value", e.target.value)}
+                    
+                    {condition.condition_type === "threshold" ? (
+                      <input
+                        type="number"
+                        value={condition.value}
+                        onChange={(e) => handleConditionChange(condition.id, "value", e.target.value)}
+                        placeholder="Enter value"
+                        style={{
+                          width: "100%",
+                          padding: "10px",
+                          border: "1px solid #ddd",
+                          borderRadius: "4px",
+                          boxSizing: "border-box",
+                        }}
+                        required
+                      />
+                    ) : ["severity", "ip_reputation"].includes(condition.condition_type.toLowerCase()) ? (
+                      <select
+                        value={condition.value}
+                        onChange={(e) => handleConditionChange(condition.id, "value", e.target.value)}
+                        style={{
+                          width: "100%",
+                          padding: "10px",
+                          border: "1px solid #ddd",
+                          borderRadius: "4px",
+                          backgroundColor: "white",
+                          boxSizing: "border-box",
+                        }}
+                      >
+                        {conditionValueOptions[condition.condition_type]?.map((option, index) => (
+                          <option key={index} value={option.value || ""}>
+                            {option.label || "Unknown"}
+                          </option>
+                        ))}
+                      </select>
+                    ) : (
+                      <input
+                        type="text"
+                        value={condition.value}
+                        onChange={(e) => handleConditionChange(condition.id, "value", e.target.value)}
+                        placeholder="Enter value"
+                        style={{
+                          width: "100%",
+                          padding: "10px",
+                          border: "1px solid #ddd",
+                          borderRadius: "4px",
+                          boxSizing: "border-box",
+                        }}
+                        required
+                      />
+                    )}
+                  </div>
+
+                  {condition.condition_type === "threshold" ? (
+                    <div style={{ width: "100%" }}>
+                    <label style={{ display: "block", marginBottom: "8px" }}>Window Period (mins)</label>
+                      <input
+                      type="number"
+                      value={condition.window_period}
+                      onChange={(e) => handleConditionChange(condition.id, "window_period", e.target.value)}
                       placeholder="Enter value"
                       style={{
                         width: "100%",
@@ -274,8 +436,9 @@ const AddPlaybookModal = ({ onClose, onSave }) => {
                         boxSizing: "border-box",
                       }}
                       required
-                    />
-                  </div>
+                      />
+                      </div>
+                    ) : null}
                 </div>
               ))}
 
@@ -467,7 +630,6 @@ const AddPlaybookModal = ({ onClose, onSave }) => {
 const PlaybookModal = ({ playbook, onClose, onSave, isEditing }) => {
   const [playbookName, setPlaybookName] = useState(playbook?.name || "")
   const [description, setDescription] = useState(playbook?.description || "")
-  const [occurrenceThreshold, setOccurrenceThreshold] = useState(playbook?.occurrenceThreshold || 3)
   const [status, setStatus] = useState(playbook?.status === "active")
 
   // Parse action details to get blockIP and sendEmailAlert values
@@ -477,30 +639,55 @@ const PlaybookModal = ({ playbook, onClose, onSave, isEditing }) => {
     actionDetails.sendEmailAlert !== undefined ? actionDetails.sendEmailAlert : false,
   )
   const [emailRecipients, setEmailRecipients] = useState(actionDetails.emailRecipients || "")
+  const [conditions, setConditions] = useState([])
 
-  // Parse trigger conditions
-  let initialConditions = [{ id: 1, field: "Alert Category", value: "" }]
+  // Parse trigger conditions with proper initialization
+  let initialConditions = [{ 
+    id: 1, 
+    condition_type: "threshold",
+    field: "source_ip",
+    operator: "greater than or equal",
+    value: "",
+    window_period: ""
+  }]
+
   try {
-    if (playbook?.triggerConditions) {
-      const parsedConditions = JSON.parse(playbook.triggerConditions)
+    if (playbook?.conditions) {
+      const parsedConditions = playbook.conditions
+      console.log('parsed conditions')
+      console.log(parsedConditions);
       if (Array.isArray(parsedConditions)) {
         initialConditions = parsedConditions.map((condition, index) => ({
-          ...condition,
           id: index + 1,
+          condition_type: condition.condition_type,
+          field: condition.field,
+          operator: condition.operator,
+          value: condition.value,
+          window_period: condition.window_period 
         }))
+        console.log('initial conditions')
+        console.log(initialConditions)
+        setConditions(initialConditions)
       }
+    }else{
+      console.log('not loaded')
     }
   } catch (error) {
     console.error("Error parsing trigger conditions:", error)
+    console.log(error)
+    console.log(playbook)
   }
 
-  const [conditions, setConditions] = useState(initialConditions)
+  
 
   const handleAddCondition = () => {
     const newCondition = {
       id: conditions.length + 1,
       field: "Alert Category",
       value: "",
+      window_period: "",
+      condition_type: "",
+      operator: "",
     }
     setConditions([...conditions, newCondition])
   }
@@ -513,6 +700,67 @@ const PlaybookModal = ({ playbook, onClose, onSave, isEditing }) => {
 
   const handleConditionChange = (id, field, value) => {
     setConditions(conditions.map((condition) => (condition.id === id ? { ...condition, [field]: value } : condition)))
+  }
+
+  const conditionFieldOptions = {
+    threshold: [
+      { value: "source_ip", label: "Source IP" },
+      { value: "alert_count", label: "Alert Count" }
+    ],
+    severity: [
+      { value: "severity", label: "Severity" }
+    ],
+    class_type: [
+      { value: "class_type", label: "Class Type" }
+    ],
+    ip_reputation: [
+      { value: "source_ip", label: "Source IP" }
+    ],
+    geolocation: [
+      { value: "source_ip", label: "Source IP" }
+    ],
+    destination_targeting: [
+      { value: "destination_ip", label: "Destination IP" }
+    ]
+  };
+
+  const conditionTypeOptions = [
+    { value: "threshold", label: "threshold" },
+    { value: "severity", label: "Severity" },
+    { value: "class_type", label: "Class Type" },
+    { value: "ip_reputation", label: "IP Reputation" },
+  ];
+
+  const conditionOperatorOptions = {
+    threshold: [
+      {value: "greater than or equal", label: ">="}
+    ],
+    severity: [
+      {value: "greater than or equal", label: ">="}
+    ],
+    class_type: [
+      {value: "equal", label: "equals"},
+      {value: "not equal", label: "not equals"}
+    ],
+    ip_reputation: [
+      {value: "exists", label: "exists"},
+    ],
+    geo_location: [
+      {value: "equal", label: "equals"},
+      {value: "not equal", label: "not equals"}
+    ]
+  }
+
+  const conditionValueOptions = {
+    severity: [
+    { value: "low", label: "Low" },
+    { value: "medium", label: "Medium" },
+    { value: "high", label: "High" },
+    { value: "critical", label: "Critical" }
+    ],
+    ip_reputation: [
+    { value: "threat_intel_feed", label: "threat intel feed" },
+    ],
   }
 
   const handleSubmit = (e) => {
@@ -531,7 +779,6 @@ const PlaybookModal = ({ playbook, onClose, onSave, isEditing }) => {
     const playbookData = {
       name: playbookName,
       description,
-      occurrenceThreshold,
       triggerType: "Alert Category",
       actionType,
       status: status ? "active" : "inactive",
@@ -696,35 +943,29 @@ const PlaybookModal = ({ playbook, onClose, onSave, isEditing }) => {
                     )}
                   </div>
 
-                  {/* Occurrence Threshold - Moved inside Condition 1 */}
-                  {index === 0 && (
-                    <div style={{ marginBottom: "16px", width: "100%" }}>
-                      <label style={{ display: "block", marginBottom: "8px", fontWeight: "500" }}>
-                        Occurrence Threshold
-                      </label>
-                      <input
-                        type="number"
-                        value={occurrenceThreshold}
-                        onChange={(e) => setOccurrenceThreshold(e.target.value)}
-                        min="1"
+                  <div style={{ marginBottom: "16px", width: "100%" }}>
+                      <label style={{ display: "block", marginBottom: "8px" }}>Condition Type</label>
+                      <select
+                        value={condition.condition_type}
+                        onChange={(e) => handleConditionChange(condition.id, "condition_type", e.target.value)}
                         style={{
                           width: "100%",
                           padding: "10px",
                           border: "1px solid #ddd",
                           borderRadius: "4px",
-                          fontSize: "14px",
+                          backgroundColor: "white",
                           boxSizing: "border-box",
                         }}
-                        required
-                        disabled={!isEditing}
-                      />
-                      <p style={{ margin: "4px 0 0 0", fontSize: "12px", color: "#666" }}>
-                        Number of occurrences required to trigger the playbook
-                      </p>
+                        >
+                        <option value="threshold">Threshold</option>
+                        <option value="severity">Severity</option>
+                        <option value="class_type">class type</option>
+                        <option value="ip_reputation">ip repuation</option>
+                      </select>
                     </div>
-                  )}
 
-                  <div style={{ marginBottom: "16px", width: "100%" }}>
+
+                <div style={{ marginBottom: "16px", width: "100%" }}>
                     <label style={{ display: "block", marginBottom: "8px" }}>Field</label>
                     <select
                       value={condition.field}
@@ -739,14 +980,76 @@ const PlaybookModal = ({ playbook, onClose, onSave, isEditing }) => {
                       }}
                       disabled={!isEditing}
                     >
-                      <option value="Alert Category">Alert Category</option>
-                      <option value="Severity">Severity</option>
+                      {conditionFieldOptions[condition.condition_type]?.map((field) => (
+                        <option key={field.value} value={field.value}>
+                          {field.label}
+                        </option>
+                      ))}
                     </select>
                   </div>
 
+                  <div style={{ marginBottom: "16px", width: "100%" }}>
+                    <label style={{ display: "block", marginBottom: "8px" }}>Operator</label>
+                    <select
+                      value={condition.operator}
+                      onChange={(e) => handleConditionChange(condition.id, "operator", e.target.value)}
+                      style={{
+                        width: "100%",
+                        padding: "10px",
+                        border: "1px solid #ddd",
+                        borderRadius: "4px",
+                        backgroundColor: "white",
+                        boxSizing: "border-box",
+                      }}
+                      disabled={!isEditing}
+                    >
+                      {conditionOperatorOptions[condition.condition_type]?.map((operator) => (
+                        <option key={operator.value} value={operator.value}>
+                          {operator.label}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+
                   <div style={{ width: "100%" }}>
                     <label style={{ display: "block", marginBottom: "8px" }}>Value</label>
-                    <input
+                    {condition.condition_type === "threshold" ? (
+                      <input
+                      type="number"
+                      value={condition.value}
+                      onChange={(e) => handleConditionChange(condition.id, "value", e.target.value)}
+                      placeholder="Enter value"
+                      style={{
+                        width: "100%",
+                        padding: "10px",
+                        border: "1px solid #ddd",
+                        borderRadius: "4px",
+                        boxSizing: "border-box",
+                      }}
+                      required
+                      />
+                    ) : condition.condition_type === "severity" || condition.condition_type === "ip_reputation" ? (
+                      <select
+                      value={condition.value}
+                      onChange={(e) => handleConditionChange(condition.id, "value", e.target.value)}
+                      style={{
+                        width: "100%",
+                        padding: "10px",
+                        border: "1px solid #ddd",
+                        borderRadius: "4px",
+                        backgroundColor: "white",
+                        boxSizing: "border-box",
+                      }}
+                      >
+                      {conditionValueOptions[condition.condition_type]?.map((option) => (
+                        <option key={option.value} value={option.value}>
+                        {option.label}
+                        </option>
+                      ))}
+                      </select>
+                    ) : (
+                      <input
                       type="text"
                       value={condition.value}
                       onChange={(e) => handleConditionChange(condition.id, "value", e.target.value)}
@@ -759,9 +1062,28 @@ const PlaybookModal = ({ playbook, onClose, onSave, isEditing }) => {
                         boxSizing: "border-box",
                       }}
                       required
-                      disabled={!isEditing}
-                    />
+                      />
+                    )}
                   </div>
+                  {condition.condition_type === "threshold" ? (
+                    <div style={{ width: "100%" }}>
+                    <label style={{ display: "block", marginBottom: "8px" }}>Window period (mins)</label>
+                      <input
+                      type="number"
+                      value={condition.window_period}
+                      onChange={(e) => handleConditionChange(condition.id, "window_period", e.target.value)}
+                      placeholder="Enter value"
+                      style={{
+                        width: "100%",
+                        padding: "10px",
+                        border: "1px solid #ddd",
+                        borderRadius: "4px",
+                        boxSizing: "border-box",
+                      }}
+                      required
+                      />
+                      </div>
+                    ) : null}
                 </div>
               ))}
 
@@ -969,167 +1291,30 @@ const PlaybooksPage = () => {
   const [showAddPlaybookModal, setShowAddPlaybookModal] = useState(false)
   const [isEditing, setIsEditing] = useState(false)
   const [selectedRows, setSelectedRows] = useState([])
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
   // Sample data
-  const [playbooks, setPlaybooks] = useState([
-    {
-      id: 1,
-      name: "Block Known Threats",
-      description: "Automatically block IPs identified as known threats",
-      occurrenceThreshold: 3,
-      triggerType: "Alert Category",
-      actionType: "Block IP",
-      createdBy: "admin",
-      lastModified: "03/15/2025",
-      status: "active",
-      triggerConditions: '{ "category": ["known_threat", "malware"], "severity": "high" }',
-      actionDetails: '{ "duration": "permanent", "notify": true }',
-    },
-    {
-      id: 2,
-      name: "DOS Attack Response",
-      description: "Block IPs attempting DOS attacks",
-      occurrenceThreshold: 5,
-      triggerType: "Threshold",
-      actionType: "Block IP + Alert",
-      createdBy: "admin",
-      lastModified: "03/12/2025",
-      status: "active",
-      triggerConditions: '{ "threshold": 100, "timeWindow": "5m", "metric": "requests_per_second" }',
-      actionDetails: '{ "duration": "24h", "notify": true }',
-    },
-    {
-      id: 3,
-      name: "Suspicious Login Alert",
-      description: "Alert on suspicious login attempts",
-      occurrenceThreshold: 2,
-      triggerType: "Correlation",
-      actionType: "Alert",
-      createdBy: "admin",
-      lastModified: "03/10/2025",
-      status: "active",
-      triggerConditions: '{ "events": ["failed_login", "location_change"], "timeWindow": "1h" }',
-      actionDetails: '{ "channel": "email", "priority": "high" }',
-    },
-    {
-      id: 4,
-      name: "Data Exfiltration Detection",
-      description: "Detect and respond to potential data exfiltration",
-      occurrenceThreshold: 1,
-      triggerType: "Threshold",
-      actionType: "Block IP + Alert",
-      createdBy: "admin",
-      lastModified: "03/08/2025",
-      status: "active",
-      triggerConditions: '{ "threshold": 50, "timeWindow": "10m", "metric": "outbound_data_mb" }',
-      actionDetails: '{ "duration": "12h", "notify": true }',
-    },
-    {
-      id: 5,
-      name: "Weekend Access Monitoring",
-      description: "Monitor and alert on unusual weekend access",
-      occurrenceThreshold: 3,
-      triggerType: "Time-based",
-      actionType: "Alert",
-      createdBy: "admin",
-      lastModified: "03/05/2025",
-      status: "inactive",
-      triggerConditions: '{ "days": ["saturday", "sunday"], "hours": "all" }',
-      actionDetails: '{ "channel": "email", "priority": "medium" }',
-    },
-    {
-      id: 6,
-      name: "Ransomware Prevention",
-      description: "Detect and block potential ransomware activity",
-      occurrenceThreshold: 1,
-      triggerType: "Correlation",
-      actionType: "Block IP + Alert",
-      createdBy: "admin",
-      lastModified: "03/01/2025",
-      status: "active",
-      triggerConditions: '{ "events": ["file_encryption", "registry_modification"], "timeWindow": "5m" }',
-      actionDetails: '{ "duration": "permanent", "notify": true }',
-    },
-    {
-      id: 7,
-      name: "Brute Force Protection",
-      description: "Protect against brute force attacks",
-      occurrenceThreshold: 10,
-      triggerType: "Threshold",
-      actionType: "Block IP",
-      createdBy: "admin",
-      lastModified: "02/28/2025",
-      status: "active",
-      triggerConditions: '{ "threshold": 10, "timeWindow": "2m", "metric": "failed_logins" }',
-      actionDetails: '{ "duration": "6h", "notify": false }',
-    },
-    {
-      id: 8,
-      name: "Vulnerability Scanner Detection",
-      description: "Detect and respond to vulnerability scanning",
-      occurrenceThreshold: 5,
-      triggerType: "Alert Category",
-      actionType: "Block IP",
-      createdBy: "admin",
-      lastModified: "02/25/2025",
-      status: "active",
-      triggerConditions: '{ "category": ["port_scan", "vulnerability_scan"], "severity": "medium" }',
-      actionDetails: '{ "duration": "48h", "notify": true }',
-    },
-    {
-      id: 9,
-      name: "After Hours Access Control",
-      description: "Control access during non-business hours",
-      occurrenceThreshold: 2,
-      triggerType: "Time-based",
-      actionType: "Alert",
-      createdBy: "admin",
-      lastModified: "02/20/2025",
-      status: "inactive",
-      triggerConditions: '{ "days": ["monday", "tuesday", "wednesday", "thursday", "friday"], "hours": "18:00-09:00" }',
-      actionDetails: '{ "channel": "email", "priority": "low" }',
-    },
-    {
-      id: 10,
-      name: "Malicious URL Blocking",
-      description: "Block access to known malicious URLs",
-      occurrenceThreshold: 3,
-      triggerType: "Alert Category",
-      actionType: "Block IP + Alert",
-      createdBy: "admin",
-      lastModified: "02/15/2025",
-      status: "inactive",
-      triggerConditions: '{ "category": ["malicious_url", "phishing"], "severity": "high" }',
-      actionDetails: '{ "duration": "72h", "notify": true }',
-    },
-    {
-      id: 11,
-      name: "API Abuse Prevention",
-      description: "Prevent API abuse and rate limiting",
-      occurrenceThreshold: 20,
-      triggerType: "Threshold",
-      actionType: "Block IP",
-      createdBy: "admin",
-      lastModified: "02/10/2025",
-      status: "active",
-      triggerConditions: '{ "threshold": 1000, "timeWindow": "1m", "metric": "api_requests" }',
-      actionDetails: '{ "duration": "1h", "notify": false }',
-    },
-    {
-      id: 12,
-      name: "Insider Threat Detection",
-      description: "Detect potential insider threats",
-      occurrenceThreshold: 1,
-      triggerType: "Correlation",
-      actionType: "Alert",
-      createdBy: "admin",
-      lastModified: "02/05/2025",
-      status: "inactive",
-      triggerConditions:
-        '{ "events": ["unusual_file_access", "off_hours_activity", "privilege_escalation"], "timeWindow": "24h" }',
-      actionDetails: '{ "channel": "email", "priority": "high" }',
-    },
-  ])
+  const [playbooks, setPlaybooks] = useState([])
+
+  // Fetch playbooks on component mount
+  useEffect(() => {
+    fetchPlaybooks();
+  }, []);
+
+  const fetchPlaybooks = async () => {
+    try {
+      const response = await fetch('http://localhost:8000/playbooks');
+      const data = await response.json();
+      setPlaybooks(Array.isArray(data) ? data : []);
+      setLoading(false);
+    } catch (error) {
+      console.error('Error fetching playbooks:', error);
+      setError('Failed to fetch playbooks');
+      setLoading(false);
+      setPlaybooks([]);
+    }
+  };
 
   const handleSearch = (e) => {
     setSearchQuery(e.target.value)
@@ -1139,12 +1324,12 @@ const PlaybooksPage = () => {
     setFilterType(e.target.value)
   }
 
-  const filteredPlaybooks = playbooks.filter((playbook) => {
+  const filteredPlaybooks = playbooks && playbooks.filter((playbook) => {
     const matchesSearch =
       playbook.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       playbook.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      playbook.triggerType.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      playbook.actionType.toLowerCase().includes(searchQuery.toLowerCase())
+      Object.keys(playbook.conditions).join(', ').toLowerCase().includes(searchQuery.toLowerCase()) ||
+      Object.keys(playbook.actions).join(', ').toLowerCase().includes(searchQuery.toLowerCase())
 
     if (!filterType) return matchesSearch
 
@@ -1154,20 +1339,20 @@ const PlaybooksPage = () => {
       case "description":
         return playbook.description.toLowerCase().includes(searchQuery.toLowerCase())
       case "trigger-type":
-        return playbook.triggerType.toLowerCase().includes(searchQuery.toLowerCase())
+        return Object.keys(playbook.conditions).join(', ').toLowerCase().includes(searchQuery.toLowerCase())
       case "action-type":
-        return playbook.actionType.toLowerCase().includes(searchQuery.toLowerCase())
+        return Object.keys(playbook.actions).join(', ').toLowerCase().includes(searchQuery.toLowerCase())
       case "status-active":
-        return playbook.status === "active" && matchesSearch
+        return playbook.is_active && matchesSearch
       case "status-inactive":
-        return playbook.status === "inactive" && matchesSearch
+        return !playbook.is_active && matchesSearch
       default:
         return matchesSearch
     }
   })
 
-  const activePlaybooks = playbooks.filter((playbook) => playbook.status === "active").length
-  const inactivePlaybooks = playbooks.filter((playbook) => playbook.status === "inactive").length
+  const activePlaybooks = playbooks.filter((playbook) => playbook.is_active).length
+  const inactivePlaybooks = playbooks.filter((playbook) => !playbook.is_active).length
 
   const handleViewPlaybook = (playbook) => {
     setSelectedPlaybook(playbook)
@@ -1188,47 +1373,94 @@ const PlaybooksPage = () => {
     setIsEditing(false)
   }
 
-  const handleSavePlaybook = (formData, id) => {
-    if (id) {
-      // Update existing playbook
-      setPlaybooks(
-        playbooks.map((playbook) =>
-          playbook.id === id
-            ? {
-                ...playbook,
-                ...formData,
-                lastModified: new Date()
-                  .toLocaleDateString("en-US", {
-                    month: "2-digit",
-                    day: "2-digit",
-                    year: "numeric",
-                  })
-                  .replace(/\//g, "/"),
-              }
-            : playbook,
-        ),
-      )
-    } else {
-      // Create new playbook
-      const newPlaybook = {
-        id: playbooks.length + 1,
-        ...formData,
-        createdBy: "admin",
-        lastModified: new Date()
-          .toLocaleDateString("en-US", {
-            month: "2-digit",
-            day: "2-digit",
-            year: "numeric",
-          })
-          .replace(/\//g, "/"),
-      }
-      setPlaybooks([...playbooks, newPlaybook])
-    }
+  const handleSavePlaybook = async (formData, id) => {
+    console.log(formData);
+    try {
+      const playbookData = {
+        name: formData.name,
+        description: formData.description,
+        conditions: [
+          JSON.parse(formData.triggerConditions),
+        ],
+        actions: {
+          blockIP: formData.blockIP,
+          sendEmailAlert: formData.sendEmailAlert,
+          emailRecipients: formData.emailRecipients,
+        },
+        is_active: formData.status === 'active'
+      };
 
-    setShowPlaybookModal(false)
-    setShowAddPlaybookModal(false)
-    setSelectedPlaybook(null)
-    setIsEditing(false)
+      let response;
+      if (id) {
+        // Update existing playbook
+        response = await fetch(`http://localhost:8000/playbooks/${id}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(playbookData)
+        });
+      } else {
+        console.log(playbookData);
+        // Create new playbook
+        response = await fetch('http://localhost:8000/playbooks', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(playbookData)
+        });
+      }
+
+      if (!response.ok) {
+        throw new Error(`Failed to ${id ? 'update' : 'create'} playbook`);
+      }
+
+      // Refresh playbooks list
+      fetchPlaybooks();
+      handleCloseModal();
+    } catch (error) {
+      console.error('Error saving playbook:', error);
+      // You might want to show an error message to the user here
+    }
+  };
+
+  const handleDeletePlaybook = async (playbookId) => {
+    try {
+      const response = await fetch(`http://localhost:8000/playbooks/${playbookId}`, {
+        method: 'DELETE'
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to delete playbook');
+      }
+
+      // Refresh playbooks list
+      fetchPlaybooks();
+    } catch (error) {
+      console.error('Error deleting playbook:', error);
+    }
+  };
+
+  const handleToggleStatus = async (playbookId) => {
+    try {
+      const response = await fetch(`http://localhost:8000/playbooks/${playbookId}/toggle`, {
+        method: 'POST'
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to toggle playbook status');
+      }
+
+      // Refresh playbooks list
+      fetchPlaybooks();
+    } catch (error) {
+      console.error('Error toggling playbook status:', error);
+    }
+  };
+
+  if (loading) {
+    return <div>Loading playbooks...</div>;
+  }
+
+  if (error) {
+    return <div>Error: {error}</div>;
   }
 
   const handleSelectRow = (id) => {
@@ -1249,10 +1481,95 @@ const PlaybooksPage = () => {
 
   const getStatusStyle = (status) => {
     return {
-      color: status === "active" ? "#4CAF50" : "#9E9E9E",
+      color: status ? "#4CAF50" : "#9E9E9E",
       fontWeight: "500",
     }
   }
+
+  const formatActionType = (actions) => {
+    const actionsList = [];
+    
+    if (actions.blockIP) {
+      actionsList.push('Block IP');
+    }
+    
+    if (actions.sendEmailAlert) {
+      actionsList.push('Send Email');
+    }
+    
+    return actionsList.length > 0 ? actionsList.join(' + ') : 'No actions';
+  };
+
+  const renderPlaybookRow = (playbook) => (
+    <tr key={playbook.id} style={{ borderBottom: "1px solid #eee" }}>
+      <td style={{ padding: "16px", textAlign: "center" }}>
+        <input
+          type="checkbox"
+          checked={selectedRows.includes(playbook.id)}
+          onChange={() => handleSelectRow(playbook.id)}
+        />
+      </td>
+      <td style={{ padding: "16px", fontWeight: "500" }}>{playbook.name}</td>
+      <td style={{ padding: "16px" }}>{playbook.description}</td>
+      <td style={{ padding: "16px" }}>
+        {formatActionType(playbook.actions)}
+      </td>
+      <td style={{ padding: "16px" }}>
+        {new Date(playbook.created_at).toLocaleDateString()}
+      </td>
+      <td style={{ padding: "16px" }}>
+        {new Date(playbook.updated_at).toLocaleDateString()}
+      </td>
+      <td style={{ padding: "16px", textAlign: "center" }}>
+        <span style={getStatusStyle(playbook.is_active)}>
+          {playbook.is_active ? "Active" : "Inactive"}
+        </span>
+      </td>
+      <td style={{ padding: "16px", textAlign: "center" }}>
+        <div style={{ display: 'flex', gap: '8px', justifyContent: 'center' }}>
+          <button
+            onClick={() => handleEditPlaybook(playbook)}
+            style={{
+              padding: '6px 12px',
+              backgroundColor: '#666',
+              color: 'white',
+              border: 'none',
+              borderRadius: '4px',
+              cursor: 'pointer',
+            }}
+          >
+            Edit
+          </button>
+          <button
+            onClick={() => handleToggleStatus(playbook.id)}
+            style={{
+              padding: '6px 12px',
+              backgroundColor: playbook.is_active ? '#f44336' : '#4CAF50',
+              color: 'white',
+              border: 'none',
+              borderRadius: '4px',
+              cursor: 'pointer',
+            }}
+          >
+            {playbook.is_active ? 'Deactivate' : 'Activate'}
+          </button>
+          <button
+            onClick={() => handleDeletePlaybook(playbook.id)}
+            style={{
+              padding: '6px 12px',
+              backgroundColor: '#f44336',
+              color: 'white',
+              border: 'none',
+              borderRadius: '4px',
+              cursor: 'pointer',
+            }}
+          >
+            Delete
+          </button>
+        </div>
+      </td>
+    </tr>
+  );
 
   return (
     <div
@@ -1332,17 +1649,7 @@ const PlaybooksPage = () => {
             <div style={{ fontSize: "32px", fontWeight: "bold" }}>37</div>
           </div>
 
-          <div
-            style={{
-              backgroundColor: "#eee",
-              borderRadius: "8px",
-              padding: "16px",
-              textAlign: "center",
-            }}
-          >
-            <div style={{ color: "#666", marginBottom: "8px" }}>Actions Executed (24h)</div>
-            <div style={{ fontSize: "32px", fontWeight: "bold" }}>142</div>
-          </div>
+          
         </div>
 
         {/* Search and Filter */}
@@ -1445,10 +1752,6 @@ const PlaybooksPage = () => {
                 </th>
                 <th style={{ padding: "16px", textAlign: "left", borderBottom: "1px solid #eee" }}>Name</th>
                 <th style={{ padding: "16px", textAlign: "left", borderBottom: "1px solid #eee" }}>Description</th>
-                <th style={{ padding: "16px", textAlign: "center", borderBottom: "1px solid #eee" }}>
-                  Occurrence Threshold
-                </th>
-                <th style={{ padding: "16px", textAlign: "left", borderBottom: "1px solid #eee" }}>Trigger Type</th>
                 <th style={{ padding: "16px", textAlign: "left", borderBottom: "1px solid #eee" }}>Action Type</th>
                 <th style={{ padding: "16px", textAlign: "left", borderBottom: "1px solid #eee" }}>Created By</th>
                 <th style={{ padding: "16px", textAlign: "left", borderBottom: "1px solid #eee" }}>Last Modified</th>
@@ -1457,44 +1760,7 @@ const PlaybooksPage = () => {
               </tr>
             </thead>
             <tbody>
-              {filteredPlaybooks.map((playbook) => (
-                <tr key={playbook.id} style={{ borderBottom: "1px solid #eee" }}>
-                  <td style={{ padding: "16px", textAlign: "center" }}>
-                    <input
-                      type="checkbox"
-                      checked={selectedRows.includes(playbook.id)}
-                      onChange={() => handleSelectRow(playbook.id)}
-                    />
-                  </td>
-                  <td style={{ padding: "16px", fontWeight: "500" }}>{playbook.name}</td>
-                  <td style={{ padding: "16px" }}>{playbook.description}</td>
-                  <td style={{ padding: "16px", textAlign: "center" }}>{playbook.occurrenceThreshold}</td>
-                  <td style={{ padding: "16px" }}>{playbook.triggerType}</td>
-                  <td style={{ padding: "16px" }}>{playbook.actionType}</td>
-                  <td style={{ padding: "16px" }}>{playbook.createdBy}</td>
-                  <td style={{ padding: "16px" }}>{playbook.lastModified}</td>
-                  <td style={{ padding: "16px", textAlign: "center" }}>
-                    <span style={getStatusStyle(playbook.status)}>
-                      {playbook.status === "active" ? "Active" : "Inactive"}
-                    </span>
-                  </td>
-                  <td style={{ padding: "16px", textAlign: "center" }}>
-                    <button
-                      onClick={() => handleEditPlaybook(playbook)}
-                      style={{
-                        padding: "6px 16px",
-                        backgroundColor: "#666",
-                        color: "white",
-                        border: "none",
-                        borderRadius: "4px",
-                        cursor: "pointer",
-                      }}
-                    >
-                      Edit
-                    </button>
-                  </td>
-                </tr>
-              ))}
+              {filteredPlaybooks.map(renderPlaybookRow)}
 
               {filteredPlaybooks.length === 0 && (
                 <tr>

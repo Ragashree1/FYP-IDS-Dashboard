@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { useAuth } from "./context/AuthContext"; // Import AuthContext
 
 const styles = {
   loginContainer: {
@@ -50,19 +51,6 @@ const styles = {
     backgroundColor: "white",
     color: "black",
   },
-  selectInput: {
-    width: "100%",
-    padding: "0.5rem",
-    border: "1px solid #ccc",
-    borderRadius: "4px",
-    backgroundColor: "white",
-    color: "black",
-    appearance: "none",
-    backgroundRepeat: "no-repeat",
-    backgroundPosition: "right 0.5rem center",
-    backgroundSize: "12px",
-    backgroundImage: "url('data:image/svg+xml;utf8,<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 24 24\" width=\"16\" height=\"16\"><path fill=\"black\" d=\"M7 10l5 5 5-5H7z\"/></svg>')",
-  },
   error: {
     color: "#ff4d4d",
     fontSize: "0.875rem",
@@ -84,65 +72,107 @@ const styles = {
 };
 
 export default function LoginPage() {
+  const [userComName, setCompany] = useState("");
   const [loginId, setLoginId] = useState("");
   const [password, setPassword] = useState("");
-  const [role, setRole] = useState("");
   const [error, setError] = useState("");
   const navigate = useNavigate();
+  const { login } = useAuth(); // Use the login function from AuthContext
 
-  const handleLogin = (e) => {
+  const handleLogin = async (e) => {
     e.preventDefault();
-    if (role === "network-admin" && loginId === "test" && password === "test") {
-      navigate("/dashboard");
-    } else if (role === "organisation-admin" && loginId === "test" && password === "test") {
-      navigate("/roles-permission");
-	  } else if (role === "data-analyst" && loginId === "test" && password === "test") {
-      navigate("/train-model");
-    } else {
-      setError("Invalid credentials");
+    if (!userComName) {
+      setError("Company/Organisation name is required.");
+      return;
+    }
+
+    try {
+      const loginResponse = await fetch("http://127.0.0.1:8000/login/token", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          userComName: userComName,
+          username: loginId,
+          passwd: password,
+        }),
+      });
+
+      const loginData = await loginResponse.json();
+      console.log("Response data:", loginData); // Debug log
+      if (!loginResponse.ok) throw new Error(loginData.detail || "Login failed");
+
+      // Store the token in localStorage
+      localStorage.setItem("token", loginData.access_token);
+      localStorage.setItem("clientEmail", loginData.username); 
+      localStorage.setItem("orgId", loginData.orgId); 
+
+      // Extract user data from the token response
+      const userData = {
+        token: loginData.access_token,
+        userRole: loginData.userRole,
+        username: loginData.username,
+        userComName: loginData.userComName,
+      };
+
+      // Update AuthContext with the user data
+      login(userData);
+
+      // Navigate based on user role
+      const userRole = loginData.userRole;
+      console.log("Userrole:", userRole); // Debug log
+      if (userRole === 1) {
+        navigate("/user-management");
+      } else {
+        navigate("/dashboard");
+      }
+    } catch (err) {
+      console.error("Login failed:", err);
+      setError(err.message);
     }
   };
 
- return (
-  <div style={styles.loginContainer}>
-    <div style={styles.loginForm}>
-      <div style={styles.logoContainer}>
-	        <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>  
-        <img 
-          src="https://hebbkx1anhila5yf.public.blob.vercel-storage.com/image-AwHpatwUXOxUSYkvlo8tVkBUyL8vzm.png" 
-          alt="SecuBoard Logo" 
-          className="logo" 
-          style={{ width: "70px", height: "70px"}} // Adjust width as needed
-        />
-        <h1 style={styles.title}>SecuBoard</h1>
-      </div>
-	     </div>
+  return (
+    <div style={styles.loginContainer}>
+      <div style={styles.loginForm}>
+        <div style={styles.logoContainer}>
+          <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+            <img
+              src="https://hebbkx1anhila5yf.public.blob.vercel-storage.com/image-AwHpatwUXOxUSYkvlo8tVkBUyL8vzm.png"
+              alt="SecuBoard Logo"
+              className="logo"
+              style={{ width: "70px", height: "70px" }}
+            />
+            <h1 style={styles.title}>SecuBoard</h1>
+          </div>
+        </div>
 
         <form onSubmit={handleLogin}>
           <div style={styles.formGroup}>
-            <select
-              value={role}
-              onChange={(e) => setRole(e.target.value)}
-              style={styles.selectInput}
-            >
-              <option value="" disabled>Select role</option>
-              <option value="organisation-admin">Organisation Admin</option>
-              <option value="network-admin">Network Admin</option>
-              <option value="it-manager">IT Manager</option>
-              <option value="data-analyst">Data Analyst</option>
-            </select>
+            <label htmlFor="userComName" style={styles.label}>
+              Company/Organisation
+            </label>
+            <input
+              id="userComName"
+              type="text"
+              value={userComName}
+              onChange={(e) => setCompany(e.target.value.toLowerCase())}
+              placeholder="Enter your company/organisation's name"
+              style={styles.input}
+            />
           </div>
 
           <div style={styles.formGroup}>
             <label htmlFor="loginId" style={styles.label}>
-              Login ID
+              username
             </label>
             <input
               id="loginId"
               type="text"
               value={loginId}
               onChange={(e) => setLoginId(e.target.value)}
-              placeholder="Enter your login ID"
+              placeholder="Enter your username"
               style={styles.input}
             />
           </div>
@@ -171,5 +201,3 @@ export default function LoginPage() {
     </div>
   );
 }
-
-//

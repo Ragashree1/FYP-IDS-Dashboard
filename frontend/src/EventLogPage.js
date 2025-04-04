@@ -1,5 +1,6 @@
 import { useState, useMemo, useEffect } from "react"
 import { useNavigate, useLocation } from "react-router-dom"
+import React from 'react';
 import axios from 'axios';
 import Sidebar from "./Sidebar"
 
@@ -12,7 +13,7 @@ const EventLogPage = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  const userRole = "network-admin"
+  const userRole = "2"
 
   // Fetch logs from backend
   useEffect(() => {
@@ -47,10 +48,11 @@ const EventLogPage = () => {
         return (
           log.log_type.toLowerCase().includes(query) ||
           log.message.toLowerCase().includes(query) ||
-          log.timestamp.toLowerCase().includes(query) ||
+          (new Date(log.timestamp).toLocaleString()).toLowerCase().includes(query) ||
           log.source_ip.toLowerCase().includes(query) ||
           log.host.toLowerCase().includes(query) ||
-          (log.log_path && log.log_path.toLowerCase().includes(query))
+          (log.http_method && log.http_method.toLowerCase().includes(query)) ||
+          (log.http_status && String(log.http_status).toLowerCase().includes(query))
         )
       }
 
@@ -60,13 +62,16 @@ const EventLogPage = () => {
         case "message":
           return log.message.toLowerCase().includes(query)
         case "date & time":
-          return log.timestamp.toLowerCase().includes(query)
+          return (new Date(log.timestamp).toLocaleString()).toLowerCase().includes(query)
         case "source ip":
           return log.source_ip.toLowerCase().includes(query)
         case "host":
           return log.host.toLowerCase().includes(query)
-        case "log path":
-          return log.log_path && log.log_path.toLowerCase().includes(query)
+        case "http method":
+          return log.http_method && log.http_method.toLowerCase().includes(query)
+        case "http status":
+          return log.http_status && String(log.http_status).toLowerCase().includes(query)
+
         default:
           return false
       }
@@ -114,7 +119,8 @@ const EventLogPage = () => {
     <option value="Date & Time">Date & Time</option>
     <option value="Source IP">Source IP</option>
     <option value="Host">Host</option>
-    <option value="Log Path">Log Path</option>
+    <option value="http method">HTTP Method</option>
+    <option value="http status">HTTP Status</option>
   </select>
   <div style={{ position: "relative", flex: 1 }}>
     <input

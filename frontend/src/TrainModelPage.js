@@ -1,6 +1,4 @@
-"use client"
-
-import { useState, useRef } from "react"
+import React, { useState, useRef } from "react"
 import { useNavigate, useLocation } from "react-router-dom"
 import Sidebar from "./Sidebar"
 
