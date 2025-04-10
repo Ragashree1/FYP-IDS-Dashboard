@@ -77,19 +77,20 @@ class SnortAlertsOut(BaseModel):
 
     class Config:
         from_attributes = True  # Updated from orm_mode = True
-        
+
 class AccountBase(BaseModel):
-    id: Optional[int] = None  # Changed to make it truly optional
+    id: Optional[int] = None
     username: str
-    userFirstName: Optional[str] = ""  # Made optional with default empty string
-    userLastName: Optional[str] = ""   # Made optional with default empty string
+    userFirstName: Optional[str] = ""
+    userLastName: Optional[str] = ""
     passwd: Optional[str] = None
     userComName: str
-    userEmail: EmailStr  # Changed to use EmailStr for better validation
+    userEmail: EmailStr
     userPhoneNum: str
-    userRole: Optional[int] = 1  # Set default value
-    userSuspend: bool = True     # Default to suspended (pending approval)
-    userRejected: Optional[bool] = False  # Added field for rejected status
+    userRole: Optional[int] = 1
+    userSuspend: bool = True
+    userRejected: Optional[bool] = False
+    fromOrgRequestsPage: Optional[bool] = False  # Ensure consistent naming
 
     @validator('id', pre=True)
     def handle_empty_id(cls, v):
@@ -99,19 +100,15 @@ class AccountBase(BaseModel):
 
     @validator('userPhoneNum')
     def validate_phone(cls, v):
-        # Validate phone number format
+        if not v or v.strip() == "":
+            return "+65123456789"
         phone_regex = re.compile(r'^\+[1-9]\d{0,2}\d{6,14}$')
         if not phone_regex.match(v):
             raise ValueError('Phone number must follow format: +[country code][number]')
-        
-        # Check for minimum length (country code + 7 digits)
-        if len(v) < 9:  # +[1-3 digits] + 7 digits minimum
+        if len(v) < 9:
             raise ValueError('Phone number too short')
-            
-        # Check for maximum length (country code + 15 digits)
-        if len(v) > 16:  # + + 15 digits maximum
+        if len(v) > 16:
             raise ValueError('Phone number too long')
-            
         return v
 
     @validator('userEmail')
@@ -122,7 +119,7 @@ class AccountBase(BaseModel):
 
     @validator('passwd')
     def validate_password(cls, v):
-        if v is None:  # Skip validation if no password is provided
+        if v is None:
             return v
         if len(v) < 8:
             raise ValueError('Password must be at least 8 characters')
@@ -145,10 +142,10 @@ class AccountStatusCheck(BaseModel):
     userRejected: bool
 
 class AccountLogin(BaseModel):
-    userComName : str
+    userComName: str
     userRole: Optional[int] = None
-    username : str
-    passwd : str
+    username: str
+    passwd: str
 
 class CreditCardBase(BaseModel):
     creditFirstName: str
@@ -159,11 +156,9 @@ class CreditCardBase(BaseModel):
     subscription: str
     total: str
 
-
 class Token(BaseModel):
     access_token: str
     token_type: str
-
 
 class PermissionBase(BaseModel):
     id: int
@@ -172,27 +167,26 @@ class PermissionBase(BaseModel):
     class Config:
         from_attributes = True
 
-
 class RoleBase(BaseModel):
-    id:int
+    id: int
     roleName: str
 
 class RoleIn(RoleBase):
-    id:Optional[int] = None
+    id: Optional[int] = None
     roleName: Optional[str] = None
     permission_id: Optional[List[int]] = None
 
 class RoleOut(RoleBase):
-    id:Optional[int] = None
+    id: Optional[int] = None
     roleName: Optional[str] = None
-    permissions: Optional[List[PermissionBase]] = None  # Return permission details
+    permissions: Optional[List[PermissionBase]] = None
     permission_id: Optional[List[int]] = None
 
     class Config:
         from_attributes = True  # Updated from orm_mode = True
 
 class AccountOut(AccountBase):
-    role: RoleOut  # Return role details instead of just an ID
+    role: RoleOut
 
     class Config:
         from_attributes = True  # Updated from orm_mode = True
@@ -229,7 +223,7 @@ class LogsOut(BaseModel):
 
 class IPAddressSchema(BaseModel):
     ip: str
-    reason : str
+    reason: str
 
 class PlaybookBase(BaseModel):
     name: str
@@ -243,13 +237,74 @@ class PlaybookBase(BaseModel):
 
 class PlaybookOut(PlaybookBase):
     id: int
-    description: str = None  
-    conditions: list  # JSON field
-    actions: dict  # JSON field
-    organization_id: uuid.UUID  # Foreign key to Organizations table
+    description: str = None
+    conditions: list
+    actions: dict
+    organization_id: uuid.UUID = None
     is_active: bool = True
     created_at: datetime
     updated_at: datetime
 
     class Config:
         from_attributes = True  # Updated from orm_mode = True
+
+class ActivityLogBase(BaseModel):
+    user: str
+    targetUser: str
+    action: str
+    description: str
+    ipAddress: Optional[str] = "127.0.0.1"
+    userComName: Optional[str] = None
+
+class ActivityLog(ActivityLogBase):
+    id: Optional[int] = None
+    timestamp: datetime
+
+    class Config:
+        from_attributes = True
+
+# New SystemLogBase model for tracking system activities
+class SystemLogBase(BaseModel):
+    user: str
+    component: str
+    action: str
+    description: str
+    ipAddress: Optional[str] = "127.0.0.1"
+    resourceId: Optional[str] = None
+    resourceName: Optional[str] = None
+    userComName: Optional[str] = None
+
+class SystemLog(SystemLogBase):
+    id: Optional[int] = None
+    timestamp: datetime
+
+    class Config:
+        from_attributes = True
+
+# New ReviewBase model for customer reviews
+class ReviewBase(BaseModel):
+    name: str
+    email: EmailStr
+    company: Optional[str] = None
+    rating: int
+    review_text: str
+    
+    @validator('rating')
+    def validate_rating(cls, v):
+        if v < 1 or v > 5:
+            raise ValueError('Rating must be between 1 and 5')
+        return v
+    
+    @validator('review_text')
+    def validate_review_text(cls, v):
+        if len(v) < 5:
+            raise ValueError('Review text must be at least 5 characters long')
+        return v
+
+# New ReviewOut model for returning reviews
+class ReviewOut(ReviewBase):
+    id: int
+    created_at: datetime
+    
+    class Config:
+        from_attributes = True

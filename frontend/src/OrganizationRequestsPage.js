@@ -39,13 +39,18 @@ const OrganizationRequestsPage = () => {
   const fetchRoles = async () => {
     try {
       const token = getToken()
+      console.log("Using token:", token) // Debug log
 
       const response = await fetch("http://127.0.0.1:8000/user-management/roles", {
         method: "GET",
         headers: {
           Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
         },
+        mode: "cors", // Explicitly set CORS mode
       })
+
+      console.log("Roles response status:", response.status) // Debug log
 
       if (response.ok) {
         const data = await response.json()
@@ -54,6 +59,7 @@ const OrganizationRequestsPage = () => {
         // Ensure we have at least the basic roles
         let hasOrgAdmin = false
         let hasNetworkAdmin = false
+        let hasITManager = false
 
         const processedRoles = data.map((role) => {
           // Standardize role names
@@ -63,6 +69,9 @@ const OrganizationRequestsPage = () => {
           } else if (role.id === 2) {
             hasNetworkAdmin = true
             return { ...role, roleName: "Network Admin" }
+          } else if (role.id === 3) {
+            hasITManager = true
+            return { ...role, roleName: "IT Manager" }
           }
           return role
         })
@@ -74,15 +83,19 @@ const OrganizationRequestsPage = () => {
         if (!hasNetworkAdmin) {
           processedRoles.push({ id: 2, roleName: "Network Admin" })
         }
+        if (!hasITManager) {
+          processedRoles.push({ id: 3, roleName: "IT Manager" })
+        }
 
         setRoles(processedRoles)
       } else {
+        console.error("Failed to fetch roles, status:", response.status)
         // If API fails, set default roles
         setRoles([
           { id: 1, roleName: "Organisation Admin" },
           { id: 2, roleName: "Network Admin" },
+          { id: 3, roleName: "IT Manager" },
         ])
-        throw new Error("Failed to fetch roles")
       }
     } catch (err) {
       console.error("Error fetching roles:", err)
@@ -90,6 +103,7 @@ const OrganizationRequestsPage = () => {
       setRoles([
         { id: 1, roleName: "Organisation Admin" },
         { id: 2, roleName: "Network Admin" },
+        { id: 3, roleName: "IT Manager" },
       ])
     }
   }
@@ -103,6 +117,8 @@ const OrganizationRequestsPage = () => {
       return "Organisation Admin"
     } else if (roleIdNum === 2) {
       return "Network Admin"
+    } else if (roleIdNum === 3) {
+      return "IT Manager"
     }
 
     // Otherwise look up in the roles array
@@ -113,6 +129,7 @@ const OrganizationRequestsPage = () => {
   const fetchUsers = async () => {
     try {
       const token = getToken()
+      console.log("Using token for fetchUsers:", token) // Debug log
 
       // For platform admin, we want to fetch all users
       const response = await fetch("http://127.0.0.1:8000/user-management/", {
@@ -121,7 +138,10 @@ const OrganizationRequestsPage = () => {
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`, // Pass the token in the headers
         },
+        mode: "cors", // Explicitly set CORS mode
       })
+
+      console.log("Users response status:", response.status) // Debug log
 
       if (response.ok) {
         const data = await response.json()
@@ -203,7 +223,7 @@ const OrganizationRequestsPage = () => {
         userLastName: userToSuspend.userLastName || "",
         userComName: userToSuspend.userComName,
         userEmail: userToSuspend.userEmail,
-        userPhoneNum: userToSuspend.userPhoneNum,
+        userPhoneNum: userToSuspend.userPhoneNum || "+65123456789", // Ensure valid phone number format
         userRole: userToSuspend.userRole, // Preserve original role
         // Set suspend to false to approve the user
         userSuspend: false,
@@ -220,6 +240,7 @@ const OrganizationRequestsPage = () => {
           Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify(updatedUser),
+        mode: "cors", // Explicitly set CORS mode
       })
 
       if (response.ok) {
@@ -257,7 +278,7 @@ const OrganizationRequestsPage = () => {
         userLastName: userToReject.userLastName || "",
         userComName: userToReject.userComName,
         userEmail: userToReject.userEmail,
-        userPhoneNum: userToReject.userPhoneNum,
+        userPhoneNum: userToReject.userPhoneNum || "+65123456789", // Ensure valid phone number format
         userRole: userToReject.userRole, // Preserve original role
         // Keep suspend as true
         userSuspend: true,
@@ -274,6 +295,7 @@ const OrganizationRequestsPage = () => {
           Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify(updatedUser),
+        mode: "cors", // Explicitly set CORS mode
       })
 
       if (response.ok) {
@@ -316,12 +338,15 @@ const OrganizationRequestsPage = () => {
     try {
       const token = getToken()
 
-      // Ensure new users are suspended by default
+      // Ensure new users are suspended by default and have valid phone number
       const newUser = {
         ...user,
+        userPhoneNum: user.userPhoneNum || "+65123456789", // Ensure valid phone number format
         userSuspend: true, // Set to true (pending) by default for new organization requests
         userRejected: false, // Not rejected initially
       }
+
+      console.log("Adding new user:", newUser)
 
       const response = await fetch("http://127.0.0.1:8000/user-management/", {
         method: "POST",
@@ -330,6 +355,7 @@ const OrganizationRequestsPage = () => {
           Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify(newUser),
+        mode: "cors", // Explicitly set CORS mode
       })
 
       if (!response.ok) {
@@ -357,7 +383,7 @@ const OrganizationRequestsPage = () => {
     try {
       const token = getToken()
 
-      // Ensure all required fields are included
+      // Ensure all required fields are included and phone number is valid
       const payload = {
         id: user.id,
         username: user.username,
@@ -365,10 +391,13 @@ const OrganizationRequestsPage = () => {
         userLastName: user.userLastName || "",
         userComName: user.userComName,
         userEmail: user.userEmail,
-        userPhoneNum: user.userPhoneNum,
+        userPhoneNum: user.userPhoneNum || "+65123456789", // Ensure valid phone number format
         userRole: user.userRole, // Preserve original role
         userSuspend: user.userSuspend,
         userRejected: user.userRejected || false,
+        // Add a flag to indicate this is from the organization requests page
+        // This will be part of the payload and not a header
+        fromOrgRequestsPage: true,
       }
 
       if (user.passwd) {
@@ -384,6 +413,7 @@ const OrganizationRequestsPage = () => {
           Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify(payload),
+        mode: "cors", // Explicitly set CORS mode
       })
 
       if (!response.ok) {
@@ -416,6 +446,7 @@ const OrganizationRequestsPage = () => {
         headers: {
           Authorization: `Bearer ${token}`,
         },
+        mode: "cors", // Explicitly set CORS mode
       })
 
       if (!response.ok && response.status !== 404) {

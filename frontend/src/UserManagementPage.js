@@ -12,7 +12,7 @@ const userRole = "1"
 const UserManagementPage = () => {
   const navigate = useNavigate()
   const location = useLocation()
-  const { user } = useAuth() // Get the logged-in user's token
+  const { authData } = useAuth() // Get the logged-in user's data
   const [searchQuery, setSearchQuery] = useState("")
   const [showNewUserModal, setShowNewUserModal] = useState(false)
   const [users, setUsers] = useState([])
@@ -25,6 +25,31 @@ const UserManagementPage = () => {
   const [userToSuspend, setUserToSuspend] = useState(null)
   const [loading, setLoading] = useState(true) // Added loading state
   const [error, setError] = useState(null)
+
+  // Function to log user activity
+  const logActivity = async (action, targetUser, description) => {
+    try {
+      const token = localStorage.getItem("token")
+      const response = await fetch("http://127.0.0.1:8000/audit/log-activity", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          action,
+          targetUser: targetUser.username || targetUser.id,
+          description,
+        }),
+      })
+
+      if (!response.ok) {
+        console.error("Failed to log activity")
+      }
+    } catch (err) {
+      console.error("Error logging activity:", err)
+    }
+  }
 
   const fetchRoles = async () => {
     try {
@@ -46,6 +71,7 @@ const UserManagementPage = () => {
         setRoles([
           { id: 1, roleName: "Organisation Admin" },
           { id: 2, roleName: "Network Admin" },
+          { id: 3, roleName: "IT Manager" }, // Added IT Manager role
         ])
         throw new Error("Failed to fetch roles")
       }
@@ -55,6 +81,7 @@ const UserManagementPage = () => {
       setRoles([
         { id: 1, roleName: "Organisation Admin" },
         { id: 2, roleName: "Network Admin" },
+        { id: 3, roleName: "IT Manager" }, // Added IT Manager role
       ])
       setLoading(false)
     }
@@ -73,6 +100,8 @@ const UserManagementPage = () => {
       return "Organisation Admin"
     } else if (roleIdNum === 2) {
       return "Network Admin"
+    } else if (roleIdNum === 3) {
+      return "IT Manager" // Added IT Manager role
     }
 
     // Otherwise look up in the roles array
@@ -146,6 +175,15 @@ const UserManagementPage = () => {
       }
 
       await updateUser(updatedUser)
+
+      // Log the activity
+      const action = updatedUser.userSuspend ? "user_suspended" : "user_activated"
+      const description = updatedUser.userSuspend
+        ? `Suspended user account: ${userToSuspend.username}`
+        : `Activated user account: ${userToSuspend.username}`
+
+      await logActivity(action, userToSuspend, description)
+
       setShowSuspendModal(false)
       setUserToSuspend(null)
     } catch (err) {
@@ -189,6 +227,12 @@ const UserManagementPage = () => {
         throw new Error(errorData.detail || "Failed to add user")
       }
 
+      const addedUser = await response.json()
+
+      // Log the activity
+      const description = `Created new user account: ${newUser.username} with role ${getRoleName(newUser.userRole)}`
+      await logActivity("user_created", newUser, description)
+
       // Refresh the user list after adding
       fetchUsers()
       return true
@@ -208,6 +252,9 @@ const UserManagementPage = () => {
   const updateUser = async (user) => {
     try {
       const token = localStorage.getItem("token") // Get the token from localStorage
+
+      // Get the original user to compare changes
+      const originalUser = users.find((u) => u.id === user.id)
 
       // Ensure all required fields are included
       const payload = {
@@ -244,6 +291,40 @@ const UserManagementPage = () => {
         throw new Error(errorData.detail || "Failed to update user")
       }
 
+      // Determine what changed for the log description
+      const changes = []
+      if (originalUser) {
+        if (originalUser.userRole !== user.userRole) {
+          changes.push(`role from ${getRoleName(originalUser.userRole)} to ${getRoleName(user.userRole)}`)
+          // Log specific role change
+          await logActivity(
+            "role_changed",
+            user,
+            `Changed user role for ${user.username} from ${getRoleName(originalUser.userRole)} to ${getRoleName(user.userRole)}`,
+          )
+        }
+
+        if (originalUser.userEmail !== user.userEmail) {
+          changes.push(`email to ${user.userEmail}`)
+        }
+
+        if (originalUser.userPhoneNum !== user.userPhoneNum) {
+          changes.push(`phone number to ${user.userPhoneNum}`)
+        }
+
+        if (user.passwd) {
+          changes.push("password")
+          // Log password change
+          await logActivity("password_changed", user, `Password was changed for user: ${user.username}`)
+        }
+      }
+
+      // Log general update if there were changes
+      if (changes.length > 0) {
+        const description = `Updated user ${user.username}: ${changes.join(", ")}`
+        await logActivity("user_updated", user, description)
+      }
+
       // Refresh the user list after updating
       fetchUsers()
       return true
@@ -264,6 +345,9 @@ const UserManagementPage = () => {
     try {
       const token = localStorage.getItem("token") // Get the token from localStorage
 
+      // Find the user before deleting to use in the log
+      const userToBeDeleted = users.find((user) => user.id === id)
+
       const response = await fetch(`http://127.0.0.1:8000/user-management/${id}`, {
         method: "DELETE",
         headers: {
@@ -275,6 +359,12 @@ const UserManagementPage = () => {
         // 404 is acceptable - it means the user was already deleted
         const errorData = await response.json()
         throw new Error(errorData.detail || "Failed to delete user")
+      }
+
+      // Log the activity if we found the user
+      if (userToBeDeleted) {
+        const description = `Deleted user account: ${userToBeDeleted.username}`
+        await logActivity("user_deleted", userToBeDeleted, description)
       }
 
       // Remove the user from the local state

@@ -1,4 +1,6 @@
-import { useState, useEffect } from "react"
+"use client"
+
+import { useState, useEffect, useMemo } from "react"
 import { useNavigate, useLocation } from "react-router-dom"
 import Sidebar from "./Sidebar"
 
@@ -8,14 +10,16 @@ const userRole = "2"
 const AddPlaybookModal = ({ onClose, onSave }) => {
   const [playbookName, setPlaybookName] = useState("")
   const [description, setDescription] = useState("")
-  const [conditions, setConditions] = useState([{ 
-    id: 1, 
-    field: "source_ip",  // Set default field
-    value: "",
-    window_period: "",
-    condition_type: "threshold",
-    operator: "greater than or equal"  // Set default operator
-  }])
+  const [conditions, setConditions] = useState([
+    {
+      id: 1,
+      field: "source_ip", // Set default field
+      value: "",
+      window_period: "",
+      condition_type: "threshold",
+      operator: "greater than or equal", // Set default operator
+    },
+  ])
   const [status, setStatus] = useState(true)
   const [blockIP, setBlockIP] = useState(true)
   const [sendEmailAlert, setSendEmailAlert] = useState(true)
@@ -24,71 +28,53 @@ const AddPlaybookModal = ({ onClose, onSave }) => {
   const conditionFieldOptions = {
     threshold: [
       { value: "source_ip", label: "Source IP" },
-      { value: "alert_count", label: "Alert Count" }
+      { value: "alert_count", label: "Alert Count" },
     ],
-    severity: [
-      { value: "severity", label: "Severity" }
-    ],
-    class_type: [
-      { value: "class_type", label: "Class Type" }
-    ],
-    ip_reputation: [
-      { value: "source_ip", label: "Source IP" }
-    ],
-    geolocation: [
-      { value: "source_ip", label: "Source IP" }
-    ],
-    destination_targeting: [
-      { value: "destination_ip", label: "Destination IP" }
-    ]
-  };
+    severity: [{ value: "severity", label: "Severity" }],
+    class_type: [{ value: "class_type", label: "Class Type" }],
+    ip_reputation: [{ value: "source_ip", label: "Source IP" }],
+    geolocation: [{ value: "source_ip", label: "Source IP" }],
+    destination_targeting: [{ value: "destination_ip", label: "Destination IP" }],
+  }
 
   const conditionTypeOptions = [
     { value: "threshold", label: "threshold" },
     { value: "severity", label: "Severity" },
     { value: "class_type", label: "Class Type" },
     { value: "ip_reputation", label: "IP Reputation" },
-  ];
+  ]
 
   const conditionOperatorOptions = {
-    threshold: [
-      {value: "greater than or equal", label: ">="}
-    ],
-    severity: [
-      {value: "greater than or equal", label: ">="}
-    ],
+    threshold: [{ value: "greater than or equal", label: ">=" }],
+    severity: [{ value: "greater than or equal", label: ">=" }],
     class_type: [
-      {value: "equal", label: "equals"},
-      {value: "not equal", label: "not equals"}
+      { value: "equal", label: "equals" },
+      { value: "not equal", label: "not equals" },
     ],
-    ip_reputation: [
-      {value: "exists", label: "exists"},
-    ],
+    ip_reputation: [{ value: "exists", label: "exists" }],
     geo_location: [
-      {value: "equal", label: "equals"},
-      {value: "not equal", label: "not equals"}
-    ]
+      { value: "equal", label: "equals" },
+      { value: "not equal", label: "not equals" },
+    ],
   }
 
   const conditionValueOptions = {
     severity: [
-    { value: "low", label: "Low" },
-    { value: "medium", label: "Medium" },
-    { value: "high", label: "High" },
-    { value: "critical", label: "Critical" }
+      { value: "low", label: "Low" },
+      { value: "medium", label: "Medium" },
+      { value: "high", label: "High" },
+      { value: "critical", label: "Critical" },
     ],
-    ip_reputation: [
-    { value: "threat_intel_feed", label: "threat intel feed" },
-    ],
+    ip_reputation: [{ value: "threat_intel_feed", label: "threat intel feed" }],
   }
 
   const handleAddCondition = () => {
     const newCondition = {
       id: conditions.length + 1,
       condition_type: "threshold",
-      field: "source_ip",  // Set default field based on condition type
+      field: "source_ip", // Set default field based on condition type
       value: "",
-      operator: "greater than or equal",  // Set default operator based on condition type
+      operator: "greater than or equal", // Set default operator based on condition type
       window_period: "",
     }
     setConditions([...conditions, newCondition])
@@ -101,50 +87,49 @@ const AddPlaybookModal = ({ onClose, onSave }) => {
   }
 
   const handleConditionChange = (id, field, value) => {
-    setConditions(conditions.map((condition) => {
-      if (condition.id === id) {
-        const updatedCondition = { ...condition, [field]: value };
-        
-        // If condition type changes, set appropriate defaults
-        if (field === "condition_type") {
-          const defaultField = conditionFieldOptions[value]?.[0]?.value || "";
-          const defaultOperator = conditionOperatorOptions[value]?.[0]?.value || "";
-          const defaultValue = conditionValueOptions[value]?.[0]?.value || "";
-          
-          updatedCondition.field = defaultField;
-          updatedCondition.operator = defaultOperator;
-          updatedCondition.value = defaultValue; // Reset value when type changes
+    setConditions(
+      conditions.map((condition) => {
+        if (condition.id === id) {
+          const updatedCondition = { ...condition, [field]: value }
+
+          // If condition type changes, set appropriate defaults
+          if (field === "condition_type") {
+            const defaultField = conditionFieldOptions[value]?.[0]?.value || ""
+            const defaultOperator = conditionOperatorOptions[value]?.[0]?.value || ""
+            const defaultValue = conditionValueOptions[value]?.[0]?.value || ""
+
+            updatedCondition.field = defaultField
+            updatedCondition.operator = defaultOperator
+            updatedCondition.value = defaultValue // Reset value when type changes
+          }
+
+          return updatedCondition
         }
-        
-        return updatedCondition;
-      }
-      return condition;
-    }))
+        return condition
+      }),
+    )
   }
 
   const handleSubmit = (e) => {
     e.preventDefault()
 
-    // Determine action type based on selected options
-    let actionType = ""
-    if (blockIP && sendEmailAlert) {
-      actionType = "Block IP + Alert"
-    } else if (blockIP) {
-      actionType = "Block IP"
-    } else if (sendEmailAlert) {
-      actionType = "Alert"
-    }
-
+    // Format data according to the backend schema
     const playbookData = {
       name: playbookName,
       description: description,
-      triggerType: "Alert Category",
-      actionType: actionType,
-      status: status ? "active" : "inactive",
-      triggerConditions: JSON.stringify(conditions),
-      blockIP: blockIP,
-      sendEmailAlert: sendEmailAlert,
-      emailRecipients: emailRecipients,
+      conditions: conditions.map((c) => ({
+        condition_type: c.condition_type,
+        field: c.field,
+        operator: c.operator,
+        value: c.value,
+        window_period: c.window_period,
+      })),
+      actions: {
+        blockIP: blockIP,
+        sendEmailAlert: sendEmailAlert,
+        emailRecipients: emailRecipients,
+      },
+      is_active: status,
     }
 
     onSave(playbookData)
@@ -296,7 +281,6 @@ const AddPlaybookModal = ({ onClose, onSave }) => {
                     )}
                   </div>
 
-                  
                   <div style={{ marginBottom: "16px", width: "100%" }}>
                     <label style={{ display: "block", marginBottom: "8px" }}>Condition Type</label>
                     <select
@@ -319,55 +303,53 @@ const AddPlaybookModal = ({ onClose, onSave }) => {
                     </select>
                   </div>
 
+                  <div style={{ marginBottom: "16px", width: "100%" }}>
+                    <label style={{ display: "block", marginBottom: "8px" }}>Field</label>
+                    <select
+                      value={condition.field}
+                      onChange={(e) => handleConditionChange(condition.id, "field", e.target.value)}
+                      style={{
+                        width: "100%",
+                        padding: "10px",
+                        border: "1px solid #ddd",
+                        borderRadius: "4px",
+                        backgroundColor: "white",
+                        boxSizing: "border-box",
+                      }}
+                    >
+                      {conditionFieldOptions[condition.condition_type]?.map((field) => (
+                        <option key={field.value} value={field.value}>
+                          {field.label}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
 
                   <div style={{ marginBottom: "16px", width: "100%" }}>
-                                      <label style={{ display: "block", marginBottom: "8px" }}>Field</label>
-                                      <select
-                                        value={condition.field}
-                                        onChange={(e) => handleConditionChange(condition.id, "field", e.target.value)}
-                                        style={{
-                                          width: "100%",
-                                          padding: "10px",
-                                          border: "1px solid #ddd",
-                                          borderRadius: "4px",
-                                          backgroundColor: "white",
-                                          boxSizing: "border-box",
-                                        }}
-                                      >
-                                        {conditionFieldOptions[condition.condition_type]?.map((field) => (
-                                          <option key={field.value} value={field.value}>
-                                            {field.label}
-                                          </option>
-                                        ))}
-                                      </select>
-                                    </div>
+                    <label style={{ display: "block", marginBottom: "8px" }}>Operator</label>
+                    <select
+                      value={condition.operator}
+                      onChange={(e) => handleConditionChange(condition.id, "operator", e.target.value)}
+                      style={{
+                        width: "100%",
+                        padding: "10px",
+                        border: "1px solid #ddd",
+                        borderRadius: "4px",
+                        backgroundColor: "white",
+                        boxSizing: "border-box",
+                      }}
+                    >
+                      {conditionOperatorOptions[condition.condition_type]?.map((operator) => (
+                        <option key={operator.value} value={operator.value}>
+                          {operator.label}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
 
-                                    <div style={{ marginBottom: "16px", width: "100%" }}>
-                                      <label style={{ display: "block", marginBottom: "8px" }}>Operator</label>
-                                      <select
-                                        value={condition.operator}
-                                        onChange={(e) => handleConditionChange(condition.id, "operator", e.target.value)}
-                                        style={{
-                                          width: "100%",
-                                          padding: "10px",
-                                          border: "1px solid #ddd",
-                                          borderRadius: "4px",
-                                          backgroundColor: "white",
-                                          boxSizing: "border-box",
-                                        }}
-                                        >
-                                        {conditionOperatorOptions[condition.condition_type]?.map((operator) => (
-                                          <option key={operator.value} value={operator.value}>
-                                            {operator.label}
-                                          </option>
-                                        ))}
-                                      </select>
-                                    </div>
-
-
-                                    <div style={{ width: "100%", marginBottom: "16px" }}>
+                  <div style={{ width: "100%", marginBottom: "16px" }}>
                     <label style={{ display: "block", marginBottom: "8px" }}>Value</label>
-                    
+
                     {condition.condition_type === "threshold" ? (
                       <input
                         type="number"
@@ -422,23 +404,23 @@ const AddPlaybookModal = ({ onClose, onSave }) => {
 
                   {condition.condition_type === "threshold" ? (
                     <div style={{ width: "100%" }}>
-                    <label style={{ display: "block", marginBottom: "8px" }}>Window Period (mins)</label>
+                      <label style={{ display: "block", marginBottom: "8px" }}>Window Period (mins)</label>
                       <input
-                      type="number"
-                      value={condition.window_period}
-                      onChange={(e) => handleConditionChange(condition.id, "window_period", e.target.value)}
-                      placeholder="Enter value"
-                      style={{
-                        width: "100%",
-                        padding: "10px",
-                        border: "1px solid #ddd",
-                        borderRadius: "4px",
-                        boxSizing: "border-box",
-                      }}
-                      required
+                        type="number"
+                        value={condition.window_period}
+                        onChange={(e) => handleConditionChange(condition.id, "window_period", e.target.value)}
+                        placeholder="Enter value"
+                        style={{
+                          width: "100%",
+                          padding: "10px",
+                          border: "1px solid #ddd",
+                          borderRadius: "4px",
+                          boxSizing: "border-box",
+                        }}
+                        required
                       />
-                      </div>
-                    ) : null}
+                    </div>
+                  ) : null}
                 </div>
               ))}
 
@@ -630,64 +612,51 @@ const AddPlaybookModal = ({ onClose, onSave }) => {
 const PlaybookModal = ({ playbook, onClose, onSave, isEditing }) => {
   const [playbookName, setPlaybookName] = useState(playbook?.name || "")
   const [description, setDescription] = useState(playbook?.description || "")
-  const [status, setStatus] = useState(playbook?.status === "active")
+  const [status, setStatus] = useState(playbook?.is_active || false)
 
-  // Parse action details to get blockIP and sendEmailAlert values
-  const actionDetails = playbook?.actionDetails ? JSON.parse(playbook.actionDetails) : {}
-  const [blockIP, setBlockIP] = useState(actionDetails.blockIP !== undefined ? actionDetails.blockIP : true)
+  // Parse action details
+  const actions = playbook?.actions || {}
+  const [blockIP, setBlockIP] = useState(actions.blockIP !== undefined ? actions.blockIP : true)
   const [sendEmailAlert, setSendEmailAlert] = useState(
-    actionDetails.sendEmailAlert !== undefined ? actionDetails.sendEmailAlert : false,
+    actions.sendEmailAlert !== undefined ? actions.sendEmailAlert : false,
   )
-  const [emailRecipients, setEmailRecipients] = useState(actionDetails.emailRecipients || "")
-  const [conditions, setConditions] = useState([])
+  const [emailRecipients, setEmailRecipients] = useState(actions.emailRecipients || "")
 
-  // Parse trigger conditions with proper initialization
-  let initialConditions = [{ 
-    id: 1, 
-    condition_type: "threshold",
-    field: "source_ip",
-    operator: "greater than or equal",
-    value: "",
-    window_period: ""
-  }]
-
-  try {
-    if (playbook?.conditions) {
-      const parsedConditions = playbook.conditions
-      console.log('parsed conditions')
-      console.log(parsedConditions);
-      if (Array.isArray(parsedConditions)) {
-        initialConditions = parsedConditions.map((condition, index) => ({
-          id: index + 1,
-          condition_type: condition.condition_type,
-          field: condition.field,
-          operator: condition.operator,
-          value: condition.value,
-          window_period: condition.window_period 
-        }))
-        console.log('initial conditions')
-        console.log(initialConditions)
-        setConditions(initialConditions)
-      }
-    }else{
-      console.log('not loaded')
+  // Initialize conditions with proper defaults
+  const initialConditions = useMemo(() => {
+    if (!playbook?.conditions || !Array.isArray(playbook.conditions) || playbook.conditions.length === 0) {
+      return [
+        {
+          id: 1,
+          condition_type: "threshold",
+          field: "source_ip",
+          operator: "greater than or equal",
+          value: "",
+          window_period: "",
+        },
+      ]
     }
-  } catch (error) {
-    console.error("Error parsing trigger conditions:", error)
-    console.log(error)
-    console.log(playbook)
-  }
 
-  
+    return playbook.conditions.map((condition, index) => ({
+      id: index + 1,
+      condition_type: condition.condition_type || "threshold",
+      field: condition.field || "source_ip",
+      operator: condition.operator || "greater than or equal",
+      value: condition.value || "",
+      window_period: condition.window_period || "",
+    }))
+  }, [playbook?.conditions])
+
+  const [conditions, setConditions] = useState(initialConditions)
 
   const handleAddCondition = () => {
     const newCondition = {
       id: conditions.length + 1,
-      field: "Alert Category",
+      condition_type: "threshold",
+      field: "source_ip",
+      operator: "greater than or equal",
       value: "",
       window_period: "",
-      condition_type: "",
-      operator: "",
     }
     setConditions([...conditions, newCondition])
   }
@@ -699,95 +668,91 @@ const PlaybookModal = ({ playbook, onClose, onSave, isEditing }) => {
   }
 
   const handleConditionChange = (id, field, value) => {
-    setConditions(conditions.map((condition) => (condition.id === id ? { ...condition, [field]: value } : condition)))
+    setConditions(
+      conditions.map((condition) => {
+        if (condition.id === id) {
+          const updatedCondition = { ...condition, [field]: value }
+
+          // If condition type changes, set appropriate defaults
+          if (field === "condition_type") {
+            const defaultField = conditionFieldOptions[value]?.[0]?.value || ""
+            const defaultOperator = conditionOperatorOptions[value]?.[0]?.value || ""
+
+            updatedCondition.field = defaultField
+            updatedCondition.operator = defaultOperator
+            updatedCondition.value = ""
+          }
+
+          return updatedCondition
+        }
+        return condition
+      }),
+    )
   }
 
   const conditionFieldOptions = {
     threshold: [
       { value: "source_ip", label: "Source IP" },
-      { value: "alert_count", label: "Alert Count" }
+      { value: "alert_count", label: "Alert Count" },
     ],
-    severity: [
-      { value: "severity", label: "Severity" }
-    ],
-    class_type: [
-      { value: "class_type", label: "Class Type" }
-    ],
-    ip_reputation: [
-      { value: "source_ip", label: "Source IP" }
-    ],
-    geolocation: [
-      { value: "source_ip", label: "Source IP" }
-    ],
-    destination_targeting: [
-      { value: "destination_ip", label: "Destination IP" }
-    ]
-  };
+    severity: [{ value: "severity", label: "Severity" }],
+    class_type: [{ value: "class_type", label: "Class Type" }],
+    ip_reputation: [{ value: "source_ip", label: "Source IP" }],
+    geolocation: [{ value: "source_ip", label: "Source IP" }],
+    destination_targeting: [{ value: "destination_ip", label: "Destination IP" }],
+  }
 
   const conditionTypeOptions = [
     { value: "threshold", label: "threshold" },
     { value: "severity", label: "Severity" },
     { value: "class_type", label: "Class Type" },
     { value: "ip_reputation", label: "IP Reputation" },
-  ];
+  ]
 
   const conditionOperatorOptions = {
-    threshold: [
-      {value: "greater than or equal", label: ">="}
-    ],
-    severity: [
-      {value: "greater than or equal", label: ">="}
-    ],
+    threshold: [{ value: "greater than or equal", label: ">=" }],
+    severity: [{ value: "greater than or equal", label: ">=" }],
     class_type: [
-      {value: "equal", label: "equals"},
-      {value: "not equal", label: "not equals"}
+      { value: "equal", label: "equals" },
+      { value: "not equal", label: "not equals" },
     ],
-    ip_reputation: [
-      {value: "exists", label: "exists"},
-    ],
+    ip_reputation: [{ value: "exists", label: "exists" }],
     geo_location: [
-      {value: "equal", label: "equals"},
-      {value: "not equal", label: "not equals"}
-    ]
+      { value: "equal", label: "equals" },
+      { value: "not equal", label: "not equals" },
+    ],
   }
 
   const conditionValueOptions = {
     severity: [
-    { value: "low", label: "Low" },
-    { value: "medium", label: "Medium" },
-    { value: "high", label: "High" },
-    { value: "critical", label: "Critical" }
+      { value: "low", label: "Low" },
+      { value: "medium", label: "Medium" },
+      { value: "high", label: "High" },
+      { value: "critical", label: "Critical" },
     ],
-    ip_reputation: [
-    { value: "threat_intel_feed", label: "threat intel feed" },
-    ],
+    ip_reputation: [{ value: "threat_intel_feed", label: "threat intel feed" }],
   }
 
   const handleSubmit = (e) => {
     e.preventDefault()
 
-    // Determine action type based on selected options
-    let actionType = ""
-    if (blockIP && sendEmailAlert) {
-      actionType = "Block IP + Alert"
-    } else if (blockIP) {
-      actionType = "Block IP"
-    } else if (sendEmailAlert) {
-      actionType = "Alert"
-    }
-
+    // Format data according to the backend schema
     const playbookData = {
       name: playbookName,
       description,
-      triggerType: "Alert Category",
-      actionType,
-      status: status ? "active" : "inactive",
-      triggerConditions: JSON.stringify(conditions),
-      actionDetails: JSON.stringify({
+      conditions: conditions.map((c) => ({
+        condition_type: c.condition_type,
+        field: c.field,
+        operator: c.operator,
+        value: c.value,
+        window_period: c.window_period,
+      })),
+      actions: {
         blockIP,
         sendEmailAlert,
         emailRecipients,
-      }),
+      },
+      is_active: status,
     }
 
     onSave(playbookData, playbook?.id)
@@ -848,8 +813,7 @@ const PlaybookModal = ({ playbook, onClose, onSave, isEditing }) => {
             ←
           </button>
           <div>
-            <div style={{ color: "#666", fontSize: "14px" }}>
-            </div>
+            <div style={{ color: "#666", fontSize: "14px" }}></div>
             <h2 style={{ margin: "4px 0 0 0" }}>{isEditing ? "Edit Playbook" : "View Playbook"}</h2>
           </div>
         </div>
@@ -944,28 +908,29 @@ const PlaybookModal = ({ playbook, onClose, onSave, isEditing }) => {
                   </div>
 
                   <div style={{ marginBottom: "16px", width: "100%" }}>
-                      <label style={{ display: "block", marginBottom: "8px" }}>Condition Type</label>
-                      <select
-                        value={condition.condition_type}
-                        onChange={(e) => handleConditionChange(condition.id, "condition_type", e.target.value)}
-                        style={{
-                          width: "100%",
-                          padding: "10px",
-                          border: "1px solid #ddd",
-                          borderRadius: "4px",
-                          backgroundColor: "white",
-                          boxSizing: "border-box",
-                        }}
-                        >
-                        <option value="threshold">Threshold</option>
-                        <option value="severity">Severity</option>
-                        <option value="class_type">class type</option>
-                        <option value="ip_reputation">ip repuation</option>
-                      </select>
-                    </div>
+                    <label style={{ display: "block", marginBottom: "8px" }}>Condition Type</label>
+                    <select
+                      value={condition.condition_type}
+                      onChange={(e) => handleConditionChange(condition.id, "condition_type", e.target.value)}
+                      style={{
+                        width: "100%",
+                        padding: "10px",
+                        border: "1px solid #ddd",
+                        borderRadius: "4px",
+                        backgroundColor: "white",
+                        boxSizing: "border-box",
+                      }}
+                      disabled={!isEditing}
+                    >
+                      {conditionTypeOptions.map((option) => (
+                        <option key={option.value} value={option.value}>
+                          {option.label}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
 
-
-                <div style={{ marginBottom: "16px", width: "100%" }}>
+                  <div style={{ marginBottom: "16px", width: "100%" }}>
                     <label style={{ display: "block", marginBottom: "8px" }}>Field</label>
                     <select
                       value={condition.field}
@@ -1011,79 +976,82 @@ const PlaybookModal = ({ playbook, onClose, onSave, isEditing }) => {
                     </select>
                   </div>
 
-
-                  <div style={{ width: "100%" }}>
+                  <div style={{ width: "100%", marginBottom: "16px" }}>
                     <label style={{ display: "block", marginBottom: "8px" }}>Value</label>
                     {condition.condition_type === "threshold" ? (
                       <input
-                      type="number"
-                      value={condition.value}
-                      onChange={(e) => handleConditionChange(condition.id, "value", e.target.value)}
-                      placeholder="Enter value"
-                      style={{
-                        width: "100%",
-                        padding: "10px",
-                        border: "1px solid #ddd",
-                        borderRadius: "4px",
-                        boxSizing: "border-box",
-                      }}
-                      required
+                        type="number"
+                        value={condition.value}
+                        onChange={(e) => handleConditionChange(condition.id, "value", e.target.value)}
+                        placeholder="Enter value"
+                        style={{
+                          width: "100%",
+                          padding: "10px",
+                          border: "1px solid #ddd",
+                          borderRadius: "4px",
+                          boxSizing: "border-box",
+                        }}
+                        required
+                        disabled={!isEditing}
                       />
                     ) : condition.condition_type === "severity" || condition.condition_type === "ip_reputation" ? (
                       <select
-                      value={condition.value}
-                      onChange={(e) => handleConditionChange(condition.id, "value", e.target.value)}
-                      style={{
-                        width: "100%",
-                        padding: "10px",
-                        border: "1px solid #ddd",
-                        borderRadius: "4px",
-                        backgroundColor: "white",
-                        boxSizing: "border-box",
-                      }}
+                        value={condition.value}
+                        onChange={(e) => handleConditionChange(condition.id, "value", e.target.value)}
+                        style={{
+                          width: "100%",
+                          padding: "10px",
+                          border: "1px solid #ddd",
+                          borderRadius: "4px",
+                          backgroundColor: "white",
+                          boxSizing: "border-box",
+                        }}
+                        disabled={!isEditing}
                       >
-                      {conditionValueOptions[condition.condition_type]?.map((option) => (
-                        <option key={option.value} value={option.value}>
-                        {option.label}
-                        </option>
-                      ))}
+                        {conditionValueOptions[condition.condition_type]?.map((option) => (
+                          <option key={option.value} value={option.value}>
+                            {option.label}
+                          </option>
+                        ))}
                       </select>
                     ) : (
                       <input
-                      type="text"
-                      value={condition.value}
-                      onChange={(e) => handleConditionChange(condition.id, "value", e.target.value)}
-                      placeholder="Enter value"
-                      style={{
-                        width: "100%",
-                        padding: "10px",
-                        border: "1px solid #ddd",
-                        borderRadius: "4px",
-                        boxSizing: "border-box",
-                      }}
-                      required
+                        type="text"
+                        value={condition.value}
+                        onChange={(e) => handleConditionChange(condition.id, "value", e.target.value)}
+                        placeholder="Enter value"
+                        style={{
+                          width: "100%",
+                          padding: "10px",
+                          border: "1px solid #ddd",
+                          borderRadius: "4px",
+                          boxSizing: "border-box",
+                        }}
+                        required
+                        disabled={!isEditing}
                       />
                     )}
                   </div>
                   {condition.condition_type === "threshold" ? (
                     <div style={{ width: "100%" }}>
-                    <label style={{ display: "block", marginBottom: "8px" }}>Window period (mins)</label>
+                      <label style={{ display: "block", marginBottom: "8px" }}>Window period (mins)</label>
                       <input
-                      type="number"
-                      value={condition.window_period}
-                      onChange={(e) => handleConditionChange(condition.id, "window_period", e.target.value)}
-                      placeholder="Enter value"
-                      style={{
-                        width: "100%",
-                        padding: "10px",
-                        border: "1px solid #ddd",
-                        borderRadius: "4px",
-                        boxSizing: "border-box",
-                      }}
-                      required
+                        type="number"
+                        value={condition.window_period}
+                        onChange={(e) => handleConditionChange(condition.id, "window_period", e.target.value)}
+                        placeholder="Enter value"
+                        style={{
+                          width: "100%",
+                          padding: "10px",
+                          border: "1px solid #ddd",
+                          borderRadius: "4px",
+                          boxSizing: "border-box",
+                        }}
+                        required
+                        disabled={!isEditing}
                       />
-                      </div>
-                    ) : null}
+                    </div>
+                  ) : null}
                 </div>
               ))}
 
@@ -1291,30 +1259,80 @@ const PlaybooksPage = () => {
   const [showAddPlaybookModal, setShowAddPlaybookModal] = useState(false)
   const [isEditing, setIsEditing] = useState(false)
   const [selectedRows, setSelectedRows] = useState([])
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(null)
 
   // Sample data
   const [playbooks, setPlaybooks] = useState([])
 
   // Fetch playbooks on component mount
   useEffect(() => {
-    fetchPlaybooks();
-  }, []);
+    fetchPlaybooks()
+  }, [])
 
   const fetchPlaybooks = async () => {
     try {
-      const response = await fetch('http://localhost:8000/playbooks');
-      const data = await response.json();
-      setPlaybooks(Array.isArray(data) ? data : []);
-      setLoading(false);
+      setLoading(true)
+      // Get the token from localStorage
+      const token = localStorage.getItem("token")
+
+      console.log("Fetching playbooks from: http://localhost:8000/playbooks")
+
+      // Use the correct API endpoint based on the backend code
+      const response = await fetch("http://localhost:8000/playbooks", {
+        method: "GET",
+        headers: {
+          Accept: "application/json",
+          "Content-Type": "application/json",
+          Authorization: token ? `Bearer ${token}` : "",
+        },
+        mode: "cors",
+      })
+
+      console.log("Response status:", response.status)
+
+      if (!response.ok) {
+        const errorText = await response.text()
+        console.error("Error response:", errorText)
+        throw new Error(`HTTP error! Status: ${response.status}, Details: ${errorText}`)
+      }
+
+      const data = await response.json()
+      console.log("Fetched playbooks:", data)
+
+      setPlaybooks(Array.isArray(data) ? data : [])
+      setLoading(false)
     } catch (error) {
-      console.error('Error fetching playbooks:', error);
-      setError('Failed to fetch playbooks');
-      setLoading(false);
-      setPlaybooks([]);
+      console.error("Error fetching playbooks:", error)
+      setError(`Failed to fetch playbooks: ${error.message}`)
+      setLoading(false)
+      // If we can't fetch from the API, use sample data for development
+      setPlaybooks([
+        {
+          id: 1,
+          name: "Sample Playbook 1",
+          description: "This is a sample playbook for development",
+          conditions: [
+            {
+              condition_type: "threshold",
+              field: "source_ip",
+              operator: "greater than or equal",
+              value: "5",
+              window_period: "10",
+            },
+          ],
+          actions: {
+            blockIP: true,
+            sendEmailAlert: true,
+            emailRecipients: "admin@example.com",
+          },
+          is_active: true,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        },
+      ])
     }
-  };
+  }
 
   const handleSearch = (e) => {
     setSearchQuery(e.target.value)
@@ -1324,32 +1342,37 @@ const PlaybooksPage = () => {
     setFilterType(e.target.value)
   }
 
-  const filteredPlaybooks = playbooks && playbooks.filter((playbook) => {
-    const matchesSearch =
-      playbook.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      playbook.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      Object.keys(playbook.conditions).join(', ').toLowerCase().includes(searchQuery.toLowerCase()) ||
-      Object.keys(playbook.actions).join(', ').toLowerCase().includes(searchQuery.toLowerCase())
+  const filteredPlaybooks =
+    playbooks &&
+    playbooks.filter((playbook) => {
+      const matchesSearch =
+        playbook.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        (playbook.description && playbook.description.toLowerCase().includes(searchQuery.toLowerCase())) ||
+        (playbook.conditions &&
+          JSON.stringify(playbook.conditions).toLowerCase().includes(searchQuery.toLowerCase())) ||
+        (playbook.actions && JSON.stringify(playbook.actions).toLowerCase().includes(searchQuery.toLowerCase()))
 
-    if (!filterType) return matchesSearch
+      if (!filterType) return matchesSearch
 
-    switch (filterType) {
-      case "name":
-        return playbook.name.toLowerCase().includes(searchQuery.toLowerCase())
-      case "description":
-        return playbook.description.toLowerCase().includes(searchQuery.toLowerCase())
-      case "trigger-type":
-        return Object.keys(playbook.conditions).join(', ').toLowerCase().includes(searchQuery.toLowerCase())
-      case "action-type":
-        return Object.keys(playbook.actions).join(', ').toLowerCase().includes(searchQuery.toLowerCase())
-      case "status-active":
-        return playbook.is_active && matchesSearch
-      case "status-inactive":
-        return !playbook.is_active && matchesSearch
-      default:
-        return matchesSearch
-    }
-  })
+      switch (filterType) {
+        case "name":
+          return playbook.name.toLowerCase().includes(searchQuery.toLowerCase())
+        case "description":
+          return playbook.description && playbook.description.toLowerCase().includes(searchQuery.toLowerCase())
+        case "trigger-type":
+          return (
+            playbook.conditions && JSON.stringify(playbook.conditions).toLowerCase().includes(searchQuery.toLowerCase())
+          )
+        case "action-type":
+          return playbook.actions && JSON.stringify(playbook.actions).toLowerCase().includes(searchQuery.toLowerCase())
+        case "status-active":
+          return playbook.is_active && matchesSearch
+        case "status-inactive":
+          return !playbook.is_active && matchesSearch
+        default:
+          return matchesSearch
+      }
+    })
 
   const activePlaybooks = playbooks.filter((playbook) => playbook.is_active).length
   const inactivePlaybooks = playbooks.filter((playbook) => !playbook.is_active).length
@@ -1374,93 +1397,135 @@ const PlaybooksPage = () => {
   }
 
   const handleSavePlaybook = async (formData, id) => {
-    console.log(formData);
     try {
-      const playbookData = {
-        name: formData.name,
-        description: formData.description,
-        conditions: [
-          JSON.parse(formData.triggerConditions),
-        ],
-        actions: {
-          blockIP: formData.blockIP,
-          sendEmailAlert: formData.sendEmailAlert,
-          emailRecipients: formData.emailRecipients,
-        },
-        is_active: formData.status === 'active'
-      };
+      setLoading(true)
+      // Get the token from localStorage
+      const token = localStorage.getItem("token")
 
-      let response;
+      // Use the correct API endpoint based on the backend code
+      let url = "http://localhost:8000/playbooks"
+      let method = "POST"
+
       if (id) {
-        // Update existing playbook
-        response = await fetch(`http://localhost:8000/playbooks/${id}`, {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(playbookData)
-        });
-      } else {
-        console.log(playbookData);
-        // Create new playbook
-        response = await fetch('http://localhost:8000/playbooks', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(playbookData)
-        });
+        url = `http://localhost:8000/playbooks/${id}`
+        method = "PUT"
       }
+
+      console.log(`Saving playbook to ${url} with method ${method}`)
+      console.log("Playbook data:", JSON.stringify(formData, null, 2))
+
+      const response = await fetch(url, {
+        method: method,
+        headers: {
+          "Content-Type": "application/json",
+          Accept: "application/json",
+          Authorization: token ? `Bearer ${token}` : "",
+        },
+        mode: "cors",
+        body: JSON.stringify(formData),
+      })
+
+      console.log("Response status:", response.status)
 
       if (!response.ok) {
-        throw new Error(`Failed to ${id ? 'update' : 'create'} playbook`);
+        const errorText = await response.text()
+        console.error("Error response:", errorText)
+        throw new Error(`Failed to ${id ? "update" : "create"} playbook: ${errorText}`)
       }
 
+      const responseData = await response.json()
+      console.log("Save response:", responseData)
+
       // Refresh playbooks list
-      fetchPlaybooks();
-      handleCloseModal();
+      await fetchPlaybooks()
+      handleCloseModal()
     } catch (error) {
-      console.error('Error saving playbook:', error);
-      // You might want to show an error message to the user here
+      console.error("Error saving playbook:", error)
+      setError(`Error saving playbook: ${error.message}`)
+    } finally {
+      setLoading(false)
     }
-  };
+  }
 
   const handleDeletePlaybook = async (playbookId) => {
     try {
+      setLoading(true)
+      // Get the token from localStorage
+      const token = localStorage.getItem("token")
+
+      console.log(`Deleting playbook with ID: ${playbookId}`)
+
+      // Use the correct API endpoint
       const response = await fetch(`http://localhost:8000/playbooks/${playbookId}`, {
-        method: 'DELETE'
-      });
+        method: "DELETE",
+        headers: {
+          Accept: "application/json",
+          Authorization: token ? `Bearer ${token}` : "",
+        },
+        mode: "cors",
+      })
+
+      console.log("Delete response status:", response.status)
 
       if (!response.ok) {
-        throw new Error('Failed to delete playbook');
+        const errorText = await response.text()
+        console.error("Error response:", errorText)
+        throw new Error(`Failed to delete playbook: ${errorText}`)
       }
 
       // Refresh playbooks list
-      fetchPlaybooks();
+      await fetchPlaybooks()
     } catch (error) {
-      console.error('Error deleting playbook:', error);
+      console.error("Error deleting playbook:", error)
+      setError(`Error deleting playbook: ${error.message}`)
+    } finally {
+      setLoading(false)
     }
-  };
+  }
 
   const handleToggleStatus = async (playbookId) => {
     try {
+      setLoading(true)
+      // Get the token from localStorage
+      const token = localStorage.getItem("token")
+
+      console.log(`Toggling status for playbook with ID: ${playbookId}`)
+
+      // Use the correct API endpoint
       const response = await fetch(`http://localhost:8000/playbooks/${playbookId}/toggle`, {
-        method: 'POST'
-      });
+        method: "POST",
+        headers: {
+          Accept: "application/json",
+          "Content-Type": "application/json",
+          Authorization: token ? `Bearer ${token}` : "",
+        },
+        mode: "cors",
+      })
+
+      console.log("Toggle status response:", response.status)
 
       if (!response.ok) {
-        throw new Error('Failed to toggle playbook status');
+        const errorText = await response.text()
+        console.error("Error response:", errorText)
+        throw new Error(`Failed to toggle playbook status: ${errorText}`)
       }
 
       // Refresh playbooks list
-      fetchPlaybooks();
+      await fetchPlaybooks()
     } catch (error) {
-      console.error('Error toggling playbook status:', error);
+      console.error("Error toggling playbook status:", error)
+      setError(`Error toggling status: ${error.message}`)
+    } finally {
+      setLoading(false)
     }
-  };
-
-  if (loading) {
-    return <div>Loading playbooks...</div>;
   }
 
-  if (error) {
-    return <div>Error: {error}</div>;
+  if (loading) {
+    return (
+      <div style={{ display: "flex", justifyContent: "center", alignItems: "center", height: "100vh" }}>
+        <div>Loading playbooks...</div>
+      </div>
+    )
   }
 
   const handleSelectRow = (id) => {
@@ -1487,18 +1552,20 @@ const PlaybooksPage = () => {
   }
 
   const formatActionType = (actions) => {
-    const actionsList = [];
-    
+    if (!actions) return "No actions"
+
+    const actionsList = []
+
     if (actions.blockIP) {
-      actionsList.push('Block IP');
+      actionsList.push("Block IP")
     }
-    
+
     if (actions.sendEmailAlert) {
-      actionsList.push('Send Email');
+      actionsList.push("Send Email")
     }
-    
-    return actionsList.length > 0 ? actionsList.join(' + ') : 'No actions';
-  };
+
+    return actionsList.length > 0 ? actionsList.join(" + ") : "No actions"
+  }
 
   const renderPlaybookRow = (playbook) => (
     <tr key={playbook.id} style={{ borderBottom: "1px solid #eee" }}>
@@ -1511,31 +1578,23 @@ const PlaybooksPage = () => {
       </td>
       <td style={{ padding: "16px", fontWeight: "500" }}>{playbook.name}</td>
       <td style={{ padding: "16px" }}>{playbook.description}</td>
-      <td style={{ padding: "16px" }}>
-        {formatActionType(playbook.actions)}
-      </td>
-      <td style={{ padding: "16px" }}>
-        {new Date(playbook.created_at).toLocaleDateString()}
-      </td>
-      <td style={{ padding: "16px" }}>
-        {new Date(playbook.updated_at).toLocaleDateString()}
+      <td style={{ padding: "16px" }}>{formatActionType(playbook.actions)}</td>
+      <td style={{ padding: "16px" }}>{new Date(playbook.created_at).toLocaleDateString()}</td>
+      <td style={{ padding: "16px" }}>{new Date(playbook.updated_at).toLocaleDateString()}</td>
+      <td style={{ padding: "16px", textAlign: "center" }}>
+        <span style={getStatusStyle(playbook.is_active)}>{playbook.is_active ? "Active" : "Inactive"}</span>
       </td>
       <td style={{ padding: "16px", textAlign: "center" }}>
-        <span style={getStatusStyle(playbook.is_active)}>
-          {playbook.is_active ? "Active" : "Inactive"}
-        </span>
-      </td>
-      <td style={{ padding: "16px", textAlign: "center" }}>
-        <div style={{ display: 'flex', gap: '8px', justifyContent: 'center' }}>
+        <div style={{ display: "flex", gap: "8px", justifyContent: "center" }}>
           <button
             onClick={() => handleEditPlaybook(playbook)}
             style={{
-              padding: '6px 12px',
-              backgroundColor: '#666',
-              color: 'white',
-              border: 'none',
-              borderRadius: '4px',
-              cursor: 'pointer',
+              padding: "6px 12px",
+              backgroundColor: "#666",
+              color: "white",
+              border: "none",
+              borderRadius: "4px",
+              cursor: "pointer",
             }}
           >
             Edit
@@ -1543,25 +1602,25 @@ const PlaybooksPage = () => {
           <button
             onClick={() => handleToggleStatus(playbook.id)}
             style={{
-              padding: '6px 12px',
-              backgroundColor: playbook.is_active ? '#f44336' : '#4CAF50',
-              color: 'white',
-              border: 'none',
-              borderRadius: '4px',
-              cursor: 'pointer',
+              padding: "6px 12px",
+              backgroundColor: playbook.is_active ? "#f44336" : "#4CAF50",
+              color: "white",
+              border: "none",
+              borderRadius: "4px",
+              cursor: "pointer",
             }}
           >
-            {playbook.is_active ? 'Deactivate' : 'Activate'}
+            {playbook.is_active ? "Deactivate" : "Activate"}
           </button>
           <button
             onClick={() => handleDeletePlaybook(playbook.id)}
             style={{
-              padding: '6px 12px',
-              backgroundColor: '#f44336',
-              color: 'white',
-              border: 'none',
-              borderRadius: '4px',
-              cursor: 'pointer',
+              padding: "6px 12px",
+              backgroundColor: "#f44336",
+              color: "white",
+              border: "none",
+              borderRadius: "4px",
+              cursor: "pointer",
             }}
           >
             Delete
@@ -1569,7 +1628,7 @@ const PlaybooksPage = () => {
         </div>
       </td>
     </tr>
-  );
+  )
 
   return (
     <div
@@ -1591,6 +1650,20 @@ const PlaybooksPage = () => {
         }}
       >
         <h1 style={{ margin: "0 0 24px 0" }}>Playbooks Management</h1>
+
+        {error && (
+          <div
+            style={{
+              backgroundColor: "#ffebee",
+              color: "#c62828",
+              padding: "12px",
+              borderRadius: "4px",
+              marginBottom: "16px",
+            }}
+          >
+            {error}
+          </div>
+        )}
 
         {/* Stats Cards */}
         <div
@@ -1648,8 +1721,6 @@ const PlaybooksPage = () => {
             <div style={{ color: "#666", marginBottom: "8px" }}>IP Blocks (24h)</div>
             <div style={{ fontSize: "32px", fontWeight: "bold" }}>37</div>
           </div>
-
-          
         </div>
 
         {/* Search and Filter */}
@@ -1753,7 +1824,7 @@ const PlaybooksPage = () => {
                 <th style={{ padding: "16px", textAlign: "left", borderBottom: "1px solid #eee" }}>Name</th>
                 <th style={{ padding: "16px", textAlign: "left", borderBottom: "1px solid #eee" }}>Description</th>
                 <th style={{ padding: "16px", textAlign: "left", borderBottom: "1px solid #eee" }}>Action Type</th>
-                <th style={{ padding: "16px", textAlign: "left", borderBottom: "1px solid #eee" }}>Created By</th>
+                <th style={{ padding: "16px", textAlign: "left", borderBottom: "1px solid #eee" }}>Created At</th>
                 <th style={{ padding: "16px", textAlign: "left", borderBottom: "1px solid #eee" }}>Last Modified</th>
                 <th style={{ padding: "16px", textAlign: "center", borderBottom: "1px solid #eee" }}>Status</th>
                 <th style={{ padding: "16px", textAlign: "center", borderBottom: "1px solid #eee" }}>Actions</th>

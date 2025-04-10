@@ -1,15 +1,26 @@
+// blocklist-management-page.tsx
 import { useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom"
-
+import { useAuth } from "./context/AuthContext" // Import useAuth to get user info
 import Sidebar from "./Sidebar" // Import the Sidebar component
 
 const userRole = "2"
 
 const API_URL = "http://localhost:8000/ip-blocking"; // backend API base URL
 
-const fetchBlockedIPs = async (setBlocklist) => {
+const fetchBlockedIPs = async (setBlocklist, token) => {
   try {
-    const response = await fetch(`${API_URL}/blocked-ips/`);
+    if (!token) {
+      console.error("No token available for API request");
+      return;
+    }
+    
+    const response = await fetch(`${API_URL}/blocked-ips/`, {
+      headers: {
+        "Authorization": `Bearer ${token}` // Include token in the request
+      }
+    });
+    
     if (response.status === 403) {
       alert("Access denied: Your IP is blocked.");
       return;
@@ -21,28 +32,41 @@ const fetchBlockedIPs = async (setBlocklist) => {
     const data = await response.json();
     console.log("Fetched Blocked IPs:", data);  // Debugging log
 
-    // Ensure data.blocked_ips is an array of objects before mapping
-    if (!Array.isArray(data.blocked_ips)) {
-      throw new Error("Invalid API response: expected an array of objects");
+    // The API returns an array directly, not an object with blocked_ips property
+    if (!Array.isArray(data)) {
+      console.error("Invalid API response format:", data);
+      setBlocklist([]);
+      return;
     }
 
-    // Fix: Extract both IP and reason correctly
-    setBlocklist(data.blocked_ips.map(({ ip, reason }) => ({
-      ip,
-      reason: reason || "No reason provided"  // Use actual reason, fallback if missing
+    // Map the data directly since it's already in the correct format
+    setBlocklist(data.map(item => ({
+      ip: item.ip,
+      reason: item.reason || "No reason provided"
     })));
   } catch (error) {
     console.error("Error fetching blocked IPs:", error);
     if (error.message.includes("Failed to fetch")) {
       alert("Could not connect to the server. Ensure backend is running.");
     }
+    setBlocklist([]); // Set empty array on error
   }
 };
 
 // Check if the current user's IP is blocked
-const checkUserIP = async (navigate) => {
+const checkUserIP = async (navigate, token) => {
   try {
-    const response = await fetch(`${API_URL}/check-my-ip/`);
+    if (!token) {
+      console.error("No token available for API request");
+      return;
+    }
+    
+    const response = await fetch(`${API_URL}/check-my-ip/`, {
+      headers: {
+        "Authorization": `Bearer ${token}` // Include token in the request
+      }
+    });
+    
     if (response.status === 403 || response.status === 400) {
       alert("Your IP is blocked.");
       navigate("/access-denied");
@@ -66,89 +90,88 @@ const AddBlocklistModal = ({ onClose, onAdd }) => {
 
   return (
     <div
-  style={{
-    position: "fixed",
-    top: "50%",
-    left: "50%",
-    transform: "translate(-50%, -50%)",
-    backgroundColor: "white",
-    border: "1px solid #000",
-    borderRadius: "4px",
-    padding: "20px",
-    width: "90%",
-    maxWidth: "400px",
-    zIndex: 1000,
-    textAlign: "center", // Center text inside the modal
-  }}
->
-  <h2 style={{ marginTop: 0, marginBottom: "20px" }}>Add to Blocklist</h2>
-  <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
-    <div style={{ width: "100%", textAlign: "left" }}>
-      <label style={{ display: "block", marginBottom: "8px", color: "#666" }}>
-        IP Address to block
-      </label>
-      <input
-        type="text"
-        value={newIP}
-        onChange={(e) => setNewIP(e.target.value)}
-        style={{
-          width: "100%",
-          padding: "8px",
-          border: "1px solid #ddd",
-          borderRadius: "4px",
-          marginBottom: "15px",
-          boxSizing: "border-box",
-        }}
-      />
-      <label style={{ display: "block", marginBottom: "8px", color: "#666" }}>
-        Reason for blocking
-      </label>
-      <input
-        type="text"
-        value={reason}
-        onChange={(e) => setReason(e.target.value)}
-        style={{
-          width: "100%",
-          padding: "8px",
-          border: "1px solid #ddd",
-          borderRadius: "4px",
-          marginBottom: "15px",
-          boxSizing: "border-box",
-        }}
-      />
+      style={{
+        position: "fixed",
+        top: "50%",
+        left: "50%",
+        transform: "translate(-50%, -50%)",
+        backgroundColor: "white",
+        border: "1px solid #000",
+        borderRadius: "4px",
+        padding: "20px",
+        width: "90%",
+        maxWidth: "400px",
+        zIndex: 1000,
+        textAlign: "center", // Center text inside the modal
+      }}
+    >
+      <h2 style={{ marginTop: 0, marginBottom: "20px" }}>Add to Blocklist</h2>
+      <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
+        <div style={{ width: "100%", textAlign: "left" }}>
+          <label style={{ display: "block", marginBottom: "8px", color: "#666" }}>
+            IP Address to block
+          </label>
+          <input
+            type="text"
+            value={newIP}
+            onChange={(e) => setNewIP(e.target.value)}
+            style={{
+              width: "100%",
+              padding: "8px",
+              border: "1px solid #ddd",
+              borderRadius: "4px",
+              marginBottom: "15px",
+              boxSizing: "border-box",
+            }}
+          />
+          <label style={{ display: "block", marginBottom: "8px", color: "#666" }}>
+            Reason for blocking
+          </label>
+          <input
+            type="text"
+            value={reason}
+            onChange={(e) => setReason(e.target.value)}
+            style={{
+              width: "100%",
+              padding: "8px",
+              border: "1px solid #ddd",
+              borderRadius: "4px",
+              marginBottom: "15px",
+              boxSizing: "border-box",
+            }}
+          />
+        </div>
+        <div style={{ display: "flex", gap: "10px", justifyContent: "center", width: "100%" }}>
+          <button
+            type="submit"
+            style={{
+              padding: "6px 20px",
+              backgroundColor: "#90EE90",
+              color: "black",
+              border: "none",
+              borderRadius: "4px",
+              cursor: "pointer",
+            }}
+          >
+            Add
+          </button>
+          <button
+            type="button"
+            onClick={onClose}
+            style={{
+              padding: "6px 20px",
+              backgroundColor: "#ffcccb",
+              color: "black",
+              border: "none",
+              borderRadius: "4px",
+              cursor: "pointer",
+            }}
+          >
+            Cancel
+          </button>
+        </div>
+      </form>
     </div>
-    <div style={{ display: "flex", gap: "10px", justifyContent: "center", width: "100%" }}>
-      <button
-        type="submit"
-        style={{
-          padding: "6px 20px",
-          backgroundColor: "#90EE90",
-          color: "black",
-          border: "none",
-          borderRadius: "4px",
-          cursor: "pointer",
-        }}
-      >
-        Add
-      </button>
-      <button
-        type="button"
-        onClick={onClose}
-        style={{
-          padding: "6px 20px",
-          backgroundColor: "#ffcccb",
-          color: "black",
-          border: "none",
-          borderRadius: "4px",
-          cursor: "pointer",
-        }}
-      >
-        Cancel
-      </button>
-    </div>
-  </form>
-</div>
-
   )
 }
 
@@ -162,92 +185,107 @@ const RemoveIPModal = ({ onClose, onRemove, ipToRemove }) => {
   }
 
   return (
-      <div
-    style={{
-      position: "fixed",
-      top: "50%",
-      left: "50%",
-      transform: "translate(-50%, -50%)",
-      backgroundColor: "white",
-      border: "1px solid #000",
-      borderRadius: "4px",
-      padding: "20px",
-      width: "90%",
-      maxWidth: "600px",
-      zIndex: 1000,
-      textAlign: "center", // Center text inside the modal
-    }}
-  >
-    <h2 style={{ margin: "0 0 20px 0" }}>Are you sure you want to remove blocked IP?</h2>
-    <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
-      <div style={{ width: "100%", textAlign: "left" }}>
-        <label style={{ display: "block", marginBottom: "8px" }}>
-          IP Address to Remove
-        </label>
-        <input
-          type="text"
-          value={ipToRemove}
-          disabled
-          style={{
-            width: "100%",
-            padding: "8px",
-            border: "1px solid #ddd",
-            borderRadius: "4px",
-            marginBottom: "15px",
-            backgroundColor: "#f5f5f5",
-            boxSizing: "border-box",
-          }}
-        />
-      </div>
-      
-      <div style={{ display: "flex", gap: "10px", justifyContent: "center", width: "100%" }}>
-        <button
-          type="submit"
-          style={{
-            padding: "6px 20px",
-            backgroundColor: "#90EE90",
-            color: "black",
-            border: "none",
-            borderRadius: "4px",
-            cursor: "pointer",
-          }}
-        >
-          Remove
-        </button>
-        <button
-          type="button"
-          onClick={onClose}
-          style={{
-            padding: "6px 20px",
-            backgroundColor: "#ffcccb",
-            color: "black",
-            border: "none",
-            borderRadius: "4px",
-            cursor: "pointer",
-          }}
-        >
-          Cancel
-        </button>
-      </div>
-    </form>
-  </div>
-
+    <div
+      style={{
+        position: "fixed",
+        top: "50%",
+        left: "50%",
+        transform: "translate(-50%, -50%)",
+        backgroundColor: "white",
+        border: "1px solid #000",
+        borderRadius: "4px",
+        padding: "20px",
+        width: "90%",
+        maxWidth: "600px",
+        zIndex: 1000,
+        textAlign: "center", // Center text inside the modal
+      }}
+    >
+      <h2 style={{ margin: "0 0 20px 0" }}>Are you sure you want to remove blocked IP?</h2>
+      <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
+        <div style={{ width: "100%", textAlign: "left" }}>
+          <label style={{ display: "block", marginBottom: "8px" }}>
+            IP Address to Remove
+          </label>
+          <input
+            type="text"
+            value={ipToRemove}
+            disabled
+            style={{
+              width: "100%",
+              padding: "8px",
+              border: "1px solid #ddd",
+              borderRadius: "4px",
+              marginBottom: "15px",
+              backgroundColor: "#f5f5f5",
+              boxSizing: "border-box",
+            }}
+          />
+        </div>
+        
+        <div style={{ display: "flex", gap: "10px", justifyContent: "center", width: "100%" }}>
+          <button
+            type="submit"
+            style={{
+              padding: "6px 20px",
+              backgroundColor: "#90EE90",
+              color: "black",
+              border: "none",
+              borderRadius: "4px",
+              cursor: "pointer",
+            }}
+          >
+            Remove
+          </button>
+          <button
+            type="button"
+            onClick={onClose}
+            style={{
+              padding: "6px 20px",
+              backgroundColor: "#ffcccb",
+              color: "black",
+              border: "none",
+              borderRadius: "4px",
+              cursor: "pointer",
+            }}
+          >
+            Cancel
+          </button>
+        </div>
+      </form>
+    </div>
   )
 }
 
 const BlocklistManagementPage = () => {
   const navigate = useNavigate()
   const location = useLocation()
+  const { user, isLoading } = useAuth() // Get user and loading state from auth context
   const [searchQuery, setSearchQuery] = useState("")
   const [showAddModal, setShowAddModal] = useState(false)
   const [showRemoveModal, setShowRemoveModal] = useState(false)
   const [selectedIP, setSelectedIP] = useState(null)
   const [blocklist, setBlocklist] = useState([])
+  const [companyName, setCompanyName] = useState("")
 
+  // Get token once and store it
+  const token = localStorage.getItem("token")
+
+  // Effect to set company name when user data is available
   useEffect(() => {
-    fetchBlockedIPs(setBlocklist);
-    checkUserIP(navigate);
-  }, [navigate]);
+    if (user) {
+      setCompanyName(user.userComName || "")
+      console.log("User loaded:", user)
+    }
+  }, [user])
+
+  // Fetch blocked IPs when component mounts and after adding/removing IPs
+  useEffect(() => {
+    if (token) {
+      fetchBlockedIPs(setBlocklist, token);
+      checkUserIP(navigate, token);
+    }
+  }, [navigate, token]);
 
   const isActive = (path) => location.pathname.startsWith(path)
 
@@ -261,19 +299,33 @@ const BlocklistManagementPage = () => {
 
   const handleRemoveIP = async (ip) => {
     try {
+      if (!token) {
+        alert("You must be logged in to remove IPs");
+        return;
+      }
+      
       const response = await fetch(`${API_URL}/unblock-ip/${ip}`, {
         method: "DELETE",
+        headers: {
+          "Authorization": `Bearer ${token}` // Include token in the request
+        }
       });
   
       if (!response.ok){
         const data = await response.json();
         alert(data.detail || "Failed to remove IP");
         console.error("Failed to remove IP:", data.detail || "Failed to remove IP");
+        return;
       }
   
-      setBlocklist((prevBlocklist) => prevBlocklist.filter((item) => item.ip !== ip)); 
+      // Update the blocklist state after successful removal
+      setBlocklist((prevBlocklist) => prevBlocklist.filter((item) => item.ip !== ip));
+      
+      // Fetch the updated list from the server to ensure UI is in sync with database
+      fetchBlockedIPs(setBlocklist, token);
     } catch (error) {
       console.error("Error removing IP:", error);
+      alert("Error removing IP. Please try again.");
     }
   };    
 
@@ -284,22 +336,31 @@ const BlocklistManagementPage = () => {
     }
   
     try {
+      if (!token) {
+        alert("You must be logged in to add IPs");
+        return;
+      }
+      
       const response = await fetch(`${API_URL}/block-ip/`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { 
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${token}` // Include token in the request
+        },
         body: JSON.stringify({ ip: ip.trim(), reason: reason.trim() }),
       });
   
-      const data = await response.json();
-  
       if (!response.ok) {
+        const data = await response.json();
         alert(data.detail || "Failed to block IP");
         throw new Error(data.detail || "Failed to block IP");
       }
   
-      setBlocklist((prevBlocklist) => [...prevBlocklist, data]); 
+      // Fetch the updated list from the server to ensure UI is in sync with database
+      fetchBlockedIPs(setBlocklist, token);
     } catch (error) {
       console.error("Error blocking IP:", error);
+      alert("Error blocking IP. Please try again.");
     }
   };    
 
@@ -319,6 +380,7 @@ const BlocklistManagementPage = () => {
         overflow: "hidden", // Added to prevent horizontal scrolling
       }}
     >
+      {/* Use the hardcoded userRole like in the playbooks page */}
       <Sidebar userRole={userRole} />
 
       {/* Main Content */}
@@ -330,7 +392,10 @@ const BlocklistManagementPage = () => {
           overflowX: "hidden", // Prevent horizontal scrolling
         }}
       >
-        <h1>Blocklist Management</h1>
+        <h1>
+          Blocklist Management
+          {/* Company name display removed as requested */}
+        </h1>
 
         {/* Search Bar */}
         <div
@@ -437,48 +502,56 @@ const BlocklistManagementPage = () => {
                 </tr>
               </thead>
               <tbody>
-                {filteredBlocklist.map((item) => (
-                  <tr key={item.ip}>
-                    <td
-                      style={{
-                        padding: "15px",
-                        borderBottom: "1px solid #eee",
-                        cursor: "pointer",
-                      }}
-                      onClick={() => handleIPClick(item.ip)}
-                    >
-                      {item.ip}
-                    </td>
-                    <td
-                      style={{
-                        padding: "15px",
-                        borderBottom: "1px solid #eee",
-                      }}
-                    >
-                      {item.reason}
-                    </td>
-                    <td
-                      style={{
-                        padding: "15px",
-                        borderBottom: "1px solid #eee",
-                        textAlign: "center",
-                      }}
-                    >
-                      <button
-                        onClick={() => handleIPClick(item.ip)}
+                {filteredBlocklist.length > 0 ? (
+                  filteredBlocklist.map((item) => (
+                    <tr key={item.ip}>
+                      <td
                         style={{
-                          background: "none",
-                          border: "none",
+                          padding: "15px",
+                          borderBottom: "1px solid #eee",
                           cursor: "pointer",
-                          color: "#666",
-                          padding: "5px",
+                        }}
+                        onClick={() => handleIPClick(item.ip)}
+                      >
+                        {item.ip}
+                      </td>
+                      <td
+                        style={{
+                          padding: "15px",
+                          borderBottom: "1px solid #eee",
                         }}
                       >
-                        ✕
-                      </button>
+                        {item.reason}
+                      </td>
+                      <td
+                        style={{
+                          padding: "15px",
+                          borderBottom: "1px solid #eee",
+                          textAlign: "center",
+                        }}
+                      >
+                        <button
+                          onClick={() => handleIPClick(item.ip)}
+                          style={{
+                            background: "none",
+                            border: "none",
+                            cursor: "pointer",
+                            color: "#666",
+                            padding: "5px",
+                          }}
+                        >
+                          ✕
+                        </button>
+                      </td>
+                    </tr>
+                  ))
+                ) : (
+                  <tr>
+                    <td colSpan={3} style={{ padding: "15px", textAlign: "center" }}>
+                      No blocked IPs found
                     </td>
                   </tr>
-                ))}
+                )}
               </tbody>
             </table>
           </div>

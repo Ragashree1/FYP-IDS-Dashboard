@@ -12,7 +12,7 @@ const UserModal = ({ onClose, onConfirm, user = null, fixedRole }) => {
     passwd: "",
     userComName: user?.userComName || "Company Name",
     userEmail: user?.userEmail || "",
-    userPhoneNum: user?.userPhoneNum || "",
+    userPhoneNum: user?.userPhoneNum || "+65", // Default country code
     userRole: fixedRole || user?.userRole || 1,
     userSuspend: user?.userSuspend || false,
   })
@@ -26,7 +26,9 @@ const UserModal = ({ onClose, onConfirm, user = null, fixedRole }) => {
         method: "GET",
         headers: {
           Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
         },
+        mode: "cors", // Explicitly set CORS mode
       })
 
       if (response.ok) {
@@ -41,6 +43,7 @@ const UserModal = ({ onClose, onConfirm, user = null, fixedRole }) => {
           setRoles([
             { id: 1, roleName: "Organisation Admin" },
             { id: 2, roleName: "Network Admin" },
+            { id: 3, roleName: "IT Manager" }, // Added IT Manager role
           ])
         }
 
@@ -56,6 +59,7 @@ const UserModal = ({ onClose, onConfirm, user = null, fixedRole }) => {
         setRoles([
           { id: 1, roleName: "Organisation Admin" },
           { id: 2, roleName: "Network Admin" },
+          { id: 3, roleName: "IT Manager" }, // Added IT Manager role
         ])
         throw new Error("Failed to fetch roles")
       }
@@ -65,6 +69,7 @@ const UserModal = ({ onClose, onConfirm, user = null, fixedRole }) => {
       setRoles([
         { id: 1, roleName: "Organisation Admin" },
         { id: 2, roleName: "Network Admin" },
+        { id: 3, roleName: "IT Manager" }, // Added IT Manager role
       ])
     }
   }
@@ -115,12 +120,13 @@ const UserModal = ({ onClose, onConfirm, user = null, fixedRole }) => {
       return true
     }
 
-    const phoneRegex = /^(\+\d{1,3}\s?)?[0-9]{8,10}$/
+    // Ensure phone number starts with + and has at least 8 digits after country code
+    const phoneRegex = /^\+[0-9]{1,4}[0-9]{8,}$/
 
     if (!phoneRegex.test(userPhoneNum)) {
       setErrors((prev) => ({
         ...prev,
-        userPhoneNum: "Please enter a valid phone number (8-10 digits with optional country code)",
+        userPhoneNum: "Please enter a valid phone number (format: +[country code][number], e.g., +6512345678)",
       }))
       return false
     } else {
@@ -181,6 +187,8 @@ const UserModal = ({ onClose, onConfirm, user = null, fixedRole }) => {
       return "Organisation Admin"
     } else if (fixedRole === 2 || formData.userRole === 2) {
       return "Network Admin"
+    } else if (fixedRole === 3 || formData.userRole === 3) {
+      return "IT Manager" // Added IT Manager role
     }
 
     const role = roles.find((r) => r.id === (fixedRole || formData.userRole))
@@ -221,9 +229,6 @@ const UserModal = ({ onClose, onConfirm, user = null, fixedRole }) => {
               gridTemplateColumns: "1fr 1fr",
               gap: "40px",
               alignItems: "start",
-              "@media (max-width: 768px)": {
-                gridTemplateColumns: "1fr",
-              },
             }}
           >
             {/* Left Column */}
@@ -377,6 +382,9 @@ const UserModal = ({ onClose, onConfirm, user = null, fixedRole }) => {
                 {errors.userPhoneNum && (
                   <p style={{ color: "#ff4d4f", fontSize: "12px", margin: "4px 0 0 0" }}>{errors.userPhoneNum}</p>
                 )}
+                <p style={{ color: "#666", fontSize: "12px", margin: "4px 0 0 0" }}>
+                  Format: +[country code][number], e.g., +6512345678
+                </p>
               </div>
               <div>
                 <label style={{ display: "block", marginBottom: "8px" }}>Password</label>
@@ -446,3 +454,4 @@ const UserModal = ({ onClose, onConfirm, user = null, fixedRole }) => {
 }
 
 export default UserModal
+

@@ -1,10 +1,10 @@
-import uuid  
+import uuid
 from sqlalchemy.dialects.postgresql import UUID
-from sqlalchemy import Column, ForeignKey, Integer, String, ARRAY, TIMESTAMP, JSON, DateTime, func, Boolean, Table, UniqueConstraint
+from sqlalchemy import Column, ForeignKey, Integer, String, ARRAY, TIMESTAMP, JSON, DateTime, func, Boolean, Table, UniqueConstraint, Text
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import validates, relationship
 from database import Base
-from datetime import datetime 
+from datetime import datetime
 import json
 
 class MeetingMinutes(Base):
@@ -41,9 +41,15 @@ class BlockedIP(Base):
     __tablename__ = "blocked_ips"
 
     id = Column(Integer, primary_key=True, index=True)
-    ip = Column(String, unique=True, nullable=False)
+    ip = Column(String, nullable=False)
     reason = Column(String, nullable=False)
+    company = Column(String, nullable=False, default="default")  # Added company field
     created_at = Column(DateTime, server_default=func.now())
+    
+    # Add a unique constraint for ip + company combination
+    __table_args__ = (
+        UniqueConstraint('ip', 'company', name='uix_ip_company'),
+    )
 
 class SnortAlerts(Base):
     __tablename__ = 'SnortAlerts'
@@ -81,7 +87,7 @@ class Account(Base):
     userRole = Column(Integer, ForeignKey("role.id"))
     userSuspend = Column(Boolean)
     userRejected = Column(Boolean, default=False)  # Added userRejected field
-   
+    fromOrgRequestsPage = Column(Boolean, default=False)
     role = relationship("Role", back_populates="accounts")
     
     __table_args__ = (
@@ -182,7 +188,7 @@ class Playbook(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     organization_id = Column(UUID(as_uuid=True), ForeignKey("Organizations.id", ondelete="SET NULL"), nullable=True, index=True)  # Foreign key to an Organization table
-    name = Column(String, unique=True, nullable=False)  # Name of the playbook
+    name = Column(String, nullable=False)  # Name of the playbook
     description = Column(String, nullable=True)  # Optional description of what the playbook does
     conditions = Column(JSON, nullable=False)  # JSON structure to define rules (e.g., {"log_type": "alert", "priority": ">3"})
     actions = Column(JSON, nullable=False)  # JSON array to store multiple actions (e.g., ["block_ip", "alert"])
@@ -192,3 +198,52 @@ class Playbook(Base):
 
     class Config:
         from_attributes = True  # Updated from orm_mode = True
+
+# New ActivityLog model for tracking user management activities
+class ActivityLog(Base):
+    __tablename__ = "activity_logs"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    timestamp = Column(TIMESTAMP, server_default=func.now())
+    user = Column(String, nullable=False)  # Username of the user who performed the action
+    targetUser = Column(String, nullable=False)  # Username of the user who was affected
+    action = Column(String, nullable=False)  # Type of action (user_created, user_updated, etc.)
+    description = Column(String, nullable=False)  # Description of the action
+    ipAddress = Column(String)  # IP address of the user who performed the action
+    userComName = Column(String, nullable=False)  # Company name for filtering logs by company
+    
+    class Config:
+        from_attributes = True
+
+# New SystemLog model for tracking system activities (playbooks, etc.)
+class SystemLog(Base):
+    __tablename__ = "system_logs"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    timestamp = Column(TIMESTAMP, server_default=func.now())
+    user = Column(String, nullable=False)  # Username of the user who performed the action
+    component = Column(String, nullable=False)  # System component affected (e.g., "Playbook", "Firewall", etc.)
+    action = Column(String, nullable=False)  # Type of action (playbook_created, rule_added, etc.)
+    description = Column(String, nullable=False)  # Description of the action
+    ipAddress = Column(String)  # IP address of the user who performed the action
+    resourceId = Column(String, nullable=True)  # ID of the affected resource (e.g., playbook ID)
+    resourceName = Column(String, nullable=True)  # Name of the affected resource (e.g., playbook name)
+    userComName = Column(String, nullable=True)
+	
+    class Config:
+        from_attributes = True
+
+# New Review model for storing customer reviews
+class Review(Base):
+    __tablename__ = "reviews"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    name = Column(String, nullable=False)
+    email = Column(String, nullable=False)
+    company = Column(String, nullable=True)
+    rating = Column(Integer, nullable=False)
+    review_text = Column(Text, nullable=False)
+    created_at = Column(TIMESTAMP, server_default=func.now())
+    
+    class Config:
+        from_attributes = True

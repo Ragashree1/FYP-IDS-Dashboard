@@ -18,6 +18,9 @@ import TrainModelPage from "./TrainModelPage";
 import TrainedModelsPage from "./TrainedModelsPage";
 import PlayBooksPage from "./PlayBooksPage";
 import OrganizationRequestsPage from "./OrganizationRequestsPage";
+import SystemActivityLogsPage from "./SystemActivityLogsPage";
+import AccountActivityLogsPage from "./AccountActivityLogsPage";
+import ReviewsPage from "./ReviewsPage"; // Import the ReviewsPage component
 
 const ProtectedRoute = ({ children }) => {
   const { user } = useAuth();
@@ -71,8 +74,25 @@ function App() {
         <Route path="/sidebar" element={<ProtectedRoute> <Sidebar />   </ProtectedRoute>   }  />
         <Route path="/train-model" element={<ProtectedRoute> <TrainModelPage />   </ProtectedRoute>   }  />
         <Route path="/trained-models" element={<ProtectedRoute> <TrainedModelsPage />   </ProtectedRoute>   }  />
-		<Route path="/playbooks" element={<ProtectedRoute> <PlayBooksPage />   </ProtectedRoute>   }  />
-	    <Route path="/organization-requests" element={<OrganizationRequestsPage />} />
+        <Route path="/playbooks" element={<ProtectedRoute> <PlayBooksPage />   </ProtectedRoute>   }  />
+        <Route path="/organization-requests" element={<OrganizationRequestsPage />} />
+        <Route path="/reviews" element={<ReviewsPage />} /> {/* Add the ReviewsPage route */}
+        <Route
+          path="/system-activity-logs"
+          element={
+            <ProtectedRoute>
+              <SystemActivityLogsPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/account-activity-logs"
+          element={
+            <ProtectedRoute>
+              <AccountActivityLogsPage />
+            </ProtectedRoute>
+          }
+        />
         {/* Add other protected routes here */}
       </Routes>
     </Router>

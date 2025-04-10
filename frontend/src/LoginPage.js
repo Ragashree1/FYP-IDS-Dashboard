@@ -1,5 +1,3 @@
-"use client"
-
 import { useState } from "react"
 import { useNavigate } from "react-router-dom"
 import { useAuth } from "./context/AuthContext" // Import AuthContext
@@ -142,17 +140,11 @@ export default function LoginPage() {
         if (!statusData.exists) {
           // Continue to login attempt
         }
-        // If account is suspended or pending approval, prevent login with specific messages
-        else if (statusData.userSuspend === true) {
-          if (statusData.userRejected === true) {
-            setError("Your account request has been rejected. Please contact your administrator.")
-            setIsLoading(false)
-            return
-          } else {
-            setError("Account is pending approval. Please wait for administrator approval.")
-            setIsLoading(false)
-            return
-          }
+        // If account is rejected, prevent login with specific message
+        else if (statusData.userRejected === true) {
+          setError("Your account request has been rejected. Please contact your administrator.")
+          setIsLoading(false)
+          return
         }
       }
 
@@ -206,9 +198,9 @@ export default function LoginPage() {
         console.log("Extracted user data:", userData) // Debug log
 
         // Ensure userRole is a number for comparison
-        const userRoleId = parseInt(userData.userRole, 10)
+        const userRoleId = Number.parseInt(userData.userRole, 10)
         console.log("User role ID (parsed):", userRoleId, "Type:", typeof userRoleId) // Debug log
-        
+
         // Update userData with the parsed role ID
         userData.userRole = userRoleId
 
@@ -217,9 +209,15 @@ export default function LoginPage() {
 
         // Navigate based on user role
         if (userRoleId === 2) {
+          // Network Admin goes to dashboard
           console.log("Redirecting to dashboard (Network Admin)") // Debug log
           navigate("/dashboard")
+        } else if (userRoleId === 3) {
+          // IT Manager goes to system activity logs
+          console.log("Redirecting to system activity logs (IT Manager)") // Debug log
+          navigate("/system-activity-logs")
         } else {
+          // All other roles (including Organization Admin) go to user management
           console.log("Redirecting to user management (Organization Admin or other)") // Debug log
           navigate("/user-management")
         }
@@ -315,3 +313,4 @@ export default function LoginPage() {
     </div>
   )
 }
+

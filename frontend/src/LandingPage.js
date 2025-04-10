@@ -11,6 +11,40 @@ const LandingPage = () => {
   const pieChartRef = useRef(null)
   const [windowWidth, setWindowWidth] = useState(typeof window !== "undefined" ? window.innerWidth : 1200)
 
+  // Review form state
+  const [reviewForm, setReviewForm] = useState({
+    name: "",
+    email: "",
+    company: "",
+    rating: 5,
+    review_text: "",
+  })
+  const [formErrors, setFormErrors] = useState({})
+  const [submitting, setSubmitting] = useState(false)
+  const [submitSuccess, setSubmitSuccess] = useState(false)
+  const [submitError, setSubmitError] = useState("")
+
+  // Add a state for storing reviews
+  const [testimonials, setTestimonials] = useState([])
+
+  // Add a function to fetch reviews
+  const fetchReviews = async () => {
+    try {
+      const response = await fetch("http://127.0.0.1:8000/reviews/")
+      if (response.ok) {
+        const data = await response.json()
+        setTestimonials(data)
+      }
+    } catch (err) {
+      console.error("Error fetching reviews:", err)
+    }
+  }
+
+  // Call fetchReviews when component mounts
+  useEffect(() => {
+    fetchReviews()
+  }, [])
+
   const handleSignIn = () => {
     navigate("/login")
   }
@@ -180,6 +214,103 @@ const LandingPage = () => {
       charts.forEach((chart) => chart.destroy())
     }
   }, [windowWidth])
+
+  // Handle review form input changes
+  const handleReviewInputChange = (e) => {
+    const { name, value } = e.target
+    setReviewForm({
+      ...reviewForm,
+      [name]: value,
+    })
+
+    // Clear error for this field when user types
+    if (formErrors[name]) {
+      setFormErrors({
+        ...formErrors,
+        [name]: "",
+      })
+    }
+  }
+
+  // Validate review form
+  const validateReviewForm = () => {
+    const errors = {}
+
+    if (!reviewForm.name.trim()) {
+      errors.name = "Name is required"
+    }
+
+    if (!reviewForm.email.trim()) {
+      errors.email = "Email is required"
+    } else if (!/\S+@\S+\.\S+/.test(reviewForm.email)) {
+      errors.email = "Email is invalid"
+    }
+
+    if (!reviewForm.review_text.trim()) {
+      errors.review_text = "Review text is required"
+    } else if (reviewForm.review_text.trim().length < 5) {
+      errors.review_text = "Review must be at least 5 characters"
+    }
+
+    if (reviewForm.rating < 1 || reviewForm.rating > 5) {
+      errors.rating = "Rating must be between 1 and 5"
+    }
+
+    return errors
+  }
+
+  // Handle review form submission
+  const handleReviewSubmit = async (e) => {
+    e.preventDefault()
+
+    // Validate form
+    const errors = validateReviewForm()
+    if (Object.keys(errors).length > 0) {
+      setFormErrors(errors)
+      return
+    }
+
+    setSubmitting(true)
+    setSubmitError("")
+
+    try {
+      const response = await fetch("http://127.0.0.1:8000/reviews/", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(reviewForm),
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.detail || "Failed to submit review")
+      }
+
+      // Get the newly created review from the response
+      const newReview = await response.json()
+
+      // Add the new review to the testimonials
+      setTestimonials((prevTestimonials) => [newReview, ...prevTestimonials])
+
+      // Reset form on success
+      setReviewForm({
+        name: "",
+        email: "",
+        company: "",
+        rating: 5,
+        review_text: "",
+      })
+
+      setSubmitSuccess(true)
+      setTimeout(() => setSubmitSuccess(false), 5000)
+    } catch (err) {
+      console.error("Error submitting review:", err)
+      setSubmitError(err.message || "Failed to submit review. Please try again.")
+    } finally {
+      setSubmitting(false)
+    }
+  }
 
   return (
     <div
@@ -606,6 +737,7 @@ const LandingPage = () => {
 
         <div style={{ height: "1px", backgroundColor: "#e5e7eb", margin: "2rem 0", width: "100%" }}></div>
 
+        {/* Customer Testimonials Section */}
         <div
           style={{
             marginTop: "2rem",
@@ -623,98 +755,144 @@ const LandingPage = () => {
             Customer Testimonials
           </h2>
 
-          <div
-            style={{
-              backgroundColor: "white",
-              borderRadius: "0.5rem",
-              padding: windowWidth < 640 ? "1rem" : "1.5rem",
-              boxShadow: "0 1px 3px rgba(0, 0, 0, 0.1)",
-              marginBottom: "1.5rem",
-              width: "100%",
-              boxSizing: "border-box", // Ensure padding is included in width
-            }}
-          >
+          {testimonials.length === 0 ? (
             <div
               style={{
-                display: "flex",
-                flexDirection: windowWidth < 480 ? "column" : "row",
-                justifyContent: "space-between",
-                alignItems: windowWidth < 480 ? "flex-start" : "flex-start",
-                marginBottom: "1rem",
-                gap: windowWidth < 480 ? "0.5rem" : "0",
+                backgroundColor: "white",
+                borderRadius: "0.5rem",
+                padding: windowWidth < 640 ? "1rem" : "1.5rem",
+                boxShadow: "0 1px 3px rgba(0, 0, 0, 0.1)",
+                width: "100%",
+                boxSizing: "border-box",
+                textAlign: "center",
               }}
             >
-              <div style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}>
+              <p style={{ color: "#6b7280" }}>No reviews yet. Be the first to share your experience!</p>
+            </div>
+          ) : (
+            testimonials.map((testimonial) => (
+              <div
+                key={testimonial.id}
+                style={{
+                  backgroundColor: "white",
+                  borderRadius: "0.5rem",
+                  padding: windowWidth < 640 ? "1rem" : "1.5rem",
+                  boxShadow: "0 1px 3px rgba(0, 0, 0, 0.1)",
+                  marginBottom: "1.5rem",
+                  width: "100%",
+                  boxSizing: "border-box",
+                }}
+              >
                 <div
                   style={{
-                    width: "2.5rem",
-                    height: "2.5rem",
-                    backgroundColor: "#e5e7eb",
-                    borderRadius: "9999px",
                     display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
+                    flexDirection: windowWidth < 480 ? "column" : "row",
+                    justifyContent: "space-between",
+                    alignItems: windowWidth < 480 ? "flex-start" : "flex-start",
+                    marginBottom: "1rem",
+                    gap: windowWidth < 480 ? "0.5rem" : "0",
                   }}
                 >
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    width="20"
-                    height="20"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  >
-                    <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2" />
-                    <circle cx="12" cy="7" r="4" />
-                  </svg>
-                </div>
-                <div>
-                  <h3 style={{ margin: 0, fontWeight: 500 }}>Apex Capital Group</h3>
-                  <div style={{ display: "flex", color: "#FBBF24" }}>
-                    {[...Array(5)].map((_, i) => (
+                  <div style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}>
+                    <div
+                      style={{
+                        width: "2.5rem",
+                        height: "2.5rem",
+                        backgroundColor: "#e5e7eb",
+                        borderRadius: "9999px",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                      }}
+                    >
                       <svg
-                        key={i}
                         xmlns="http://www.w3.org/2000/svg"
-                        width="16"
-                        height="16"
+                        width="20"
+                        height="20"
                         viewBox="0 0 24 24"
-                        fill="currentColor"
+                        fill="none"
                         stroke="currentColor"
                         strokeWidth="2"
                         strokeLinecap="round"
                         strokeLinejoin="round"
                       >
-                        <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
+                        <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2" />
+                        <circle cx="12" cy="7" r="4" />
                       </svg>
-                    ))}
+                    </div>
+                    <div>
+                      <h3 style={{ margin: 0, fontWeight: 500 }}>{testimonial.name}</h3>
+                      {testimonial.company && (
+                        <p style={{ margin: "0.25rem 0 0 0", fontSize: "0.875rem", color: "#6b7280" }}>
+                          {testimonial.company}
+                        </p>
+                      )}
+                      <div style={{ display: "flex", color: "#FBBF24" }}>
+                        {[...Array(5)].map((_, i) => (
+                          <svg
+                            key={i}
+                            xmlns="http://www.w3.org/2000/svg"
+                            width="16"
+                            height="16"
+                            viewBox="0 0 24 24"
+                            fill={i < testimonial.rating ? "currentColor" : "none"}
+                            stroke="currentColor"
+                            strokeWidth="2"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                          >
+                            <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
+                          </svg>
+                        ))}
+                      </div>
+                    </div>
                   </div>
+                  <span
+                    style={{
+                      color: "#6b7280",
+                      fontSize: "0.875rem",
+                      marginTop: windowWidth < 480 ? "0.25rem" : "0",
+                    }}
+                  >
+                    {new Date(testimonial.created_at).toLocaleDateString("en-US", {
+                      year: "numeric",
+                      month: "short",
+                      day: "numeric",
+                    })}
+                  </span>
                 </div>
+                <p
+                  style={{
+                    color: "#374151",
+                    lineHeight: 1.5,
+                    fontSize: windowWidth < 640 ? "0.875rem" : "1rem",
+                  }}
+                >
+                  {testimonial.review_text}
+                </p>
               </div>
-              <span
-                style={{
-                  color: "#6b7280",
-                  fontSize: "0.875rem",
-                  marginTop: windowWidth < 480 ? "0.25rem" : "0",
-                }}
-              >
-                A month ago
-              </span>
-            </div>
-            <p
-              style={{
-                color: "#374151",
-                lineHeight: 1.5,
-                fontSize: windowWidth < 640 ? "0.875rem" : "1rem",
-              }}
-            >
-              We've been using SecuBoard IDS for a few months now, and it has completely transformed our network
-              security. The real-time threat detection is incredibly accurate, and the system quickly identifies and
-              mitigates potential attacks before they become serious issues.
-            </p>
-          </div>
+            ))
+          )}
+        </div>
+
+        {/* Review Submission Form */}
+        <div
+          style={{
+            marginTop: "3rem",
+            marginBottom: "3rem",
+            width: "100%",
+            boxSizing: "border-box",
+          }}
+        >
+          <h2
+            style={{
+              fontSize: windowWidth < 640 ? "1.25rem" : "1.5rem",
+              fontWeight: 600,
+              marginBottom: "1.5rem",
+            }}
+          >
+            Share Your Experience
+          </h2>
 
           <div
             style={{
@@ -723,88 +901,223 @@ const LandingPage = () => {
               padding: windowWidth < 640 ? "1rem" : "1.5rem",
               boxShadow: "0 1px 3px rgba(0, 0, 0, 0.1)",
               width: "100%",
-              boxSizing: "border-box", // Ensure padding is included in width
+              boxSizing: "border-box",
             }}
           >
-            <div
-              style={{
-                display: "flex",
-                flexDirection: windowWidth < 480 ? "column" : "row",
-                justifyContent: "space-between",
-                alignItems: windowWidth < 480 ? "flex-start" : "flex-start",
-                marginBottom: "1rem",
-                gap: windowWidth < 480 ? "0.5rem" : "0",
-              }}
-            >
-              <div style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}>
-                <div
-                  style={{
-                    width: "2.5rem",
-                    height: "2.5rem",
-                    backgroundColor: "#e5e7eb",
-                    borderRadius: "9999px",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                  }}
-                >
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    width="20"
-                    height="20"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  >
-                    <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2" />
-                    <circle cx="12" cy="7" r="4" />
-                  </svg>
-                </div>
-                <div>
-                  <h3 style={{ margin: 0, fontWeight: 500 }}>Trenditive Market</h3>
-                  <div style={{ display: "flex", color: "#FBBF24" }}>
-                    {[...Array(5)].map((_, i) => (
-                      <svg
-                        key={i}
-                        xmlns="http://www.w3.org/2000/svg"
-                        width="16"
-                        height="16"
-                        viewBox="0 0 24 24"
-                        fill="currentColor"
-                        stroke="currentColor"
-                        strokeWidth="2"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                      >
-                        <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
-                      </svg>
-                    ))}
-                  </div>
-                </div>
-              </div>
-              <span
+            {submitSuccess ? (
+              <div
                 style={{
-                  color: "#6b7280",
-                  fontSize: "0.875rem",
-                  marginTop: windowWidth < 480 ? "0.25rem" : "0",
+                  padding: "1rem",
+                  backgroundColor: "#d1fae5",
+                  borderRadius: "0.375rem",
+                  marginBottom: "1rem",
                 }}
               >
-                3 months ago
-              </span>
-            </div>
-            <p
-              style={{
-                color: "#374151",
-                lineHeight: 1.5,
-                fontSize: windowWidth < 640 ? "0.875rem" : "1rem",
-              }}
-            >
-              Highly recommend SecuBoard IDS for businesses looking for a powerful, efficient, and user-friendly
-              intrusion detection system!
-            </p>
+                <p style={{ color: "#065f46", margin: 0 }}>
+                  Thank you for your review! It has been submitted successfully.
+                </p>
+              </div>
+            ) : null}
+
+            {submitError ? (
+              <div
+                style={{
+                  padding: "1rem",
+                  backgroundColor: "#fee2e2",
+                  borderRadius: "0.375rem",
+                  marginBottom: "1rem",
+                }}
+              >
+                <p style={{ color: "#b91c1c", margin: 0 }}>{submitError}</p>
+              </div>
+            ) : null}
+
+            <form onSubmit={handleReviewSubmit}>
+              <div
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: windowWidth < 768 ? "1fr" : "1fr 1fr",
+                  gap: "1rem",
+                  marginBottom: "1rem",
+                }}
+              >
+                <div>
+                  <label
+                    htmlFor="name"
+                    style={{
+                      display: "block",
+                      marginBottom: "0.5rem",
+                      fontSize: "0.875rem",
+                      fontWeight: 500,
+                    }}
+                  >
+                    Name *
+                  </label>
+                  <input
+                    type="text"
+                    id="name"
+                    name="name"
+                    value={reviewForm.name}
+                    onChange={handleReviewInputChange}
+                    style={{
+                      width: "100%",
+                      padding: "0.5rem",
+                      border: formErrors.name ? "1px solid #ef4444" : "1px solid #d1d5db",
+                      borderRadius: "0.375rem",
+                      fontSize: "0.875rem",
+                    }}
+                  />
+                  {formErrors.name && (
+                    <p style={{ color: "#ef4444", fontSize: "0.75rem", marginTop: "0.25rem" }}>{formErrors.name}</p>
+                  )}
+                </div>
+                <div>
+                  <label
+                    htmlFor="email"
+                    style={{
+                      display: "block",
+                      marginBottom: "0.5rem",
+                      fontSize: "0.875rem",
+                      fontWeight: 500,
+                    }}
+                  >
+                    Email *
+                  </label>
+                  <input
+                    type="email"
+                    id="email"
+                    name="email"
+                    value={reviewForm.email}
+                    onChange={handleReviewInputChange}
+                    style={{
+                      width: "100%",
+                      padding: "0.5rem",
+                      border: formErrors.email ? "1px solid #ef4444" : "1px solid #d1d5db",
+                      borderRadius: "0.375rem",
+                      fontSize: "0.875rem",
+                    }}
+                  />
+                  {formErrors.email && (
+                    <p style={{ color: "#ef4444", fontSize: "0.75rem", marginTop: "0.25rem" }}>{formErrors.email}</p>
+                  )}
+                </div>
+              </div>
+
+              <div style={{ marginBottom: "1rem" }}>
+                <label
+                  htmlFor="company"
+                  style={{
+                    display: "block",
+                    marginBottom: "0.5rem",
+                    fontSize: "0.875rem",
+                    fontWeight: 500,
+                  }}
+                >
+                  Company (Optional)
+                </label>
+                <input
+                  type="text"
+                  id="company"
+                  name="company"
+                  value={reviewForm.company}
+                  onChange={handleReviewInputChange}
+                  style={{
+                    width: "100%",
+                    padding: "0.5rem",
+                    border: "1px solid #d1d5db",
+                    borderRadius: "0.375rem",
+                    fontSize: "0.875rem",
+                  }}
+                />
+              </div>
+
+              <div style={{ marginBottom: "1rem" }}>
+                <label
+                  htmlFor="rating"
+                  style={{
+                    display: "block",
+                    marginBottom: "0.5rem",
+                    fontSize: "0.875rem",
+                    fontWeight: 500,
+                  }}
+                >
+                  Rating *
+                </label>
+                <div style={{ display: "flex", gap: "0.5rem" }}>
+                  {[1, 2, 3, 4, 5].map((star) => (
+                    <button
+                      key={star}
+                      type="button"
+                      onClick={() => setReviewForm({ ...reviewForm, rating: star })}
+                      style={{
+                        background: "none",
+                        border: "none",
+                        cursor: "pointer",
+                        color: star <= reviewForm.rating ? "#FBBF24" : "#d1d5db",
+                        fontSize: "1.5rem",
+                      }}
+                    >
+                      ★
+                    </button>
+                  ))}
+                </div>
+                {formErrors.rating && (
+                  <p style={{ color: "#ef4444", fontSize: "0.75rem", marginTop: "0.25rem" }}>{formErrors.rating}</p>
+                )}
+              </div>
+
+              <div style={{ marginBottom: "1.5rem" }}>
+                <label
+                  htmlFor="review_text"
+                  style={{
+                    display: "block",
+                    marginBottom: "0.5rem",
+                    fontSize: "0.875rem",
+                    fontWeight: 500,
+                  }}
+                >
+                  Your Review *
+                </label>
+                <textarea
+                  id="review_text"
+                  name="review_text"
+                  value={reviewForm.review_text}
+                  onChange={handleReviewInputChange}
+                  rows={4}
+                  style={{
+                    width: "100%",
+                    padding: "0.5rem",
+                    border: formErrors.review_text ? "1px solid #ef4444" : "1px solid #d1d5db",
+                    borderRadius: "0.375rem",
+                    fontSize: "0.875rem",
+                    resize: "vertical",
+                  }}
+                ></textarea>
+                {formErrors.review_text && (
+                  <p style={{ color: "#ef4444", fontSize: "0.75rem", marginTop: "0.25rem" }}>
+                    {formErrors.review_text}
+                  </p>
+                )}
+              </div>
+
+              <button
+                type="submit"
+                disabled={submitting}
+                style={{
+                  backgroundColor: "#3B82F6",
+                  color: "white",
+                  padding: "0.5rem 1rem",
+                  borderRadius: "0.375rem",
+                  fontSize: "0.875rem",
+                  fontWeight: 500,
+                  border: "none",
+                  cursor: submitting ? "not-allowed" : "pointer",
+                  opacity: submitting ? 0.7 : 1,
+                }}
+              >
+                {submitting ? "Submitting..." : "Submit Review"}
+              </button>
+            </form>
           </div>
         </div>
       </main>
@@ -813,4 +1126,3 @@ const LandingPage = () => {
 }
 
 export default LandingPage
-

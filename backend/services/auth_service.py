@@ -146,12 +146,27 @@ def get_company_name_from_token(token: str = Depends(oauth2_scheme)) -> str:
     
     try:
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        
+        # Try to get company name directly from payload first
         company_name = payload.get("company")
+        
+        # If not found, try to get it from the user object
+        if not company_name and "user" in payload:
+            user_data = payload.get("user")
+            if isinstance(user_data, dict) and "userComName" in user_data:
+                company_name = user_data["userComName"]
+        
+        # Debug print to see what's in the payload
+        print(f"Token payload: {payload}")
+        print(f"Extracted company name from token: {company_name}")
+        
         if not company_name:
             raise HTTPException(status_code=401, detail="Invalid token: Company name not found")
+            
         return company_name
-    except JWTError:
+    except JWTError as e:
         # Double check if it's our mock token (in case it was passed directly)
         if token == "mock-token-for-platform-admin":
             return "secuboard"
+        print(f"JWT Error: {str(e)}")
         raise HTTPException(status_code=401, detail="Invalid token")

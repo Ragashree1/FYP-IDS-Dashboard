@@ -347,6 +347,7 @@ const RegistrationPage = () => {
     userRole: 1, // Set default role
     userSuspend: true, // Set default suspend status to true (pending approval)
     userRejected: false, // Not rejected initially
+    fromOrgRequestsPage: false, // Corrected field name with 's'
   })
 
   const [message, setMessage] = useState("")
@@ -513,6 +514,7 @@ const RegistrationPage = () => {
       ...formData,
       userSuspend: true,
       userRejected: false,
+      fromOrgRequestsPage: false, // Corrected field name with 's'
     }
 
     console.log("Submitting registration data:", registrationData)
@@ -581,9 +583,7 @@ const RegistrationPage = () => {
           <div className="success-popup-title">SUCCESS</div>
         </div>
         <div className="success-popup-content">
-          <div className="success-popup-message">
-            Congratulations, your account has been successfully created. 
-          </div>
+          <div className="success-popup-message">Congratulations, your account has been successfully created.</div>
           <button className="success-popup-button" onClick={handleContinue}>
             Continue
           </button>
