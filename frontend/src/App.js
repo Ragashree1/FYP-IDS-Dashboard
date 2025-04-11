@@ -39,60 +39,22 @@ function App() {
         <Route path="/login" element={<LoginPage />} />
 
         {/* Protected Routes */}
-        <Route
-          path="/dashboard"
-          element={
-            <ProtectedRoute>
-              <DashboardPage />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/roles-permission"
-          element={
-            <ProtectedRoute>
-              <RolesAndPermissionPage />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/user-management"
-          element={
-            <ProtectedRoute>
-              <UserManagementPage />
-            </ProtectedRoute>
-          }
-        />
-        <Route path="/dashboard" element={<ProtectedRoute> <DashboardPage />   </ProtectedRoute>   }  />
-        <Route path="/offences" element={<ProtectedRoute> <OffencesPage />   </ProtectedRoute>   }  />
-        <Route path="/reports" element={<ProtectedRoute> <ReportsPage />   </ProtectedRoute>   }  />
-        <Route path="/event-log" element={<ProtectedRoute> <EventLogPage />   </ProtectedRoute>   }  />
-        <Route path="/system-config" element={<ProtectedRoute> <SystemConfigurationPage />   </ProtectedRoute>   }  />
-        <Route path="/blocklist" element={<ProtectedRoute> <BlocklistManagementPage />   </ProtectedRoute>   }  />
-        <Route path="/roles-permission" element={<ProtectedRoute> <RolesAndPermissionPage />   </ProtectedRoute>   }  />
-        <Route path="/user-management" element={<ProtectedRoute> <UserManagementPage />   </ProtectedRoute>   }  />
-        <Route path="/sidebar" element={<ProtectedRoute> <Sidebar />   </ProtectedRoute>   }  />
-        <Route path="/train-model" element={<ProtectedRoute> <TrainModelPage />   </ProtectedRoute>   }  />
-        <Route path="/trained-models" element={<ProtectedRoute> <TrainedModelsPage />   </ProtectedRoute>   }  />
-        <Route path="/playbooks" element={<ProtectedRoute> <PlayBooksPage />   </ProtectedRoute>   }  />
+        <Route path="/dashboard" element={<ProtectedRoute><DashboardPage /></ProtectedRoute>} />
+        <Route path="/offences" element={<ProtectedRoute><OffencesPage /></ProtectedRoute>} />
+        <Route path="/reports" element={<ProtectedRoute><ReportsPage /></ProtectedRoute>} />
+        <Route path="/event-log" element={<ProtectedRoute><EventLogPage /></ProtectedRoute>} />
+        <Route path="/system-config" element={<ProtectedRoute><SystemConfigurationPage /></ProtectedRoute>} />
+        <Route path="/blocklist" element={<ProtectedRoute><BlocklistManagementPage /></ProtectedRoute>} />
+        <Route path="/roles-permission" element={<ProtectedRoute><RolesAndPermissionPage /></ProtectedRoute>} />
+        <Route path="/user-management" element={<ProtectedRoute><UserManagementPage /></ProtectedRoute>} />
+        <Route path="/sidebar" element={<ProtectedRoute><Sidebar /></ProtectedRoute>} />
+        <Route path="/train-model" element={<ProtectedRoute><TrainModelPage /></ProtectedRoute>} />
+        <Route path="/trained-models" element={<ProtectedRoute><TrainedModelsPage /></ProtectedRoute>} />
+        <Route path="/playbooks" element={<ProtectedRoute><PlayBooksPage /></ProtectedRoute>} />
         <Route path="/organization-requests" element={<OrganizationRequestsPage />} />
         <Route path="/reviews" element={<ReviewsPage />} /> {/* Add the ReviewsPage route */}
-        <Route
-          path="/system-activity-logs"
-          element={
-            <ProtectedRoute>
-              <SystemActivityLogsPage />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/account-activity-logs"
-          element={
-            <ProtectedRoute>
-              <AccountActivityLogsPage />
-            </ProtectedRoute>
-          }
-        />
+        <Route path="/system-activity-logs" element={<ProtectedRoute><SystemActivityLogsPage /></ProtectedRoute>} />
+        <Route path="/account-activity-logs" element={<ProtectedRoute><AccountActivityLogsPage /></ProtectedRoute>} />
         {/* Add other protected routes here */}
       </Routes>
     </Router>

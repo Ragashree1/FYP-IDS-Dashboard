@@ -1,10 +1,16 @@
 from fastapi import APIRouter, Depends, HTTPException, status, Response
-from fastapi.security import OAuth2PasswordRequestForm
+from fastapi.security import OAuth2PasswordRequestForm, OAuth2PasswordBearer
 from sqlalchemy.orm import Session
-from datetime import timedelta
+from datetime import timedelta, datetime
 from database import get_db
-from models.schemas import Token, AccountLogin
+from models.schemas import Token, AccountBase, AccountLogin, RoleBase
 from services.auth_service import authenticate_user, create_access_token, ACCESS_TOKEN_EXPIRE_MINUTES, check_user_status
+from jose import jwt, JWTError
+import os
+
+SECRET_KEY = os.getenv("SECRET_KEY", "default_secret_key")  
+ALGORITHM = os.getenv("ALGORITHM", "HS256")
+oauth2_bearer = OAuth2PasswordBearer(tokenUrl="login/token")
 
 router = APIRouter(prefix="/login", tags=["login"])
 
@@ -76,6 +82,35 @@ async def login_for_access_token(form_data: AccountLogin, db: Session = Depends(
     except Exception as e:
         print(f"Login error: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Login failed: {str(e)}")
+
+@router.get("/get_token")
+async def get_token(token: str = Depends(oauth2_bearer)):
+    """
+    Protected route to validate the user's access token.
+    """
+    try:
+        print(f"Validating token with SECRET_KEY: {SECRET_KEY} and ALGORITHM: {ALGORITHM}")
+        # Decode the token using the secret key and algorithm
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        username: str = payload.get("sub")
+        if username is None:
+            raise HTTPException(status_code=403, detail="Invalid token")
+        
+        # Get user data from payload
+        user_data = payload.get("user", {})
+        if not user_data:
+            raise HTTPException(status_code=403, detail="Invalid token")
+            
+        # Check if user is suspended
+        if user_data.get("userSuspend", False):
+            raise HTTPException(status_code=403, detail="User is suspended")
+            
+        print('Payload:', payload)
+        print('isvalid')
+        # If everything is valid, return a success message
+        return {"message": "Token is valid", "user": username}
+    except JWTError:
+        raise HTTPException(status_code=403, detail="Invalid token")
 
 # Add OPTIONS method handler for CORS preflight requests
 @router.options("/token")

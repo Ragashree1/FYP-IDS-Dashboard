@@ -454,4 +454,3 @@ const UserModal = ({ onClose, onConfirm, user = null, fixedRole }) => {
 }
 
 export default UserModal
-

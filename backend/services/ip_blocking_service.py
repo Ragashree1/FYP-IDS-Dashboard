@@ -2,10 +2,10 @@
 import re
 from sqlalchemy.orm import Session
 from fastapi import HTTPException, Request
-from models.models import BlockedIP, SystemLog
+from models.models import BlockedIP, SystemLog, Playbook, SnortAlerts
 from models.schemas import IPAddressSchema, SystemLogBase
 from database import SessionLocal
-from datetime import datetime
+from datetime import datetime, timedelta
 
 def get_client_ip(request: Request) -> str:
     """Extracts the actual client IP from request headers."""
@@ -154,3 +154,39 @@ def get_blocked_ip(ip: str, company_name: str = None):
             query = query.filter(BlockedIP.company == company_name)
             
         return query.first()
+
+def evaluate_and_block_ips(company_name: str = None):
+    """
+    Periodically evaluate playbooks and block IPs based on conditions.
+    Modified to support company-specific filtering.
+    """
+    with SessionLocal() as db:
+        # Fetch active playbooks, filtered by company if provided
+        query = db.query(Playbook).filter(Playbook.is_active == True)
+        if company_name:
+            query = query.filter(Playbook.company_name == company_name)
+        playbooks = query.all()
+
+        # Fetch recent logs (e.g., last 24 hours)
+        now = datetime.utcnow()
+        log_query = db.query(SnortAlerts).filter(
+            SnortAlerts.timestamp >= (now - timedelta(hours=24)).strftime("%Y-%m-%d %H:%M:%S")
+        )
+        # Filter logs by company if applicable and if SnortAlerts has company field
+        if company_name and hasattr(SnortAlerts, 'company_name'):
+            log_query = log_query.filter(SnortAlerts.company_name == company_name)
+        recent_logs = log_query.all()
+
+        # Fetch currently blocked IPs for this company
+        blocked_ips = {ip["ip"] for ip in get_blocked_ips(company_name)}
+
+        for playbook in playbooks:
+            ips_to_block = playbook.evaluate_conditions(recent_logs, blocked_ips)
+
+            for ip in ips_to_block:
+                # Use the enhanced block_ip function with company name
+                block_ip(
+                    IPAddressSchema(ip=ip, reason=f"Blocked by playbook: {playbook.name}"),
+                    user="system",
+                    company_name=company_name or "default"
+                )

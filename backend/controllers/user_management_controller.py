@@ -429,4 +429,3 @@ async def options_handler(response: Response):
     response.headers["Access-Control-Allow-Headers"] = "Content-Type, Authorization, X-Requested-With"
     response.headers["Access-Control-Allow-Credentials"] = "true"
     return {}
-

@@ -84,6 +84,8 @@ def add_user(user_particulars: AccountBase):
             db.rollback()
             print(f"Error in add_user: {str(e)}")  # Add logging
             raise HTTPException(status_code=422, detail=str(e))
+        finally:
+            db.close()
 
 
 def create_access_token(username: str, user_id: str, userRole: str, userComName: str, userSuspend: bool, expires_delta: timedelta):
@@ -109,4 +111,3 @@ async def get_current_user(token: Annotated[str, Depends(oauth2_bearer)]):
         return {'username': username, 'id': user_id}    
     except JWTError:  # JWTError is the error raised for when the payload= jwt.decode line fails to decode
         raise HTTPException(status_code=401, detail="Invalid token")
-

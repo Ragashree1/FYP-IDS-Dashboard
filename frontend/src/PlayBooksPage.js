@@ -1,3 +1,4 @@
+// playbooks-page.tsx
 "use client"
 
 import { useState, useEffect, useMemo } from "react"
@@ -82,9 +83,9 @@ const AddPlaybookModal = ({ onClose, onSave }) => {
 
   const handleRemoveCondition = (id) => {
     if (conditions.length > 1) {
-      setConditions(conditions.filter((condition) => condition.id !== id))
+      setConditions(conditions.filter((condition) => condition.id !== id));
     }
-  }
+  };
 
   const handleConditionChange = (id, field, value) => {
     setConditions(
@@ -111,7 +112,7 @@ const AddPlaybookModal = ({ onClose, onSave }) => {
   }
 
   const handleSubmit = (e) => {
-    e.preventDefault()
+    e.preventDefault();
 
     // Format data according to the backend schema
     const playbookData = {
@@ -189,9 +190,9 @@ const AddPlaybookModal = ({ onClose, onSave }) => {
           >
             ←
           </button>
-          <div>
-            <h2 style={{ margin: "4px 0 0 0" }}>Add New Playbook</h2>
-          </div>
+          <h2 style={{ margin: "4px 0 0 0" }}>
+            Add New Playbook
+          </h2>
         </div>
 
         {/* Content */}
@@ -199,7 +200,9 @@ const AddPlaybookModal = ({ onClose, onSave }) => {
           <div style={{ padding: "24px" }}>
             {/* Playbook Name */}
             <div style={{ marginBottom: "24px" }}>
-              <label style={{ display: "block", marginBottom: "8px", fontWeight: "500" }}>Playbook Name</label>
+              <label style={{ display: "block", marginBottom: "8px", fontWeight: "500" }}>
+                Playbook Name
+              </label>
               <input
                 type="text"
                 value={playbookName}
@@ -219,7 +222,9 @@ const AddPlaybookModal = ({ onClose, onSave }) => {
 
             {/* Description */}
             <div style={{ marginBottom: "24px" }}>
-              <label style={{ display: "block", marginBottom: "8px", fontWeight: "500" }}>Description</label>
+              <label style={{ display: "block", marginBottom: "8px", fontWeight: "500" }}>
+                Description
+              </label>
               <textarea
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
@@ -242,10 +247,10 @@ const AddPlaybookModal = ({ onClose, onSave }) => {
             <div style={{ marginBottom: "24px" }}>
               <h3 style={{ margin: "0 0 8px 0" }}>Trigger Conditions</h3>
               <p style={{ margin: "0 0 16px 0", color: "#666", fontSize: "14px" }}>
-                Define when this playbook should be triggered. All conditions must be met for the playbook to execute.
+                Define when this playbook should be triggered. All conditions must be met for the
+                playbook to execute.
               </p>
 
-              {/* Conditions */}
               {conditions.map((condition, index) => (
                 <div
                   key={condition.id}
@@ -255,7 +260,6 @@ const AddPlaybookModal = ({ onClose, onSave }) => {
                     padding: "16px",
                     marginBottom: "16px",
                     position: "relative",
-                    overflow: "hidden", // Prevent content from overflowing
                     boxSizing: "border-box",
                   }}
                 >
@@ -303,6 +307,7 @@ const AddPlaybookModal = ({ onClose, onSave }) => {
                     </select>
                   </div>
 
+                  {/* Field */}
                   <div style={{ marginBottom: "16px", width: "100%" }}>
                     <label style={{ display: "block", marginBottom: "8px" }}>Field</label>
                     <select
@@ -446,10 +451,6 @@ const AddPlaybookModal = ({ onClose, onSave }) => {
             {/* Response Actions */}
             <div style={{ marginBottom: "24px" }}>
               <h3 style={{ margin: "0 0 8px 0" }}>Response Actions</h3>
-              <p style={{ margin: "0 0 16px 0", color: "#666", fontSize: "14px" }}>
-                Define what actions should be taken when the trigger conditions are met.
-              </p>
-
               <div
                 style={{
                   border: "1px solid #ddd",
@@ -523,7 +524,7 @@ const AddPlaybookModal = ({ onClose, onSave }) => {
                   <input
                     type="checkbox"
                     checked={status}
-                    onChange={() => {}} // Handled by the onClick on the parent div
+                    onChange={() => {}}
                     style={{ opacity: 0, width: 0, height: 0 }}
                   />
                   <span
@@ -1384,6 +1385,7 @@ const PlaybooksPage = () => {
   }
 
   const handleEditPlaybook = (playbook) => {
+    console.log(playbook)
     setSelectedPlaybook(playbook)
     setIsEditing(true)
     setShowPlaybookModal(true)
@@ -1860,4 +1862,3 @@ const PlaybooksPage = () => {
 }
 
 export default PlaybooksPage
-

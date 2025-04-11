@@ -1,5 +1,9 @@
+<<<<<<< HEAD
 # Python compiled files
 *.pyc
 __pycache__/
 **/__pycache__/
 **/*.pyc
+=======
+frontend/package-lock.json
+>>>>>>> e6c2f8923b6b04145639b408f6006e09399898cb

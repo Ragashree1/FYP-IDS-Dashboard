@@ -1,7 +1,6 @@
-﻿"use client"
-
-import { useState, useEffect } from "react"
+﻿import { useState, useEffect } from "react"
 import { useNavigate } from "react-router-dom"
+import { validatePhoneNumber, validateEmail, validatePassword } from './utils/validation';
 
 const RegistrationPage = () => {
   const navigate = useNavigate() // Add navigation hook
@@ -750,4 +749,3 @@ const RegistrationPage = () => {
 }
 
 export default RegistrationPage
-

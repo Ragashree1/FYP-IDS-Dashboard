@@ -220,4 +220,3 @@ def get_all_roles() -> List[RoleOut]:
         raise e
     finally:
         db.close()
-
