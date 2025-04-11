@@ -15,7 +15,7 @@ from controllers.log_controller import router as logs_router
 from controllers.playbook_controller import router as playbooks_router
 from controllers.login_controller import router as login_router
 from controllers.registration_controller import router as registration_router 
-from controllers.payment_controller import router as payment_router 
+# from controllers.payment_controller import router as payment_router 
 from controllers.user_management_controller import router as user_management_router 
 from controllers.role_permission_controller import router as role_permission_router 
 from controllers.ip_blocking_controller import router as ip_blocking_router
@@ -27,6 +27,7 @@ from init_db import init_database
 from fastapi.security import OAuth2PasswordBearer
 from jose import JWTError, jwt
 from services.ip_blocking_service import evaluate_and_block_ips
+from services.playbook_service import execute_playbook_rules  # Import the method
 import time
 
 load_dotenv()
@@ -35,7 +36,6 @@ SECRET_KEY = os.getenv("SECRET_KEY", "default_secret_key")  # Default for safety
 ALGORITHM = os.getenv("ALGORITHM", "HS256")
 
 app = FastAPI()
-load_dotenv()
 Base.metadata.create_all(bind=engine)
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
@@ -85,7 +85,6 @@ app.include_router(alerts_router)
 app.include_router(logs_router)
 app.include_router(login_router)
 app.include_router(registration_router)
-app.include_router(payment_router)
 app.include_router(user_management_router)
 app.include_router(role_permission_router)
 app.include_router(ip_blocking_router)
@@ -93,6 +92,12 @@ app.include_router(playbooks_router)
 
 def fetch_alerts_job():
     update_and_fetch_alerts()
+
+def execute_playbook_rules_job():
+    """
+    Periodically execute playbook rules.
+    """
+    execute_playbook_rules()
 
 def periodic_task(interval_minutes=5):
     """
@@ -105,6 +110,7 @@ def periodic_task(interval_minutes=5):
 if __name__ == "__main__":
     scheduler = BackgroundScheduler()
     scheduler.add_job(fetch_alerts_job, 'interval', minutes=5)
+    scheduler.add_job(execute_playbook_rules_job, 'interval', minutes=5)  # Add the new job
     scheduler.start()
 
     try:
