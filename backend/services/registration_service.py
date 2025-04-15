@@ -1,5 +1,5 @@
 from database import SessionLocal
-from models.models import Account
+from models.models import Account, Organization
 from models.schemas import AccountBase
 from typing import List, Optional, Annotated
 from passlib.context import CryptContext
@@ -7,6 +7,7 @@ from datetime import timedelta, timezone, datetime
 from jose import jwt, JWTError
 from fastapi.security import OAuth2PasswordRequestForm, OAuth2PasswordBearer
 from fastapi import APIRouter, Depends, HTTPException
+
 
 
 SECRET_KEY = 's3cr3tk3y'  #Could be anything
@@ -18,16 +19,33 @@ bcrypt_context = CryptContext (schemes = ['bcrypt'], deprecated = 'auto')
 oauth2_bearer = OAuth2PasswordBearer(tokenUrl='/token')
 
 def add_user(user_particulars: AccountBase):
+
     with SessionLocal() as db:
         try:
             # Remove empty id if present
             if hasattr(user_particulars, 'id'):
                 delattr(user_particulars, 'id')
-            
+        
+
             # Create a dict of user particulars and hash the password
             hashed_password = bcrypt_context.hash(user_particulars.passwd)
             user_data = user_particulars.model_dump()
             user_data.pop("passwd", None)
+
+            print("HERE")
+
+            org = db.query(Organization).filter(Organization.name == user_particulars.userComName).first()
+
+            if not org:
+                print("FIRST")
+                org = Organization(name=user_particulars.userComName)
+                db.add(org)
+                db.commit()
+                db.refresh(org)
+            
+            
+            user_data["organization_id"] = org.id
+
             create_user = Account(**user_data,passwd=hashed_password)
             db.add(create_user)
             db.commit()

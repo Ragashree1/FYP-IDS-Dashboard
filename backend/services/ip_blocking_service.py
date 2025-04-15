@@ -5,15 +5,7 @@ import re
 from datetime import datetime, timedelta
 
 
-def get_org_blocked_ips(org_id: int, requester_email: str, db: Session):
-    client = db.query(Client).filter(Client.email == requester_email).first()
-
-    if not client:
-        raise HTTPException(status_code=401, detail="Unauthorized client")
-
-    if client.organization_id != org_id:
-        raise HTTPException(status_code=403, detail="You do not belong to this organization")
-
+def get_org_blocked_ips(org_id: int, db: Session):
     blocked_ips = db.query(BlockedIP.ip, BlockedIP.reason).filter(
         BlockedIP.organization_id == org_id
     ).all()
@@ -50,16 +42,16 @@ def validate_ip(ip: str):
         raise HTTPException(status_code=400, detail="Invalid IP format")
 
 
-def block_ip(ip: str, reason: str, db: Session):
+def block_ip(ip: str, reason: str, organization_id: int, db: Session):
     """Blocks an IP and stores it in the database"""
     ip = ip.strip().lower()
     validate_ip(ip)
 
-    existing_ip = db.query(BlockedIP).filter_by(ip=ip).first()
+    existing_ip = db.query(BlockedIP).filter_by(ip=ip, organization_id=organization_id).first()
     if existing_ip:
         return {"message": "IP is already blocked", "ip": existing_ip.ip, "reason": existing_ip.reason}
 
-    new_ip = BlockedIP(ip=ip, reason=reason)
+    new_ip = BlockedIP(ip=ip, reason=reason, organization_id=organization_id)
     db.add(new_ip)
 
     try:

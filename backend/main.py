@@ -55,10 +55,10 @@ origins = [
 ]
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=origins,  # Allow these origins
-    allow_credentials=True,  # Allow cookies and credentials
-    allow_methods=["GET", "POST", "PUT", "DELETE"],
-    allow_headers=["Authorization", "X-Requested-With", "Content-Type"],  # Include Authorization header
+    allow_origins=origins,
+    allow_credentials=True,
+    allow_methods=["*"],      
+    allow_headers=["*"],      
 )
 
 Base.metadata.create_all(bind=engine)
@@ -69,16 +69,21 @@ async def log_requests(request: Request, call_next):
     print(f"Response status: {response.status_code}")
     return response
 
+#@app.get("/login/get_token")
+#async def get_token():
+ #   return {"message": "Token check skipped for testing"}
+
+
 @app.get("/login/get_token")
 async def get_token(token: str = Depends(oauth2_scheme)):
-    try:
-        payload = jwt.decode(token, os.getenv("SECRET_KEY"), algorithms=[os.getenv("ALGORITHM")])
-        print('Payload:', payload)
-        print('valid')
-        return {"message": "Token is valid"}
-    except JWTError as e:
-        print(f"Token validation error: {e}")  
-        raise HTTPException(status_code=403, detail="Invalid or expired token")
+   try:
+       payload = jwt.decode(token, os.getenv("SECRET_KEY"), algorithms=[os.getenv("ALGORITHM")])
+       print('Payload:', payload)
+       print('valid')
+       return {"message": "Token is valid"}
+   except JWTError as e:
+       print(f"Token validation error: {e}")  
+       raise HTTPException(status_code=403, detail="Invalid or expired token")
 
 # Include the routers
 app.include_router(journal_router)
@@ -92,11 +97,12 @@ app.include_router(user_management_router)
 app.include_router(role_permission_router)
 app.include_router(ip_blocking_router)
 app.include_router(ip_verification_router)
+app.include_router(playbooks_router)
 
 @app.get("/")
 def root():
     return {"message": "Log Forwarding System Running"}
-app.include_router(playbooks_router)
+
 
 def fetch_alerts_job():
     update_and_fetch_alerts()

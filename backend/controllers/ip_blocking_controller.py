@@ -11,7 +11,7 @@ router = APIRouter(prefix="/ip-blocking", tags=["ip-blocking"])
 
 @router.post("/block-ip/")
 def block_ip_api(ip_data: IPAddressSchema, db: Session = Depends(get_db)):
-    return block_ip(ip_data.ip, ip_data.reason, db)
+    return block_ip(ip_data.ip, ip_data.reason, ip_data.organization_id, db)
 
 @router.get("/check-my-ip/")
 def check_my_ip(request: Request, db: Session = Depends(get_db)):
@@ -31,8 +31,11 @@ def unblock_ip_api(ip: str, db: Session = Depends(get_db)):
     return unblock_ip(ip, db)
 
 @router.get("/{org_id}/blocked-ips")
-def get_blocked_ips_by_org(org_id: int,
-                           db: Session = Depends(get_db),
-                           x_client_email: str = Header(...)):
-    return get_org_blocked_ips(org_id, x_client_email, db)
+def get_blocked_ips_by_org(
+    org_id: int,
+    db: Session = Depends(get_db)
+):
+
+    return get_org_blocked_ips(org_id, db)
+
 

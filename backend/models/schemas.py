@@ -217,7 +217,8 @@ class LogsOut(BaseModel):
 
 class IPAddressSchema(BaseModel):
     ip: str
-    reason : str
+    reason: str
+    organization_id: int
 
     class Config:
         from_attributes = True

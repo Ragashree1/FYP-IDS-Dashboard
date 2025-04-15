@@ -36,15 +36,23 @@ export const AuthProvider = ({ children }) => {
 
   const login = (userData) => {
     console.log("Logging in user:", userData); // Debug log
+
     setUser(userData);
+
+    localStorage.setItem("orgId", String(userData.orgId));                
+    localStorage.setItem("clientEmail", userData.userEmail);       
+    localStorage.setItem("token", userData.token);
     localStorage.setItem("user", JSON.stringify(userData));
-  };
+
+  };  
 
   const logout = () => {
     console.log("Logging out user"); // Debug log
     setUser(null);
     localStorage.removeItem('user');
     localStorage.removeItem('token'); // Clear token on logout
+    localStorage.removeItem('orgId');         
+    localStorage.removeItem('clientEmail'); 
   };
 
   // Verify token periodically

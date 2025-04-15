@@ -34,13 +34,16 @@ class Journal(Base):
 
 class BlockedIP(Base):
     __tablename__ = "blocked_ips"
+    __table_args__ = (
+        UniqueConstraint('ip', 'organization_id', name='unique_ip_per_org'),
+    )
 
     id = Column(Integer, primary_key=True, index=True)
-    ip = Column(String, unique=True, nullable=False)
+    ip = Column(String, nullable=False)  
     reason = Column(String, nullable=False)
     created_at = Column(DateTime, server_default=func.now())
-    
-    organization_id = Column(Integer, ForeignKey("organizations.id"), nullable=True)
+
+    organization_id = Column(Integer, ForeignKey("organizations.id"), nullable= False)
     organization = relationship("Organization")
 
 class SnortAlerts(Base):
@@ -115,6 +118,8 @@ class Account(Base):
     userPhoneNum = Column(String)
     userRole = Column(Integer, ForeignKey("role.id"))
     userSuspend = Column(Boolean)
+    organization_id = Column(Integer, ForeignKey("organizations.id"))  
+    organization = relationship("Organization")  
    
     role = relationship("Role", back_populates="accounts")
     
@@ -219,7 +224,7 @@ class Playbook(Base):
     __tablename__ = "Playbooks"
 
     id = Column(Integer, primary_key=True, index=True)
-    organization_id = Column(UUID(as_uuid=True), ForeignKey("organizations.id", ondelete="SET NULL"), nullable=True, index=True)  # Foreign key to an Organization table
+    organization_id = Column(Integer, ForeignKey("organizations.id", ondelete="SET NULL"), nullable=True, index=True)  # Foreign key to an Organization table
     name = Column(String, unique=True, nullable=False)  # Name of the playbook
     description = Column(String, nullable=True)  # Optional description of what the playbook does
     conditions = Column(JSON, nullable=False)  # JSON structure to define rules (e.g., {"log_type": "alert", "priority": ">3"})

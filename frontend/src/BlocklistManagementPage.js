@@ -7,19 +7,27 @@ const userRole = "2"
 
 const API_URL = "http://localhost:8000/ip-blocking"; // backend API base URL
 
-const fetchBlockedIPs = async (setBlocklist) => {
+const fetchBlockedIPs = async (setBlocklist, navigate) => {
+  const orgId = localStorage.getItem("orgId");
+  const clientEmail = localStorage.getItem("clientEmail");
+  const token = localStorage.getItem("token");
+
+  console.log("DEBUG orgId:", orgId);
+  console.log("DEBUG clientEmail:", clientEmail);
+  console.log("DEBUG token:", token);
+
+  if (!orgId || orgId === "null" || !clientEmail || !token) {
+    alert("Missing authentication info. Please log in again.");
+    localStorage.clear();
+    navigate("/login");
+    return;
+  }
+
   try {
-    const orgId = localStorage.getItem("orgId");
-    const clientEmail = localStorage.getItem("clientEmail");
-
-    if (!orgId || !clientEmail) {
-      alert("Missing authentication info. Please log in again.");
-      return;
-    }
-
     const response = await fetch(`http://localhost:8000/ip-blocking/${orgId}/blocked-ips`, {
+      method: "GET",
       headers: {
-        "X-Client-Email": clientEmail
+        "Content-Type": "application/json"
       }
     });
 
@@ -39,7 +47,7 @@ const fetchBlockedIPs = async (setBlocklist) => {
     })));
   } catch (error) {
     console.error("Error fetching blocked IPs:", error);
-    alert("Could not connect to the server.");
+    alert("Could not connect to the server: " + error.message);
   }
 };
 
@@ -261,7 +269,7 @@ const BlocklistManagementPage = () => {
       return;
     }
   
-    fetchBlockedIPs(setBlocklist);
+    fetchBlockedIPs(setBlocklist, navigate);
     checkUserIP(navigate);
   }, [navigate]);  
 
@@ -290,41 +298,34 @@ const BlocklistManagementPage = () => {
   };    
 
   const handleAddIP = async (ip, reason) => {
-    if (!ip.trim() || !reason.trim()) {
-      alert("IP and reason are required!");
-      return;
-    }
-
-    // Simple regex for IPv4 validation
-    const ipv4Regex = /^(?:\d{1,3}\.){3}\d{1,3}$/;
-    // Simple regex for IPv6 validation
-    const ipv6Regex = /^([a-f0-9:]+:+)+[a-f0-9]+$/;
-    
-    if (!ipv4Regex.test(ip) && !ipv6Regex.test(ip)) {
-      alert("Invalid IP format!");
-      return;
-    }
-  
     try {
+      console.log("Sending orgId:", localStorage.getItem("orgId"));
       const response = await fetch(`${API_URL}/block-ip/`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ip: ip.trim(), reason: reason.trim() }),
+        body: JSON.stringify({
+          ip: ip.trim(),
+          reason: reason.trim(),
+          organization_id: parseInt(localStorage.getItem("orgId"))
+        }),
       });
   
       const data = await response.json();
   
       if (!response.ok) {
-        alert(data.detail || "Failed to block IP");
-        throw new Error(data.detail || "Failed to block IP");
+        console.error("Backend error:", data);  // ✅ Print full error
+        alert("Failed to block IP: " + (data.detail || JSON.stringify(data)));  // ✅ Show proper message
+        return;
       }
   
-      setBlocklist((prevBlocklist) => [...prevBlocklist, data]); 
+      alert("IP blocked successfully");
+      // reload IP list
     } catch (error) {
-      console.error("Error blocking IP:", error);
+      console.error("Frontend error:", error);  // ✅ Print actual error
+      alert("Network error: " + error.message);  // ✅ Show readable alert
     }
-  };    
-
+  };
+  
   const handleIPClick = (ip) => {
     setSelectedIP(ip)
     setShowRemoveModal(true)

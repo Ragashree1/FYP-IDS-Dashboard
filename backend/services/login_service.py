@@ -24,8 +24,11 @@ def authenticate_user (userComName:str, username: str, password: str):
 
         if not user:
             return False
-        if not bcrypt_context.verify(password,user.passwd):
+        print("DEBUG: Fetched user:", user.__dict__)
+        
+        if not bcrypt_context.verify(password, user.passwd):
             return False
+
         return user
     
 

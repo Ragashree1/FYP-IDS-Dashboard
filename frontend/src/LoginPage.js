@@ -103,21 +103,27 @@ export default function LoginPage() {
       console.log("Response data:", loginData); // Debug log
       if (!loginResponse.ok) throw new Error(loginData.detail || "Login failed");
 
-      // Store the token in localStorage
+      // Store the token and user info in localStorage
       localStorage.setItem("token", loginData.access_token);
-      localStorage.setItem("clientEmail", loginData.username); 
-      localStorage.setItem("orgId", loginData.orgId); 
+      localStorage.setItem("clientEmail", loginData.userEmail);    // ✅ real email from backend
+      localStorage.setItem("orgId", String(loginData.orgId));      // ✅ force string format
+
 
       // Extract user data from the token response
       const userData = {
         token: loginData.access_token,
         userRole: loginData.userRole,
         username: loginData.username,
+        userEmail: loginData.userEmail,         // ✅ needed in AuthContext
         userComName: loginData.userComName,
-      };
+        orgId: loginData.orgId,                 // ✅ needed in AuthContext
+      };      
 
       // Update AuthContext with the user data
       login(userData);
+      localStorage.setItem("clientEmail", userData.userEmail);
+      localStorage.setItem("orgId", String(userData.orgId));
+      localStorage.setItem("token", loginData.access_token);
 
       // Navigate based on user role
       const userRole = loginData.userRole;
