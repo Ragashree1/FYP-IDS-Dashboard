@@ -14,16 +14,12 @@ def normalize_ip(ip_str: str) -> str:
     except ValueError:
         return ip_str.strip().lower()
 
-def verify_and_store_ip(organization_id: int, submitted_ip: str, request_ip: str, db: Session):
+def verify_and_store_ip(organization_id: int, submitted_ip: str, db: Session):
     organization_exists = db.query(Organization).filter(Organization.id == organization_id).first()
     if not organization_exists:
         return {"status": "error", "message": "Organization ID does not exist."}
 
     normalized_submitted_ip = normalize_ip(submitted_ip)
-    normalized_request_ip = normalize_ip(request_ip)
-
-    if normalized_submitted_ip != normalized_request_ip:
-        return {"status": "error", "message": "IP verification failed. Your request IP does not match the submitted IP."}
 
     existing_ip = db.query(VerifiedIP).filter(
         VerifiedIP.organization_id == organization_id, 
@@ -31,7 +27,7 @@ def verify_and_store_ip(organization_id: int, submitted_ip: str, request_ip: str
     ).first()
 
     if existing_ip:
-        return {"status": "error", "message": "This IP is already verified for the organization."}
+        return {"status": "error", "message": "This IP already exists for the organization."}
 
     new_verified_ip = VerifiedIP(organization_id=organization_id, ip=normalized_submitted_ip, is_verified=True)
     db.add(new_verified_ip)
@@ -40,43 +36,45 @@ def verify_and_store_ip(organization_id: int, submitted_ip: str, request_ip: str
 
     return {"status": "success", "message": "IP verified successfully!", "verified_ip": normalized_submitted_ip}
 
-def store_log(organization_id: int, request_ip: str, log_data: str, db: Session):
+def store_log(request_ip: str, log_data: str, db: Session):
     try:
+ 
         is_verified = db.query(VerifiedIP).filter(
             VerifiedIP.ip == request_ip,
-            VerifiedIP.organization_id == organization_id,
             VerifiedIP.is_verified == True
         ).first()
 
         if not is_verified:
             return {"status": "error", "message": "Unauthorized IP. You cannot forward logs."}
 
-        new_log = LogEntry(organization_id=organization_id, ip=request_ip, log_data=log_data)
+        new_log = LogEntry(organization_id=is_verified.organization_id, ip=request_ip, log_data=log_data)
         db.add(new_log)
         db.commit()
 
-        timestamp = datetime.now().isoformat()
-        es_log = {
-            "@timestamp": timestamp,
-            "organization_id": organization_id,
-            "source": {"address": request_ip},
-            "message": log_data,
-            "fields": {"log_type": "client_forwarded"},
-            "host": {"ip": [request_ip]},
-            "event": {"original": f"Log forwarded by client at {timestamp}"},
-            "http": {"request": {"method": "POST"}, "response": {"status_code": 200}},
-            "url": {"original": "/ip-verification/forward-log"},
-            "user_agent": {"original": "Client Application"}
-        }
+    #     timestamp = datetime.now().isoformat()
+    #     es_log = {
+    #         "@timestamp": timestamp,
+    #         "organization_id": organization_id,
+    #         "source": {"address": request_ip},
+    #         "message": log_data,
+    #         "fields": {"log_type": "client_forwarded"},
+    #         "host": {"ip": [request_ip]},
+    #         "event": {"original": f"Log forwarded by client at {timestamp}"},
+    #         "http": {"request": {"method": "POST"}, "response": {"status_code": 200}},
+    #         "url": {"original": "/ip-verification/forward-log"},
+    #         "user_agent": {"original": "Client Application"}
+    #     }
 
-        es_url = "http://localhost:9200/client-logs/_doc"
-        headers = {"Content-Type": "application/json"}
-        requests.post(es_url, json=es_log, headers=headers)
+    #     es_url = "http://localhost:9200/client-logs/_doc"
+    #     headers = {"Content-Type": "application/json"}
+    #     requests.post(es_url, json=es_log, headers=headers)
 
         return {"status": "success", "message": "Log stored successfully."}
     except Exception as e:
         db.rollback()
         return {"status": "error", "message": f"Failed to store log: {str(e)}"}
+
+
 
 def get_logs_for_organization(organization_id: int, db: Session, include_snort_logs=True):
     verified_ips = db.query(VerifiedIP.ip).filter(

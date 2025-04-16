@@ -245,7 +245,6 @@ class PlaybookBase(BaseModel):
         from_attributes = True
 
 class LogRequest(BaseModel):
-    organization_id: int
     log_data: str
 
     class Config:

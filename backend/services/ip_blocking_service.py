@@ -63,11 +63,11 @@ def block_ip(ip: str, reason: str, organization_id: int, db: Session):
         raise HTTPException(status_code=500, detail=f"Failed to block IP: {str(e)}")
 
 
-def unblock_ip(ip: str, db: Session):
+def unblock_ip(ip: str, orgId: int, db: Session):
     """Removes an IP from the blocklist."""
     ip = ip.strip().lower()
 
-    blocked_ip = db.query(BlockedIP).filter_by(ip=ip).first()
+    blocked_ip = db.query(BlockedIP).filter_by(ip=ip, organization_id=orgId).first()
     if not blocked_ip:
         return {"message": "IP not found", "ip": ip}
 

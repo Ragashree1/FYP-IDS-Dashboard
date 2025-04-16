@@ -4,7 +4,7 @@ import Sidebar from "./Sidebar";
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
-const userRole = "network-admin";
+const userRole = "2";
 
 const AddIPModal = ({ onClose, onAdd }) => {
   const [newIP, setNewIP] = useState("");
@@ -44,6 +44,7 @@ const AddIPModal = ({ onClose, onAdd }) => {
         zIndex: 1000,
       }}
     >
+
       <div
         style={{
           backgroundColor: "white",
@@ -155,11 +156,11 @@ const SystemConfiguration = () => {
 
   const fetchLogs = async (orgId) => {
     try {
-      let endpoint = `/ip-verification/logs/${orgId}`;
+      let endpoint = `/logs/${orgId}`;
       if (logType === "client") {
-        endpoint = `/ip-verification/logs/client-only/${orgId}`;
+        endpoint = `/logs/client-only/${orgId}`;
       } else if (logType === "snort") {
-        endpoint = `/ip-verification/logs/snort-only/${orgId}`;
+        endpoint = `/logs/snort-only/${orgId}`;
       }
 
       const response = await fetch(`${API_BASE_URL}${endpoint}`);

@@ -17,8 +17,7 @@ router = APIRouter(prefix="/ip-verification", tags=["IP Verification"])
 
 @router.post("/verify-ip")
 def verify_ip(request: Request, ip_request: VerifyIPRequest, db: Session = Depends(get_db)):
-    request_ip = request.client.host
-    result = verify_and_store_ip(ip_request.organization_id, ip_request.ip, request_ip, db)
+    result = verify_and_store_ip(ip_request.organization_id, ip_request.ip, db)
     if result["status"] == "error":
         logger.error(f"IP verification failed: {result['message']}")
         raise HTTPException(status_code=403, detail=result["message"])
@@ -27,7 +26,7 @@ def verify_ip(request: Request, ip_request: VerifyIPRequest, db: Session = Depen
 @router.post("/forward-log")
 def forward_log(request: Request, log: LogRequest, db: Session = Depends(get_db)):
     request_ip = request.client.host
-    result = store_log(log.organization_id, request_ip, log.log_data, db)
+    result = store_log(request_ip, log.log_data, db)
     if result["status"] == "error":
         logger.error(f"Log forwarding failed: {result['message']}")
         raise HTTPException(status_code=403, detail=result["message"])

@@ -27,8 +27,8 @@ def get_blocked_ips_list_api(db: Session = Depends(get_db)):
     return get_blocked_ips_list(db)
 
 @router.delete("/unblock-ip/{ip}")
-def unblock_ip_api(ip: str, db: Session = Depends(get_db)):
-    return unblock_ip(ip, db)
+def unblock_ip_api(ip: str, org_id: int, db: Session = Depends(get_db)):
+    return unblock_ip(ip, org_id, db)
 
 @router.get("/{org_id}/blocked-ips")
 def get_blocked_ips_by_org(

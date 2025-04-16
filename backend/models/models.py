@@ -91,7 +91,6 @@ class VerifiedIP(Base):
     id = Column(Integer, primary_key=True, index=True)
     ip = Column(String, unique=True, nullable=False)
     is_verified = Column(Boolean, default=False)
-
     organization_id = Column(Integer, ForeignKey("organizations.id"), nullable=True)  # Ensure IP is linked to an organization
     organization = relationship("Organization")
 

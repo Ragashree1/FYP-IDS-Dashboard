@@ -276,7 +276,8 @@ const BlocklistManagementPage = () => {
   const handleRemoveIP = async (ip) => {
     try {
       const token = localStorage.getItem("token");
-      const response = await fetch(`${API_URL}/unblock-ip/${ip}`, {
+      const orgId = localStorage.getItem("orgId");
+      const response = await fetch(`${API_URL}/unblock-ip/${ip}?org_id=${orgId}`, {
         method: "DELETE",
         headers: {
           "Authorization": `Bearer ${token}`
