@@ -10,7 +10,6 @@ router = APIRouter(tags=["Logs"])
 
 @router.get("/logs/{organization_id}", response_model=List[CombinedLogResponse])
 def fetch_all_logs(organization_id: int, db: Session = Depends(get_db)):
-    print("HERE I AM FETCHING LOGS")
     if organization_id <= 0:
         raise HTTPException(status_code=400, detail="Invalid organization_id")
     return get_logs_for_organization(organization_id, db, include_snort_logs=True)

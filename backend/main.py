@@ -29,6 +29,7 @@ from fastapi.security import OAuth2PasswordBearer
 from jose import JWTError, jwt
 from services.ip_blocking_service import evaluate_and_block_ips
 import time
+from services.log_service import scheduled_log_update
 
 load_dotenv()
 
@@ -41,10 +42,15 @@ Base.metadata.create_all(bind=engine)
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
 
+logs_scheduler = BackgroundScheduler()
+
 # Initialize database with roles on startup
 @app.on_event("startup")
 async def startup_event():
     init_database()
+    print("Starting logs scheduler...")
+    logs_scheduler.add_job(scheduled_log_update, 'interval', seconds=5)
+    logs_scheduler.start()
 
 # CORS settings
 origins = [
@@ -119,6 +125,7 @@ if __name__ == "__main__":
     scheduler = BackgroundScheduler()
     scheduler.add_job(fetch_alerts_job, 'interval', minutes=5)
     scheduler.start()
+
 
     try:
         # Keep the main thread alive

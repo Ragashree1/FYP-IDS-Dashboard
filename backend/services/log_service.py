@@ -1,15 +1,19 @@
 import requests
 from datetime import datetime
 from database import SessionLocal
-from models.models import Logs
+import json
+from models.models import LogEntry, VerifiedIP
 from apscheduler.schedulers.background import BackgroundScheduler
 import logging
 
 logger = logging.getLogger(__name__)
 
-ES_URL = "http://localhost:9200/apache-*/_search"
+ES_ZEEK_URL = "http://localhost:9200/zeek-*/_search"
+ES_SNORT_URL = "http://localhost:9200/snort-*/_search"
+ES_SURICATA_URL = "http://localhost:9200/suricata-logs-*/_search"
 
-def fetch_logs_from_elasticsearch():
+
+def fetch_logs_from_elasticsearch(es_url, source_name):
     query = {
         "size": 100,
         "query": {"match_all": {}},
@@ -17,62 +21,63 @@ def fetch_logs_from_elasticsearch():
     }
     headers = {"Content-Type": "application/json"}
     try:
-        response = requests.get(ES_URL, json=query, headers=headers)
+        response = requests.get(es_url, json=query, headers=headers)
         response.raise_for_status()
-        return response.json().get('hits', {}).get('hits', [])
+        logs = response.json().get('hits', {}).get('hits', [])  
+        return logs
     except requests.RequestException as e:
-        logger.error(f"Error fetching logs from Elasticsearch: {e}")
+        logger.error(f"Error fetching {source_name} logs from Elasticsearch: {e}")
         return []
 
-def get_latest_timestamp_from_db(db):
-    last_log = db.query(Logs).order_by(Logs.timestamp.desc()).first()
-    return last_log.timestamp if last_log else None
+def store_verified_logs(es_url, source_name): 
+    log_hits = fetch_logs_from_elasticsearch(es_url, source_name)
+    stored_logs = 0
 
-def preprocess_log_entry(hit):
-    source = hit['_source']
-    try:
-        return Logs(
-            timestamp=datetime.strptime(source['@timestamp'], "%Y-%m-%dT%H:%M:%S.%fZ"),
-            log_type=source.get('fields', {}).get('log_type', 'unknown'),
-            source_ip=source['source']['address'],
-            host=source['host']['ip'][0],
-            message=source['message'],
-            event_data={
-                "original": source['event']['original'],
-                "os": source['host'].get('os', {}),
-                "hostname": source['host'].get('hostname', '')
-            },
-            http_method=source.get('http', {}).get('request', {}).get('method', ''),
-            http_status=source.get('http', {}).get('response', {}).get('status_code', ''),
-            url=source.get('url', {}).get('original', ''),
-            user_agent=source.get('user_agent', {}).get('original', ''),
-            log_path=source.get('log', {}).get('file', {}).get('path', '')
-        )
-    except (KeyError, IndexError, ValueError) as e:
-        logger.warning(f"Skipping log due to error: {e}")
-        return None
+    with SessionLocal() as db:
+        for hit in log_hits:
+            source = hit.get("_source", {})
 
-def save_new_logs(log_hits, db, latest_timestamp):
-    new_entries = []
-    for hit in log_hits:
-        log_entry = preprocess_log_entry(hit)
-        if log_entry and (latest_timestamp is None or log_entry.timestamp > latest_timestamp):
-            new_entries.append(log_entry)
-    
-    if new_entries:
-        db.add_all(new_entries)
+            ip_list = source.get("host", {}).get("ip", [])
+            ip = next((addr for addr in ip_list if ":" not in addr), None)
+            if not ip: 
+                continue
+
+            log_data = json.dumps(source)
+            # print(log_data)
+            timestamp_str = source.get("@timestamp")
+
+            try:
+                timestamp = datetime.strptime(timestamp_str, "%Y-%m-%dT%H:%M:%S.%fZ")
+            except Exception:
+                timestamp = datetime.utcnow()
+
+            verified = db.query(VerifiedIP).filter_by(ip=ip, is_verified=True).first()
+            if not verified:
+                logger.warning(f"IP '{ip}' is not verified. Log entry rejected.")
+                continue
+
+            entry = LogEntry(
+                organization_id=verified.organization_id,
+                ip=ip,
+                log_data=log_data,
+                timestamp=timestamp
+            )
+            db.add(entry)
+            print(f"[{source_name}] Stored log entry for IP: {ip}")
+            stored_logs += 1
+
         db.commit()
-        logger.info(f"Saved {len(new_entries)} new logs to database.")
-    else:
-        logger.info("No new logs to save.")
+        logger.info(f"Stored {stored_logs} verified {source_name} logs from Elasticsearch.")
+
 
 def scheduled_log_update():
-    with SessionLocal() as db:
-        latest_timestamp = get_latest_timestamp_from_db(db)
-        log_hits = fetch_logs_from_elasticsearch()
-        save_new_logs(log_hits, db, latest_timestamp)
+    print(f"[{datetime.utcnow()}] Log Scheduler triggered.")
+    store_verified_logs(ES_ZEEK_URL, "Zeek")
+    store_verified_logs(ES_SNORT_URL, "Snort")
+    store_verified_logs(ES_SURICATA_URL, "Suricata")
 
-# Start scheduler explicitly
-scheduler = BackgroundScheduler()
-scheduler.add_job(scheduled_log_update, 'interval', minutes=5)
-scheduler.start()
+
+if __name__ == "__main__":
+    scheduled_log_update()
+    print("Zeek, Snort, and Suricata logs fetched and saved to database.")
+
