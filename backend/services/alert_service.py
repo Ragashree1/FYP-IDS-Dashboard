@@ -2,10 +2,16 @@ import requests
 from datetime import datetime
 from database import SessionLocal
 from models.models import SnortAlerts
+import logging
+import json
+from models.models import VerifiedIP
 from apscheduler.schedulers.background import BackgroundScheduler
 
-def fetch_alerts():
-    es_url = "http://localhost:9200/snort-logs-*/_search"
+logger = logging.getLogger(__name__)
+
+def fetch_alerts(orgId: int):
+    es_url = "http://localhost:9200/sno+" \
+    "rt-logs-*/_search"
     query = {
         "size": 100,
         "query": {"match_all": {}},
@@ -15,8 +21,33 @@ def fetch_alerts():
     headers = {"Content-Type": "application/json"}
     response = requests.get(es_url, json=query, headers=headers)
     alerts = response.json().get('hits', {}).get('hits', [])
-    
-    return alerts
+    return verify_logs(alerts, orgId)
+
+def verify_logs(logs: str, orgId: int): 
+    verified_logs = []
+    verified_logs_count = 0
+
+    with SessionLocal() as db:
+        for hit in logs:
+            source = hit.get("_source", {})
+
+            ip_list = source.get("host", {}).get("ip", [])
+            ip = next((addr for addr in ip_list if ":" not in addr), None)
+            if not ip: 
+                continue
+
+            verified = db.query(VerifiedIP).filter_by(ip=ip, organization_id=orgId, is_verified=True).first()
+            if verified:
+                verified_logs.append(hit)
+                verified_logs_count += 1
+            else:
+                logger.warning(f"IP '{ip}' is not verified. Log entry rejected.")
+
+
+        logger.info(f"Returning {verified_logs_count} verified logs")
+        return verified_logs
+
+
 
 def get_last_alert_time():
     with SessionLocal() as db:
@@ -59,9 +90,9 @@ def save_alerts(alerts):
                 db.add(db_alert)
         db.commit()
 
-def update_and_fetch_alerts():
+def update_and_fetch_alerts(orgId: int):
     last_alert_time = get_last_alert_time()
-    alerts = fetch_alerts()
+    alerts = fetch_alerts(orgId)
     
     new_alerts = []
     for alert in alerts:

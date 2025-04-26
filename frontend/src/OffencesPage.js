@@ -746,8 +746,10 @@ const Offences = () => {
     return classifications[name] ? classifications[name].priority : 'Unknown'
   }
 
+  const orgId = localStorage.getItem("orgId");
+
   useEffect(() => {
-    axios.get('http://localhost:8000/alerts')
+    axios.get(`http://localhost:8000/alerts/${orgId}`)
       .then(response => {
         setLogs(response.data);
         setOffences(response.data);

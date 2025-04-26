@@ -39,11 +39,11 @@ def store_verified_logs(es_url, source_name):
 
             ip_list = source.get("host", {}).get("ip", [])
             ip = next((addr for addr in ip_list if ":" not in addr), None)
-            if not ip: 
+            if not ip:
                 continue
 
             log_data = json.dumps(source)
-            # print(log_data)
+
             timestamp_str = source.get("@timestamp")
 
             try:
