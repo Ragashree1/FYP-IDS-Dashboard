@@ -15,7 +15,7 @@ export function getUserDetailsFromToken() {
         const decodedToken = jwtDecode(token);
         console.log("Decoded Token:", decodedToken);
         // Extract and return the username & userrole
-        return { username: decodedToken.username, userRole: decodedToken.userRole };
+        return { username: decodedToken.sub, userRole: decodedToken.role };
     } catch (error) {
         console.error("Invalid token:", error);
         return null;
@@ -30,7 +30,7 @@ export async function fetchPermissions(username) {
 
     try {
         console.log("Fetching permissions for username:", username);
-        const response = await fetch(`http://127.0.0.1:8000/check-permissions/${username}`);
+        const response = await fetch(`http://localhost:8000/check-permissions/${username}`);
         if (!response.ok) {
             throw new Error("Failed to fetch permissions");
         }
@@ -44,7 +44,39 @@ export async function fetchPermissions(username) {
 }
 
 
-export async function checkPermissions(navigate, permission) {
+export async function fetchUserRole() {
+    const user = getUserDetailsFromToken();
+
+    if (!user) {
+      console.error("No user details retrieved from token");
+      return false;
+  }
+
+    const username = user?.username;
+
+    try {
+        console.log("Fetching role for username:", username);
+        const response = await fetch(`http://localhost:8000/check-permissions/userrole/${username}`);
+        if (!response.ok) {
+            throw new Error("Failed to fetch user's role");
+        }
+        const role = await response.json();
+        console.log("Role:", role);
+
+        if (role == null) {
+            console.error("User role is null");
+        }
+
+        return role;
+    } catch (error) {
+        console.error("Error fetching role:", error);
+        return null;
+    }
+}
+
+
+
+export async function checkPermissions(permission) {
 
   const user = getUserDetailsFromToken();
 
@@ -52,27 +84,17 @@ export async function checkPermissions(navigate, permission) {
     console.error("No user details retrieved from token");
     return false;
 }
-    const userRole = user?.userRole;
     const username = user?.username;
     const permissionFound = false;
     try {
         const permissions = await fetchPermissions(username);
         if (!permissions) {
             console.error("No permissions found");
-            return permissionFound == false;
+            return false;
         }
         if (permissions.includes(permission)) {
-          return permissionFound == true;
+          return true;
       }
-
-        if(userRole === "Organisation Admin" && !permissionFound){ // if the user is an organisation admin and the permission is false or empty
-          console.log("Permission not found! Navigating....");
-          navigate("/user-management");
-        }
-        else if (!permissionFound){ // if the user is not organisation admin and the permission is false or empty
-          console.log("Permission not found! Navigating....");
-          navigate("/dashboard");
-        }
     
     } catch (error) {
         console.error("Error checking permissions:", error);

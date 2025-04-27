@@ -17,7 +17,7 @@ const UserModal = ({ onClose, onConfirm, user = null }) => {
 
   const fetchRoles = async () => {
     try {
-      const response = await fetch ("http://127.0.0.1:8000/user-management/roles", {
+      const response = await fetch ("http://localhost:8000/user-management/roles", {
           method: "GET",
         });
 

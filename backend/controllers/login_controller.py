@@ -71,3 +71,7 @@ async def get_token(token: str = Depends(oauth2_bearer)):
     except JWTError:
 
         raise HTTPException(status_code=403, detail="Invalid token")       
+    
+@router.options("/get_token")
+async def preflight():
+    return {"message": "CORS preflight allowed"}

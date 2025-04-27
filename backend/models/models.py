@@ -31,11 +31,15 @@ class Journal(Base):
     class Config:
         orm_mode = True
 
-class Organization(Base):
-    __tablename__ = "Organizations"
+class Organisation(Base):
+    __tablename__ = "Organisations"
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     name = Column(String, unique=True, nullable=False)
+
+        # Back reference to accounts
+    accounts = relationship("Account", back_populates="organisation")
+    roles = relationship("Role", back_populates="organisation")
 
 class BlockedIP(Base):
     __tablename__ = "blocked_ips"
@@ -71,7 +75,7 @@ class SnortAlerts(Base):
 class Account(Base):
     __tablename__= 'Account'
     id = Column(Integer,primary_key=True, index=True)
-    username = Column(String,unique=True)
+    username = Column(String)
     userFirstName = Column(String)
     userLastName = Column(String)
     passwd = Column(String)
@@ -82,6 +86,8 @@ class Account(Base):
     userSuspend = Column(Boolean)
    
     role = relationship("Role", back_populates="accounts")
+    organisation = relationship("Organisation", back_populates="accounts")
+    organisation_id = Column(UUID(as_uuid=True), ForeignKey("Organisations.id", ondelete="SET NULL"), nullable=True)
     
     __table_args__ = (
         UniqueConstraint('username', 'userComName', name='unique_username_company'),
@@ -90,21 +96,6 @@ class Account(Base):
     class Config:
         orm_mode = True
 
-class CreditCard(Base):
-    __tablename__= 'creditcard'
-    id = Column(Integer,primary_key=True, index=True)
-    creditFirstName = Column(String) #Maybe later make it so that it retreives the userFirstName
-    creditLastName = Column(String) #Maybe later make it so that it retreives the userLastName
-    creditNum = Column(String)
-    creditDate= Column(String)
-    creditCVV = Column(Integer)
-    subscription = Column(String)
-    total = Column(String)
-    userid = Column(Integer, ForeignKey('Account.id')) #Encountered error while trying to import username as a foreign key, remember to come back when free and try solve this issue
-
-
-    class Config:
-        orm_mode = True
 
 role_permission_association = Table(
     'role_permission_association', Base.metadata,
@@ -115,8 +106,12 @@ role_permission_association = Table(
 
 class Role(Base):
     __tablename__ = 'role'
-    id = Column(Integer, primary_key=True, index=True)
+    id = Column(Integer, primary_key=True, index=True, autoincrement=True)
     roleName = Column(String)
+
+
+    organisation_id = Column(UUID(as_uuid=True), ForeignKey("Organisations.id", ondelete="SET NULL"), nullable=True)
+    organisation = relationship("Organisation", back_populates="roles")
 
     # Back reference to Account
     accounts = relationship("Account", back_populates="role")
@@ -129,7 +124,7 @@ class Role(Base):
 
 class Permission(Base):
     __tablename__ = 'permission'
-    id = Column(Integer, primary_key=True, index=True)
+    id = Column(Integer, primary_key=True, index=True, autoincrement=True)
     permissionName = Column(String)
 
     # Many-to-many relationship
@@ -149,6 +144,10 @@ class Report(Base):
     class Config:
         orm_mode = True
 
+class InternationalBlacklist(Base):
+    __tablename__ = "international_blacklist"
+    ip = Column(String, primary_key=True, nullable=False)
+
 class TokenTable(Base):
     __tablename__ = "token"
     id = Column(Integer,primary_key=True, index=True)
@@ -156,6 +155,12 @@ class TokenTable(Base):
     refresh_token = Column(String,nullable=False)
     status = Column(Boolean)
     created_date = Column(DateTime, default=datetime.now)
+
+class PriorityClassification(Base):
+    __tablename__ = "priority_classification"
+    id = Column(Integer, primary_key=True, index=True)
+    priority = Column(Integer, nullable=False)
+    classification = Column(String, nullable=False)
 
 class Logs(Base):
     __tablename__ = "Logs"
@@ -180,7 +185,7 @@ class Playbook(Base):
     __tablename__ = "Playbooks"
 
     id = Column(Integer, primary_key=True, index=True)
-    organization_id = Column(UUID(as_uuid=True), ForeignKey("Organizations.id", ondelete="SET NULL"), nullable=True, index=True)  # Foreign key to an Organization table
+    organisation_id = Column(UUID(as_uuid=True), ForeignKey("Organisations.id", ondelete="SET NULL"), nullable=True, index=True)  # Foreign key to an Organization table
     name = Column(String, unique=True, nullable=False)  # Name of the playbook
     description = Column(String, nullable=True)  # Optional description of what the playbook does
     conditions = Column(JSON, nullable=False)  # JSON structure to define rules (e.g., {"log_type": "alert", "priority": ">3"})
@@ -191,3 +196,68 @@ class Playbook(Base):
 
     class Config:
         orm_mode = True
+
+    def evaluate_conditions(self, logs, blocked_ips):
+        """
+        Evaluate playbook conditions against logs and return IPs to block.
+        """
+        ips_to_block = set()
+
+        for condition in self.conditions:
+            condition_type = condition.get("condition_type")
+            field = condition.get("field")
+            operator = condition.get("operator")
+            value = condition.get("value")
+            window_period = int(condition.get("window_period", 0))  # in minutes
+
+            if condition_type == "threshold":
+                ips_to_block.update(self._check_threshold(logs, field, operator, value, window_period))
+            elif condition_type == "ip_reputation":
+                ips_to_block.update(self._check_ip_reputation(logs, value))
+            elif condition_type == "geo_location":
+                ips_to_block.update(self._check_geo_location(logs, value))
+            # Add more condition types as needed...
+
+        # Exclude already blocked IPs
+        return ips_to_block - set(blocked_ips)
+
+    def _check_threshold(self, logs, field, operator, value, window_period):
+        """
+        Check if logs exceed the threshold for a specific field within the window period.
+        """
+        from datetime import datetime, timedelta
+
+        now = datetime.utcnow()
+        threshold_time = now - timedelta(minutes=window_period)
+        filtered_logs = [log for log in logs if datetime.strptime(log.timestamp, "%Y-%m-%d %H:%M:%S") >= threshold_time]
+
+        ip_counts = {}
+        for log in filtered_logs:
+            ip = getattr(log, "src_ip", None)
+            if ip and getattr(log, field, None):
+                ip_counts[ip] = ip_counts.get(ip, 0) + 1
+
+        ips_to_block = set()
+        for ip, count in ip_counts.items():
+            if operator == "greater than or equal" and count >= int(value):
+                ips_to_block.add(ip)
+
+        return ips_to_block
+
+    def _check_ip_reputation(self, logs, value):
+        """
+        Check if IPs are part of an international blocklist or threat feed.
+        """
+        # Simulate checking against an external blocklist (e.g., threat intel feed)
+        threat_feed = {"192.168.1.1", "203.0.113.5"}  # Example blocklist
+        return {log.src_ip for log in logs if log.src_ip in threat_feed}
+
+    def _check_geo_location(self, logs, value):
+        """
+        Check if IPs belong to a specific geolocation.
+        """
+        # Simulate geolocation check (e.g., using a geolocation API)
+        restricted_countries = {"North Korea", "Iran"}  # Example restricted countries
+        geo_ip_map = {"192.168.1.1": "North Korea", "203.0.113.5": "USA"}  # Example IP-to-country mapping
+
+        return {log.src_ip for log in logs if geo_ip_map.get(log.src_ip) in restricted_countries}

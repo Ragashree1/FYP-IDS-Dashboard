@@ -3,7 +3,6 @@ from dotenv import load_dotenv
 from sqlalchemy import create_engine
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
-import models.models
 
 # Load environment variables
 load_dotenv()
@@ -30,4 +29,5 @@ engine = create_engine(
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 Base = declarative_base()
 
-Base.metadata.create_all(engine)
+# Remove this line as it creates circular import
+# Base.metadata.create_all(engine)

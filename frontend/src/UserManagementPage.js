@@ -5,8 +5,8 @@ import Sidebar from "./Sidebar"
 import DeleteConfirmationModal from "./components/modals/DeleteConfirmationModal"
 import UserModal from "./components/modals/UserModal"  // Updated import
 import SuspendConfirmationModal from "./components/modals/SuspendConfirmationModal"
+import { checkPermissions, fetchUserRole } from "./utils/check_permissions"
 
-const userRole = "Organisation Admin"
 const UserManagementPage = () => {
   const navigate = useNavigate()
   const location = useLocation()
@@ -23,10 +23,13 @@ const UserManagementPage = () => {
   const [userToSuspend, setUserToSuspend] = useState(null)
   const [loading, setLoading] = useState(true); // Added loading state
   const [error, setError] = useState(null);
+  const [hasPermission, setHasPermission] = useState(null);
+  const [showWarning, setShowWarning] = useState(false);
+  const [userRole, setUserRole] = useState(null);
 
   const fetchRoles = async () => {
     try {
-      const response = await fetch ("http://127.0.0.1:8000/user-management/roles", {
+      const response = await fetch ("http://localhost:8000/user-management/roles", {
           method: "GET",
         });
 
@@ -46,6 +49,18 @@ const UserManagementPage = () => {
     fetchRoles();
   }, []);
 
+  const getUserRole = async () => {
+      const role  = await fetchUserRole();
+      setUserRole(role);
+      if (!role) {
+        setError("Failed to fetch user role for Sidebar");
+      }
+    };
+    
+    useEffect(() => {
+      getUserRole();
+    }, []);
+  
   const getRoleName = (roleId) => {
     const role = roles.find((role) => role.id === roleId);
     return role ? role.roleName : "Unknown";
@@ -54,7 +69,7 @@ const UserManagementPage = () => {
 
   const fetchUsers = async () => {
     try {
-      const response = await fetch("http://127.0.0.1:8000/user-management/", {
+      const response = await fetch("http://localhost:8000/user-management/", {
         method: "GET",
         headers: {
           "Content-Type": "application/json",
@@ -118,7 +133,7 @@ const UserManagementPage = () => {
 
   const updateUserSuspend = async (user) => {
     try {
-      const response = await fetch(`http://127.0.0.1:8000/user-management/${user.id}`, {
+      const response = await fetch(`http://localhost:8000/user-management/${user.id}`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
@@ -142,10 +157,35 @@ const UserManagementPage = () => {
   setShowNewUserModal(true); 
 }
 
+  
+const PermissionDeniedPopup = () => (
+  <div className="permission-popup-overlay">
+    <div className="success-popup">
+      <div className="success-popup-header">
+        <div className="success-popup-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"
+            strokeLinecap="round" strokeLinejoin="round">
+            <circle cx="12" cy="12" r="10"></circle>
+            <line x1="12" y1="8" x2="12" y2="12"></line>
+            <circle cx="12" cy="16" r="1"></circle>
+          </svg>
+        </div>
+        <div className="success-popup-title">PERMISSION DENIED</div>
+      </div>
+      <div className="success-popup-content">
+        <div className="success-popup-message">
+          You do not have permission to view this page.
+        </div>
+      </div>
+    </div>
+  </div>
+);
+
+
 const addUser = async (user) => {
   try {
     const token = localStorage.getItem("token"); // Get the token from localStorage
-    const response = await fetch("http://127.0.0.1:8000/user-management/", {
+    const response = await fetch("http://localhost:8000/user-management/", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -193,7 +233,7 @@ const addUser = async (user) => {
         payload.passwd = user.passwd;
       }
   
-      const response = await fetch(`http://127.0.0.1:8000/user-management/${user.id}`, {
+      const response = await fetch(`http://localhost:8000/user-management/${user.id}`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
@@ -221,7 +261,7 @@ const addUser = async (user) => {
 
   const deleteUser = async (id) => {
     try {
-      await fetch(`http://127.0.0.1:8000/user-management/${id}`, { method: "DELETE" });
+      await fetch(`http://localhost:8000/user-management/${id}`, { method: "DELETE" });
       fetchUsers()
     } catch (err) {
       setError("Failed to delete user");

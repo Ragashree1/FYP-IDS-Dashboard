@@ -7,7 +7,7 @@ const LogsDashboard = () => {
   const [error, setError] = useState(null);
 
   useEffect(() => {
-    axios.get('http://localhost:8000/logs')
+    axios.get('https://api.secuboard.live/ogs')
       .then(response => {
         if (response.data.hits && response.data.hits.hits) {
           setLogs(response.data.hits.hits);

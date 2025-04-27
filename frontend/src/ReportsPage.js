@@ -1,22 +1,54 @@
-import { useEffect } from "react"
+import { useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom"
 import Sidebar from "./Sidebar" // Import the Sidebar component
-import { checkPermissions } from "./utils/check_permissions"
+import { checkPermissions, fetchUserRole } from "./utils/check_permissions"
 
-const userRole = "Network Admin"
+
 const permission = "Reports Page"
 
 const Reports = () => {
   const navigate = useNavigate()
   const location = useLocation()
+  const [userRole, setUserRole] = useState(null);
+  const [hasPermission, setHasPermission] = useState(null);
+  const [showWarning, setShowWarning] = useState(false);
 
   useEffect(() => {
     const verifyPermissions = async () => {
-        checkPermissions(navigate, permission);
+      const allowed = await checkPermissions(permission);
+      setHasPermission(allowed);
+      if (!allowed) {
+        setShowWarning(true);
+      }
     };
 
     verifyPermissions();
-}, [navigate]);
+  }, []);
+  
+  
+  const getUserRole = async () => {
+    const role  = await fetchUserRole();
+    setUserRole(role);
+    if (!role) {
+      console.log("Failed to fetch user role for Sidebar");
+    }
+  };
+  
+  useEffect(() => {
+    getUserRole();
+  }, []);
+  
+  
+  if (!hasPermission) {
+    return (
+      <div style={{ display: 'flex', minHeight: '100vh' }}>
+        <Sidebar userRole={userRole} />
+        <div style={{ flex: 1, position: 'relative' }}>
+          {showWarning && <PermissionDeniedPopup />}
+        </div>
+      </div>
+    );
+  }
 
   const isActive = (path) => location.pathname.startsWith(path)
 
@@ -132,6 +164,32 @@ const Reports = () => {
     </div>
   )
 }
+
+const PermissionDeniedPopup = () => (
+  <div className="permission-popup-overlay">
+    <div className="success-popup">
+      <div className="success-popup-header">
+        <div className="success-popup-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"
+            strokeLinecap="round" strokeLinejoin="round">
+            <circle cx="12" cy="12" r="10"></circle>
+            <line x1="12" y1="8" x2="12" y2="12"></line>
+            <circle cx="12" cy="16" r="1"></circle>
+          </svg>
+        </div>
+        <div className="success-popup-title">PERMISSION DENIED</div>
+      </div>
+      <div className="success-popup-content">
+        <div className="success-popup-message">
+          You do not have permission to view this page.
+        </div>
+      </div>
+    </div>
+  </div>
+);
+
+
+
 
 export default Reports
 

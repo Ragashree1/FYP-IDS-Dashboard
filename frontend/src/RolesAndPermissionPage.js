@@ -1,9 +1,11 @@
 
-import { useState, useEffect } from "react"
+import { useState ,useEffect } from "react"
 import { useNavigate, useLocation } from "react-router-dom"
 import Sidebar from "./Sidebar"
+import { checkPermissions, fetchUserRole } from "./utils/check_permissions"
 
-const role = "Organisation Admin"; 
+
+const permission = "Roles & Permissions"
 
 const DeleteConfirmationModal = ({ onClose, onConfirm }) => {
   return (
@@ -87,7 +89,7 @@ const RoleDetailModal = ({ onClose, onConfirm, role = null }) => {
 
   const fetchPermission = async () => {
     try {
-      const response = await fetch ("http://127.0.0.1:8000/roles-permission/permission/", {
+      const response = await fetch ("http://localhost:8000/roles-permission/permission/", {
           method: "GET",
         });
 
@@ -289,11 +291,12 @@ const RolesAndPermissionPage = () => {
   const [roleToDelete, setRoleToDelete] = useState(null)
   const [error, setError] = useState(null)
   const [loading, setLoading] = useState(false);
+  const [userRole, setUserRole] = useState(null);
 
 
   const fetchRoles = async () => {
     try {
-      const response = await fetch ("http://127.0.0.1:8000/roles-permission/", {
+      const response = await fetch ("http://localhost:8000/roles-permission/", {
           method: "GET",
         });
 
@@ -314,6 +317,18 @@ const RolesAndPermissionPage = () => {
 
   useEffect(() => {
     fetchRoles();
+  }, []);
+
+  useEffect(() => {
+    const getUserRole = async () => {
+      const role  = await fetchUserRole();
+      setUserRole(role);
+      if (!role) {
+        setError("Failed to user roles");
+      }
+    };
+
+    getUserRole();
   }, []);
 
 
@@ -352,7 +367,7 @@ const RolesAndPermissionPage = () => {
   
   const updateRole = async (role) => {
     try {
-      const response = await fetch (`http://127.0.0.1:8000/roles-permission/${role.id}/`, { method: "PUT", headers: {
+      const response = await fetch (`http://localhost:8000/roles-permission/${role.id}/`, { method: "PUT", headers: {
         "Content-Type": "application/json", // Add this header to indicate the body is JSON
       },
         body: JSON.stringify(role), // Send userData as the payload to update the role
@@ -371,7 +386,7 @@ const RolesAndPermissionPage = () => {
 
   const addRole = async (role) => {
     try {
-      await fetch(`http://127.0.0.1:8000/roles-permission/`, { method: "POST" , headers: {
+      await fetch(`http://localhost:8000/roles-permission/`, { method: "POST" , headers: {
         "Content-Type": "application/json", // Add this header to indicate the body is JSON
       },
         body: JSON.stringify(role), // Send userData as the payload to add the user
@@ -390,7 +405,7 @@ const RolesAndPermissionPage = () => {
 
   const deleteUser = async (role) => {
     try {
-      await fetch(`http://127.0.0.1:8000/roles-permission/${role.id}/`, { method: "DELETE" });
+      await fetch(`http://localhost:8000/roles-permission/${role.id}/`, { method: "DELETE" });
       fetchRoles()
     } catch (err) {
       setError("Failed to delete role");
@@ -418,7 +433,7 @@ const RolesAndPermissionPage = () => {
         overflow: "hidden", // Added to prevent horizontal scrolling
       }}
     >
-      <Sidebar userRole={role} />
+      <Sidebar userRole={userRole} />
 
       <div
         style={{

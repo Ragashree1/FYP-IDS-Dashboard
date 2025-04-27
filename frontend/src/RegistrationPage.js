@@ -296,7 +296,7 @@ const RegistrationPage = () => {
       case "username":
         return value.trim() !== ""
           ? ""
-          : "Login ID is required."
+          : "username is required."
       case "userFirstName":
         return value.trim() !== ""
           ? ""
@@ -423,7 +423,7 @@ const RegistrationPage = () => {
     console.log(formData)
 
     try {
-      const response = await fetch("http://127.0.0.1:8000/register/", {
+      const response = await fetch("http://localhost:8000/register/", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -531,7 +531,7 @@ const RegistrationPage = () => {
                 type="text"
                 name="username"
                 id="username"
-                placeholder="Login ID"
+                placeholder="username"
                 value={formData.username}
                 onChange={handleChange}
                 required

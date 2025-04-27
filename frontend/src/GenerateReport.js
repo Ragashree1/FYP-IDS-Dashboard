@@ -1,8 +1,6 @@
 
 import React from "react"
 
-const permission = "Generate Report"
-
 const GenerateReportModal = ({ onClose, onSubmit }) => {
   const [formData, setFormData] = React.useState({
     reportName: "",

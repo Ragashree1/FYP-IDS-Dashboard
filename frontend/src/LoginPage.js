@@ -87,7 +87,7 @@ export default function LoginPage() {
     }
 
     try {
-      const loginResponse = await fetch("http://127.0.0.1:8000/login/token", {
+      const loginResponse = await fetch("http://localhost:8000/login/token", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -163,14 +163,14 @@ export default function LoginPage() {
 
           <div style={styles.formGroup}>
             <label htmlFor="loginId" style={styles.label}>
-              Login ID
+              username
             </label>
             <input
               id="loginId"
               type="text"
               value={loginId}
               onChange={(e) => setLoginId(e.target.value)}
-              placeholder="Enter your login ID"
+              placeholder="Enter your username"
               style={styles.input}
             />
           </div>
