@@ -7,10 +7,10 @@ from datetime import timedelta, timezone, datetime
 from jose import jwt, JWTError
 from fastapi.security import OAuth2PasswordRequestForm, OAuth2PasswordBearer
 from fastapi import APIRouter, Depends, HTTPException
+import os
 
-
-SECRET_KEY = 's3cr3tk3y'  #Could be anything
-ALGORITHM = 'HS256'
+SECRET_KEY = os.getenv("SECRET_KEY", "default_secret_key")  
+ALGORITHM = os.getenv("ALGORITHM", "HS256")
 
 bcrypt_context = CryptContext (schemes = ['bcrypt'], deprecated = 'auto') 
 # ^Where most password hashing and unhashing is done

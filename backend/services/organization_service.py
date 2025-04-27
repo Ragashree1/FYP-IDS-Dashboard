@@ -1,14 +1,14 @@
 import uuid
 from database import SessionLocal
-from models.models import Organization
+from models.models import Organisation
 
 DEFAULT_ORG_ID = uuid.UUID("12345678-1234-5678-1234-567812345678")
 
 def ensure_default_organization():
     with SessionLocal() as db:
-        org = db.query(Organization).filter(Organization.id == DEFAULT_ORG_ID).first()
+        org = db.query(Organisation).filter(Organisation.id == DEFAULT_ORG_ID).first()
         if not org:
-            org = Organization(
+            org = Organisation(
                 id=DEFAULT_ORG_ID,
                 name="Default Organization"
             )

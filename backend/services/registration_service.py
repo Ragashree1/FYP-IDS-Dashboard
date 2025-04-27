@@ -1,5 +1,5 @@
 from database import SessionLocal
-from models.models import Account
+from models.models import Account,Organisation
 from models.schemas import AccountBase
 from typing import List, Optional, Annotated
 from passlib.context import CryptContext
@@ -24,6 +24,13 @@ def add_user(user_particulars: AccountBase):
             if hasattr(user_particulars, 'id'):
                 delattr(user_particulars, 'id')
             
+            org = db.query(Organisation).filter(Organisation.name == user_particulars.userComName).first()
+            if not org:
+                org = Organisation(name=user_particulars.userComName)
+                db.add(org)
+                db.commit()
+                db.refresh(org)
+
             # Create a dict of user particulars and hash the password
             hashed_password = bcrypt_context.hash(user_particulars.passwd)
             user_data = user_particulars.model_dump()
@@ -43,9 +50,9 @@ def add_user(user_particulars: AccountBase):
 
 def create_access_token(username: str, user_id: str, userRole: str, userComName: str, userSuspend: bool, expires_delta: timedelta):
     payload = {
-        "username": username,  # Username
+        "sub": username,  # Username
         "id": user_id,  # User ID
-        "userRole": userRole,  # User Role
+        "role": userRole,  # User Role
         "company": userComName,  # Company Name
         "suspend": userSuspend,  # Suspension Status
         "exp": datetime.utcnow() + expires_delta  # Expiration Time

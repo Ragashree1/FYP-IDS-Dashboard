@@ -4,6 +4,8 @@ from fastapi import HTTPException, Request
 from models.models import BlockedIP
 from models.schemas import IPAddressSchema
 from database import SessionLocal
+from models.models import Playbook, SnortAlerts
+from datetime import datetime, timedelta
 
 def get_client_ip(request: Request) -> str:
     """Extracts the actual client IP from request headers."""
@@ -82,3 +84,26 @@ def get_blocked_ips_list():
 def get_blocked_ip(ip: str):
     with SessionLocal() as db: 
         return db.query(BlockedIP).filter_by(ip=ip).first()
+
+def evaluate_and_block_ips():
+    """
+    Periodically evaluate playbooks and block IPs based on conditions.
+    """
+    with SessionLocal() as db:
+        # Fetch all active playbooks
+        playbooks = db.query(Playbook).filter(Playbook.is_active == True).all()
+
+        # Fetch recent logs (e.g., last 24 hours)
+        now = datetime.utcnow()
+        recent_logs = db.query(SnortAlerts).filter(
+            SnortAlerts.timestamp >= (now - timedelta(hours=24)).strftime("%Y-%m-%d %H:%M:%S")
+        ).all()
+
+        # Fetch currently blocked IPs
+        blocked_ips = {ip["ip"] for ip in get_blocked_ips()}
+
+        for playbook in playbooks:
+            ips_to_block = playbook.evaluate_conditions(recent_logs, blocked_ips)
+
+            for ip in ips_to_block:
+                block_ip(IPAddressSchema(ip=ip, reason=f"Blocked by playbook: {playbook.name}"))
