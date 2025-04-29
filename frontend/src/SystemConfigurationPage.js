@@ -1,7 +1,7 @@
 
 import { useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom"
-import { checkPermissions, fetchUserRole } from "./utils/check_permissions"
+import { checkPermissions, fetchPermissions } from "./utils/check_permissions"
 
 import Sidebar from "./Sidebar" // Import the Sidebar component
 const permission = "System Configuration Page"
@@ -153,7 +153,8 @@ const SystemConfiguration = () => {
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [hasPermission, setHasPermission] = useState(null);
   const [showWarning, setShowWarning] = useState(false);
-  const [userRole, setUserRole] = useState(null);
+  const [userPermission, setuserPermission] = useState([]) ;
+  const [error, setError] = useState(null);
 
   const isActive = (path) => location.pathname.startsWith(path)
 
@@ -173,17 +174,16 @@ const SystemConfiguration = () => {
     verifyPermissions();
   }, []);
 
-
-  const getUserRole = async () => {
-    const role  = await fetchUserRole();
-    setUserRole(role);
-    if (!role) {
-      console.log("Failed to fetch user role for Sidebar");
+  const getUserPermission = async () => {
+    const perm  = await fetchPermissions();
+    setuserPermission(perm);
+    if (!perm) {
+      setError("Failed to fetch user's permission for Sidebar");
     }
   };
   
   useEffect(() => {
-    getUserRole();
+    getUserPermission();
   }, []);
   
   
@@ -191,7 +191,7 @@ const SystemConfiguration = () => {
   if (!hasPermission) {
     return (
       <div style={{ display: 'flex', minHeight: '100vh' }}>
-        <Sidebar userRole={userRole} />
+        <Sidebar permissions = {userPermission} />
         <div style={{ flex: 1, position: 'relative' }}>
           {showWarning && <PermissionDeniedPopup />}
         </div>
@@ -232,7 +232,7 @@ const SystemConfiguration = () => {
       }}
     >
       {/* Use the Sidebar component instead of hardcoded sidebar */}
-      <Sidebar userRole={userRole} />
+      <Sidebar permissions = {userPermission} />
 
       {/* Main Content */}
       <div

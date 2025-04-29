@@ -5,7 +5,33 @@ import Sidebar from "./Sidebar"
 import DeleteConfirmationModal from "./components/modals/DeleteConfirmationModal"
 import UserModal from "./components/modals/UserModal"  // Updated import
 import SuspendConfirmationModal from "./components/modals/SuspendConfirmationModal"
-import { checkPermissions, fetchUserRole } from "./utils/check_permissions"
+import { checkPermissions, fetchPermissions } from "./utils/check_permissions"
+
+const permission = "User Management"
+
+const PermissionDeniedPopup = () => (
+  <div className="permission-popup-overlay">
+    <div className="success-popup">
+      <div className="success-popup-header">
+        <div className="success-popup-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"
+            strokeLinecap="round" strokeLinejoin="round">
+            <circle cx="12" cy="12" r="10"></circle>
+            <line x1="12" y1="8" x2="12" y2="12"></line>
+            <circle cx="12" cy="16" r="1"></circle>
+          </svg>
+        </div>
+        <div className="success-popup-title">PERMISSION DENIED</div>
+      </div>
+      <div className="success-popup-content">
+        <div className="success-popup-message">
+          You do not have permission to view this page.
+        </div>
+      </div>
+    </div>
+  </div>
+);
+
 
 const UserManagementPage = () => {
   const navigate = useNavigate()
@@ -25,7 +51,7 @@ const UserManagementPage = () => {
   const [error, setError] = useState(null);
   const [hasPermission, setHasPermission] = useState(null);
   const [showWarning, setShowWarning] = useState(false);
-  const [userRole, setUserRole] = useState(null);
+  const [userPermission, setuserPermission] = useState([]) ;
 
   const fetchRoles = async () => {
     try {
@@ -49,16 +75,28 @@ const UserManagementPage = () => {
     fetchRoles();
   }, []);
 
-  const getUserRole = async () => {
-      const role  = await fetchUserRole();
-      setUserRole(role);
-      if (!role) {
-        setError("Failed to fetch user role for Sidebar");
+  useEffect(() => {
+    const verifyPermissions = async () => {
+      const allowed = await checkPermissions(permission);
+      setHasPermission(allowed);
+      if (!allowed) {
+        setShowWarning(true);
+      }
+    };
+
+    verifyPermissions();
+  }, []);
+
+  const getUserPermission = async () => {
+      const perm  = await fetchPermissions();
+      setuserPermission(perm);
+      if (!perm) {
+        setError("Failed to fetch user's permission for Sidebar");
       }
     };
     
     useEffect(() => {
-      getUserRole();
+      getUserPermission();
     }, []);
   
   const getRoleName = (roleId) => {
@@ -66,6 +104,7 @@ const UserManagementPage = () => {
     return role ? role.roleName : "Unknown";
   };
 
+  
 
   const fetchUsers = async () => {
     try {
@@ -95,6 +134,17 @@ const UserManagementPage = () => {
   useEffect(() => {
     fetchUsers();
   }, []);
+
+  if (!hasPermission) {
+    return (
+      <div style={{ display: 'flex', minHeight: '100vh' }}>
+        <Sidebar permissions = {userPermission} />
+        <div style={{ flex: 1, position: 'relative' }}>
+          {showWarning && <PermissionDeniedPopup />}
+        </div>
+      </div>
+    );
+  }
 
   const filteredUsers = (users || []).filter(
     (user) =>
@@ -151,6 +201,7 @@ const UserManagementPage = () => {
     }
   };
 
+
   const handleAdd = (user) => {
     // Set the selected user to be edited
   setSelectedUser(user);
@@ -158,28 +209,6 @@ const UserManagementPage = () => {
 }
 
   
-const PermissionDeniedPopup = () => (
-  <div className="permission-popup-overlay">
-    <div className="success-popup">
-      <div className="success-popup-header">
-        <div className="success-popup-icon">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"
-            strokeLinecap="round" strokeLinejoin="round">
-            <circle cx="12" cy="12" r="10"></circle>
-            <line x1="12" y1="8" x2="12" y2="12"></line>
-            <circle cx="12" cy="16" r="1"></circle>
-          </svg>
-        </div>
-        <div className="success-popup-title">PERMISSION DENIED</div>
-      </div>
-      <div className="success-popup-content">
-        <div className="success-popup-message">
-          You do not have permission to view this page.
-        </div>
-      </div>
-    </div>
-  </div>
-);
 
 
 const addUser = async (user) => {
@@ -304,7 +333,7 @@ const addUser = async (user) => {
     setShowNewUserModal(false)
     setSelectedUser(null)
   }
-
+  console.log("User's Permissions:", userPermission)
   return (
     <div
       style={{
@@ -314,7 +343,7 @@ const addUser = async (user) => {
         overflow: "hidden", // Added to prevent horizontal scrolling
       }}
     >
-      <Sidebar userRole={userRole} />
+      <Sidebar permissions = {userPermission} />
       <div
         style={{
           flex: 1,

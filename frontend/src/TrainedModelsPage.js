@@ -2,7 +2,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom"
 import Sidebar from "./Sidebar"
-import { checkPermissions, fetchUserRole } from "./utils/check_permissions"
+import { checkPermissions, fetchPermissions } from "./utils/check_permissions"
 
 //const userRole = "data-analyst"
 const permission = "Trained Models Page"
@@ -98,7 +98,8 @@ const TrainedModelsPage = () => {
   ])
   const [hasPermission, setHasPermission] = useState(null);
   const [showWarning, setShowWarning] = useState(false);
-  const [userRole, setUserRole] = useState(null);
+  const [userPermission, setuserPermission] = useState([]) ;
+  const [error, setError] = useState(null);
 
 
 
@@ -114,23 +115,23 @@ const TrainedModelsPage = () => {
     verifyPermissions();
   }, []);
   
-  const getUserRole = async () => {
-    const role  = await fetchUserRole();
-    setUserRole(role);
-    if (!role) {
-      console.log("Failed to fetch user role for Sidebar");
+  const getUserPermission = async () => {
+    const perm  = await fetchPermissions();
+    setuserPermission(perm);
+    if (!perm) {
+      setError("Failed to fetch user's permission for Sidebar");
     }
   };
   
   useEffect(() => {
-    getUserRole();
+    getUserPermission();
   }, []);
   
   
   if (!hasPermission) {
     return (
       <div style={{ display: 'flex', minHeight: '100vh' }}>
-        <Sidebar userRole={userRole} />
+        <Sidebar permissions = {userPermission} />
         <div style={{ flex: 1, position: 'relative' }}>
           {showWarning && <PermissionDeniedPopup />}
         </div>
@@ -153,7 +154,7 @@ const TrainedModelsPage = () => {
 
   return (
     <div style={{ display: "flex", height: "100vh", background: "#f4f4f4", overflow: "hidden" }}>
-      <Sidebar userRole={userRole} />
+      <Sidebar permissions = {userPermission} />
 
       <div style={{ flex: 1, padding: "32px", overflowY: "auto", overflowX: "hidden" }}>
         <h1 style={{ margin: "0 0 32px 0" }}>Trained Models</h1>

@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom"
-import { checkPermissions, fetchUserRole } from "./utils/check_permissions"
+import { checkPermissions, fetchPermissions } from "./utils/check_permissions"
 
 import Sidebar from "./Sidebar" // Import the Sidebar component
 
@@ -274,7 +274,8 @@ const BlocklistManagementPage = () => {
   const [blocklist, setBlocklist] = useState([])
   const [hasPermission, setHasPermission] = useState(null);
   const [showWarning, setShowWarning] = useState(false);
-  const [userRole, setUserRole] = useState(null);
+  const [userPermission, setuserPermission] = useState([]) ;
+  const [error, setError] = useState(null);
 
   useEffect(() => {
     fetchBlockedIPs(setBlocklist);
@@ -293,22 +294,22 @@ const BlocklistManagementPage = () => {
     verifyPermissions();
   }, []);
   
-  const getUserRole = async () => {
-    const role  = await fetchUserRole();
-    setUserRole(role);
-    if (!role) {
-      console.log("Failed to fetch user role for Sidebar");
+  const getUserPermission = async () => {
+    const perm  = await fetchPermissions();
+    setuserPermission(perm);
+    if (!perm) {
+      setError("Failed to fetch user's permission for Sidebar");
     }
   };
   
   useEffect(() => {
-    getUserRole();
+    getUserPermission();
   }, []);
   
   if (!hasPermission) {
     return (
       <div style={{ display: 'flex', minHeight: '100vh' }}>
-        <Sidebar userRole={userRole} />
+        <Sidebar permissions = {userPermission} />
         <div style={{ flex: 1, position: 'relative' }}>
           {showWarning && <PermissionDeniedPopup />}
         </div>
@@ -386,7 +387,7 @@ const BlocklistManagementPage = () => {
         overflow: "hidden", // Added to prevent horizontal scrolling
       }}
     >
-      <Sidebar userRole={userRole} />
+      <Sidebar permissions = {userPermission} />
 
       {/* Main Content */}
       <div

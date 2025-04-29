@@ -2,7 +2,7 @@ import { useState, useMemo, useEffect } from "react"
 import { useNavigate, useLocation } from "react-router-dom"
 import axios from 'axios';
 import Sidebar from "./Sidebar"
-import { checkPermissions, fetchUserRole } from "./utils/check_permissions"
+import { checkPermissions, fetchPermissions } from "./utils/check_permissions"
 
 const permission = "Event Logs"
 
@@ -41,7 +41,7 @@ const EventLogPage = () => {
   const [error, setError] = useState(null);
   const [hasPermission, setHasPermission] = useState(null);
   const [showWarning, setShowWarning] = useState(false);
-  const [userRole, setUserRole] = useState(null);
+  const [userPermission, setuserPermission] = useState([]) ;
 
   // Fetch logs from backend
   useEffect(() => {
@@ -71,16 +71,16 @@ const EventLogPage = () => {
     verifyPermissions();
   }, []);
   
-  const getUserRole = async () => {
-    const role  = await fetchUserRole();
-    setUserRole(role);
-    if (!role) {
-      setError("Failed to fetch user role for Sidebar");
+  const getUserPermission = async () => {
+    const perm  = await fetchPermissions();
+    setuserPermission(perm);
+    if (!perm) {
+      setError("Failed to fetch user's permission for Sidebar");
     }
   };
   
   useEffect(() => {
-    getUserRole();
+    getUserPermission();
   }, []);
   
   
@@ -136,7 +136,7 @@ const EventLogPage = () => {
   if (!hasPermission) {
     return (
       <div style={{ display: 'flex', minHeight: '100vh' }}>
-        <Sidebar userRole={userRole} />
+        <Sidebar permissions = {userPermission} />
         <div style={{ flex: 1, position: 'relative' }}>
           {showWarning && <PermissionDeniedPopup />}
         </div>
@@ -154,7 +154,7 @@ const EventLogPage = () => {
 
   return (
     <div style={{ display: "flex", height: "100vh", background: "#f4f4f4" }}>
-      <Sidebar userRole={userRole} />
+      <Sidebar permissions = {userPermission} />
 
       <div style={{ flex: 1, padding: "20px" }}>
         <h1>Logs Interface</h1>

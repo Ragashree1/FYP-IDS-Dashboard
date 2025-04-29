@@ -22,11 +22,15 @@ export function getUserDetailsFromToken() {
     }
 }
 
-export async function fetchPermissions(username) {
-    if (!username) {
-        console.error("No username provided");
-        return null;
-    }
+export async function fetchPermissions() {
+    const user = getUserDetailsFromToken();
+
+    if (!user) {
+      console.error("No user details retrieved from token");
+      return false;
+  }
+
+    const username = user?.username;
 
     try {
         console.log("Fetching permissions for username:", username);
@@ -80,14 +84,8 @@ export async function checkPermissions(permission) {
 
   const user = getUserDetailsFromToken();
 
-  if (!user) {
-    console.error("No user details retrieved from token");
-    return false;
-}
-    const username = user?.username;
-    const permissionFound = false;
     try {
-        const permissions = await fetchPermissions(username);
+        const permissions = await fetchPermissions();
         if (!permissions) {
             console.error("No permissions found");
             return false;
