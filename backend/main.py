@@ -50,7 +50,7 @@ logs_scheduler = BackgroundScheduler()
 async def startup_event():
     init_database()
     print("Starting logs scheduler...")
-    logs_scheduler.add_job(scheduled_log_update, 'interval', seconds=5)
+    logs_scheduler.add_job(scheduled_log_update, 'interval', minutes=5)
     logs_scheduler.start()
 
 # CORS settings
