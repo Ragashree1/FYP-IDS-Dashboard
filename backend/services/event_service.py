@@ -162,9 +162,9 @@ def fetch_cicflow_logs_from_es(size=500, from_time=None, orgId=None, db: Session
     except Exception as e:
         return {"error": str(e)}
 
-def export_cicflow_logs_to_pkl():
+def export_cicflow_logs_to_pkl(orgId=None, db: Session = None):
     """Export CICFlow logs to a pickle file for download"""
-    logs = fetch_cicflow_logs_from_es(size=1000)  # Get more logs for export
+    logs = fetch_cicflow_logs_from_es(size=1000, from_time=None, orgId=orgId, db=db)  # Get more logs for export
     
     # If there was an error fetching logs
     if isinstance(logs, dict) and "error" in logs:

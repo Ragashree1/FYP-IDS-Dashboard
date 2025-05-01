@@ -17,6 +17,6 @@ def get_events(size: int = Query(500, description="Number of logs to fetch"),
 
 
 @router.get("/events/export/{org_id}")
-def export_events(org_id: int):
+def export_events(org_id: int, db: Session = Depends(get_db)):
     """Export events to a pickle file"""
-    return export_cicflow_logs_to_pkl(org_id)
+    return export_cicflow_logs_to_pkl(org_id, db)
