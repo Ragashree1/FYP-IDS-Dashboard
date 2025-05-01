@@ -1,196 +1,537 @@
-import { useState, useMemo, useEffect } from "react"
-import { useNavigate, useLocation } from "react-router-dom"
-import React from 'react';
-import axios from 'axios';
+"use client"
+
+import { useState, useEffect, useCallback } from "react"
+import axios from "axios"
 import Sidebar from "./Sidebar"
 
+const userRole = "2"
+
 const EventLogPage = () => {
-  const navigate = useNavigate()
-  const location = useLocation()
   const [filterType, setFilterType] = useState("")
   const [searchQuery, setSearchQuery] = useState("")
-  const [logs, setLogs] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+  const [logs, setLogs] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(null)
+  const [selectedColumns, setSelectedColumns] = useState([])
+  const [showColumnSelector, setShowColumnSelector] = useState(false)
+  const [liveUpdate, setLiveUpdate] = useState(true)
+  const [lastTimestamp, setLastTimestamp] = useState(null)
 
-  const userRole = "2"
+  const orgId = localStorage.getItem("orgId");
 
-  // Fetch logs from backend
+  // Function to fetch logs
+  const fetchLogs = useCallback(async (fromTime = null) => {
+    try {
+      const params = { size: 500 }
+      if (fromTime) {
+        params.from_time = fromTime
+      }
+
+      params.orgId = orgId
+
+      const response = await axios.get("http://localhost:8000/events", { params })
+
+      if (fromTime) {
+        // If we're doing a live update, prepend new logs to the existing ones
+        setLogs((prevLogs) => {
+          const newLogs = [...response.data, ...prevLogs]
+          return newLogs.slice(0, 1000) // Limit to 1000 logs for performance
+        })
+      } else {
+        // Initial load
+        setLogs(response.data)
+
+        // Initialize selected columns with all available columns
+        if (response.data.length > 0) {
+          setSelectedColumns(Object.keys(response.data[0]).filter((col) => col !== "@timestamp"))
+        }
+      }
+
+      // Update the last timestamp for the next live update
+      if (response.data.length > 0) {
+        const timestamps = response.data.map((log) => log["@timestamp"]).sort()
+        setLastTimestamp(timestamps[timestamps.length - 1])
+      }
+
+      return response.data
+    } catch (error) {
+      setError("Failed to fetch logs: " + (error.response?.data?.detail || error.message))
+      return []
+    } finally {
+      setLoading(false)
+    }
+  }, [])
+
+  // Initial load
   useEffect(() => {
-    axios.get('http://localhost:8000/logs')
-      .then(response => {
-        setLogs(response.data);
-        console.log(response.data);
-      })
-      .catch(error => {
-        console.error('Error fetching logs:', error);
-        setError('Failed to fetch logs');
-      })
-      .finally(() => {
-        setLoading(false);
-      });
-  }, []);
+    fetchLogs()
+  }, [fetchLogs])
 
-  // Updated filter logic
-  const filteredLogs = useMemo(() => {
-    if (!filterType && !searchQuery) {
-      return logs
+  // Live update effect
+  useEffect(() => {
+    let intervalId = null
+
+    if (liveUpdate && lastTimestamp) {
+      intervalId = setInterval(() => {
+        fetchLogs(lastTimestamp)
+      }, 5000) // Update every 5 seconds
     }
 
-    return logs.filter((log) => {
-      const query = searchQuery.toLowerCase()
-
-      if (filterType && !searchQuery) {
-        return true
+    return () => {
+      if (intervalId) {
+        clearInterval(intervalId)
       }
+    }
+  }, [liveUpdate, lastTimestamp, fetchLogs])
 
-      if (searchQuery && !filterType) {
-        return (
-          log.log_type.toLowerCase().includes(query) ||
-          log.message.toLowerCase().includes(query) ||
-          (new Date(log.timestamp).toLocaleString()).toLowerCase().includes(query) ||
-          log.source_ip.toLowerCase().includes(query) ||
-          log.host.toLowerCase().includes(query) ||
-          (log.http_method && log.http_method.toLowerCase().includes(query)) ||
-          (log.http_status && String(log.http_status).toLowerCase().includes(query))
-        )
-      }
-
-      switch (filterType.toLowerCase()) {
-        case "type":
-          return log.log_type.toLowerCase().includes(query)
-        case "message":
-          return log.message.toLowerCase().includes(query)
-        case "date & time":
-          return (new Date(log.timestamp).toLocaleString()).toLowerCase().includes(query)
-        case "source ip":
-          return log.source_ip.toLowerCase().includes(query)
-        case "host":
-          return log.host.toLowerCase().includes(query)
-        case "http method":
-          return log.http_method && log.http_method.toLowerCase().includes(query)
-        case "http status":
-          return log.http_status && String(log.http_status).toLowerCase().includes(query)
-
-        default:
-          return false
-      }
-    })
-  }, [logs, filterType, searchQuery])
-
-  if (loading) {
-    return <div>Loading...</div>;
+  // Toggle column selection
+  const toggleColumn = (column) => {
+    if (selectedColumns.includes(column)) {
+      setSelectedColumns(selectedColumns.filter((col) => col !== column))
+    } else {
+      setSelectedColumns([...selectedColumns, column])
+    }
   }
 
-  if (error) {
-    return <div>Error: {error}</div>;
+  // Select all columns
+  const selectAllColumns = () => {
+    if (logs.length > 0) {
+      setSelectedColumns(Object.keys(logs[0]).filter((col) => col !== "@timestamp"))
+    }
   }
+
+  // Deselect all columns
+  const deselectAllColumns = () => {
+    setSelectedColumns([])
+  }
+
+  // Export logs to .pkl file
+  const exportToPkl = async () => {
+    try {
+      // Use axios to get the file as a blob
+      const response = await axios.get(`http://localhost:8000/events/export/${orgId}`, {
+        responseType: "blob",
+      })
+
+      // Create a URL for the blob
+      const url = window.URL.createObjectURL(new Blob([response.data]))
+
+      // Create a temporary link element
+      const link = document.createElement("a")
+      link.href = url
+      link.setAttribute("download", `cicflow_logs_${new Date().toISOString().replace(/[:.]/g, "-")}.pkl`)
+
+      // Append to the document, click it, and remove it
+      document.body.appendChild(link)
+      link.click()
+      document.body.removeChild(link)
+
+      // Clean up the URL
+      window.URL.revokeObjectURL(url)
+    } catch (error) {
+      setError("Failed to export logs: " + error.message)
+    }
+  }
+
+  // Filter logs based on search query and filter type
+  const filteredLogs = logs.filter((log) => {
+    if (!filterType && !searchQuery) return true
+
+    const query = searchQuery.toLowerCase()
+
+    if (filterType && !searchQuery) return true
+
+    if (searchQuery && !filterType) {
+      // Search across all fields
+      return Object.entries(log).some(([key, value]) => {
+        return value !== null && String(value).toLowerCase().includes(query)
+      })
+    }
+
+    // If a specific filter type is selected
+    if (log[filterType] !== undefined) {
+      return String(log[filterType]).toLowerCase().includes(query)
+    }
+
+    return false
+  })
+
+  // Get unique source IPs
+  const uniqueSourceIPs = new Set(logs.map((log) => log["Source IP"] || "Unknown")).size
+
+  // Get unique destination ports
+  const uniqueDestPorts = new Set(logs.map((log) => log["Destination Port"] || "Unknown")).size
 
   return (
     <div style={{ display: "flex", height: "100vh", background: "#f4f4f4" }}>
       <Sidebar userRole={userRole} />
 
-      <div style={{ flex: 1, padding: "20px" }}>
-        <h1>Logs Interface</h1>
+      <div style={{ flex: 1, padding: "20px", overflow: "auto" }}>
+        <h1 style={{ fontSize: "24px", fontWeight: "bold", marginBottom: "20px" }}>CICFlowMeter Network Traffic</h1>
 
-        {/* Statistics */}
-        <div style={{
-          background: "#999",
-          padding: "15px",
-          borderRadius: "8px",
-          color: "white",
-          display: "inline-block",
-          marginBottom: "20px",
-        }}>
-          <p style={{ margin: 0 }}>Total Logs:</p>
-          <p style={{ margin: 0, fontSize: "24px", fontWeight: "bold" }}>{filteredLogs.length}</p>
-        </div>
+        {/* Controls */}
+        <div style={{ display: "flex", gap: "10px", marginBottom: "20px", flexWrap: "wrap" }}>
+          <div style={{ display: "flex", alignItems: "center", marginRight: "15px" }}>
+            <input
+              type="checkbox"
+              id="live-update"
+              checked={liveUpdate}
+              onChange={() => setLiveUpdate(!liveUpdate)}
+              style={{ marginRight: "5px" }}
+            />
+            <label htmlFor="live-update">Live Updates</label>
+          </div>
 
-        {/* Search and Filter */}
-        <div style={{ display: "flex", gap: "10px", marginBottom: "20px" }}>
-  <select
-    value={filterType}
-    onChange={(e) => setFilterType(e.target.value)}
-    style={{ padding: "8px 12px", borderRadius: "4px", border: "1px solid #ddd" }}
-  >
-    <option value="">Filter By (All Fields)</option>
-    <option value="Type">Type</option>
-    <option value="Message">Message</option>
-    <option value="Date & Time">Date & Time</option>
-    <option value="Source IP">Source IP</option>
-    <option value="Host">Host</option>
-    <option value="http method">HTTP Method</option>
-    <option value="http status">HTTP Status</option>
-  </select>
-  <div style={{ position: "relative", flex: 1 }}>
-    <input
-      type="text"
-      placeholder={filterType ? `Search by ${filterType}...` : "Search all fields..."}
-      value={searchQuery}
-      onChange={(e) => setSearchQuery(e.target.value)}
-      style={{
-        width: "100%", // Ensure the input takes full width of the parent
-        padding: "10px",
-        border: "1px solid #ccc",
-        borderRadius: "4px",
-        boxSizing: "border-box", // Include padding in width calculation
-      }}
-    />
-    <button 
-      style={{
-        position: "absolute",
-        right: "8px",
-        top: "50%",
-        transform: "translateY(-50%)", // Center the button vertically
-        background: "none",
-        border: "none",
-        cursor: "pointer",
-        padding: "0", // Optional: Adjust padding for better alignment
-      }}
-    >
-      🔍
-    </button>
-  </div>
-        </div>
-
-        {/* Logs Table */}
-        <div style={{ width: "100%", maxHeight: "700px", overflowY: "auto" }}>
-          <table
+          <button
+            onClick={() => fetchLogs()}
             style={{
-              width: "100%",
-              background: "#fff",
-              borderCollapse: "collapse",
-              boxShadow: "0 0 10px rgba(0,0,0,0.1)",
-              minWidth: "800px"
+              padding: "8px 12px",
+              background: "#f0f0f0",
+              border: "1px solid #ddd",
+              borderRadius: "4px",
+              cursor: "pointer",
             }}
           >
-            <thead style={{ position: "sticky", top: 0, background: "#fff", zIndex: 2, boxShadow: "0 2px 2px rgba(0,0,0,0.1)" }}>
-              <tr style={{ background: "#ccc", borderBottom: "2px solid #aaa" }}>
-                <th style={{ padding: "12px", textAlign: "left", borderBottom: "1px solid #eee" }}>Type</th>
-                <th style={{ padding: "12px", textAlign: "left", borderBottom: "1px solid #eee" }}>Message</th>
-                <th style={{ padding: "12px", textAlign: "left", borderBottom: "1px solid #eee" }}>Date & Time</th>
-                <th style={{ padding: "12px", textAlign: "left", borderBottom: "1px solid #eee" }}>Source IP</th>
-                <th style={{ padding: "12px", textAlign: "left", borderBottom: "1px solid #eee" }}>Host</th>
-                <th style={{ padding: "12px", textAlign: "left", borderBottom: "1px solid #eee" }}>HTTP Method</th>
-                <th style={{ padding: "12px", textAlign: "left", borderBottom: "1px solid #eee" }}>HTTP Status</th>
-              </tr>
-            </thead>
-            <tbody>
-              {filteredLogs.map((log, index) => (
-                <tr key={index} style={{ backgroundColor: index % 2 === 0 ? "#fff" : "#f9f9f9" }}>
-                  <td style={{ padding: "12px", borderBottom: "1px solid #eee" }}>{log.log_type}</td>
-                  <td style={{ padding: "12px", borderBottom: "1px solid #eee" }}>{log.message}</td>
-                  <td style={{ padding: "12px", borderBottom: "1px solid #eee" }}>
-                    {new Date(log.timestamp).toLocaleString()}
-                  </td>
-                  <td style={{ padding: "12px", borderBottom: "1px solid #eee" }}>{log.source_ip}</td>
-                  <td style={{ padding: "12px", borderBottom: "1px solid #eee" }}>{log.host}</td>
-                  <td style={{ padding: "12px", borderBottom: "1px solid #eee" }}>{log.http_method || 'N/A'}</td>
-                  <td style={{ padding: "12px", borderBottom: "1px solid #eee" }}>{log.http_status || 'N/A'}</td>
+            Refresh
+          </button>
+
+          <button
+            onClick={() => setShowColumnSelector(!showColumnSelector)}
+            style={{
+              padding: "8px 12px",
+              background: "#f0f0f0",
+              border: "1px solid #ddd",
+              borderRadius: "4px",
+              cursor: "pointer",
+            }}
+          >
+            {showColumnSelector ? "Hide Columns" : "Select Columns"}
+          </button>
+
+          <button
+            onClick={exportToPkl}
+            style={{
+              padding: "8px 12px",
+              background: "#4CAF50",
+              color: "white",
+              border: "none",
+              borderRadius: "4px",
+              cursor: "pointer",
+            }}
+          >
+            Export to .pkl
+          </button>
+        </div>
+
+        {/* Statistics */}
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "repeat(auto-fill, minmax(200px, 1fr))",
+            gap: "15px",
+            marginBottom: "20px",
+          }}
+        >
+          <div
+            style={{
+              background: "#333",
+              color: "white",
+              padding: "15px",
+              borderRadius: "5px",
+            }}
+          >
+            <div style={{ fontSize: "14px", color: "#aaa" }}>Total Logs</div>
+            <div style={{ fontSize: "24px", fontWeight: "bold" }}>{filteredLogs.length}</div>
+          </div>
+
+          <div
+            style={{
+              background: "#333",
+              color: "white",
+              padding: "15px",
+              borderRadius: "5px",
+            }}
+          >
+            <div style={{ fontSize: "14px", color: "#aaa" }}>Unique Source IPs</div>
+            <div style={{ fontSize: "24px", fontWeight: "bold" }}>{uniqueSourceIPs}</div>
+          </div>
+
+          <div
+            style={{
+              background: "#333",
+              color: "white",
+              padding: "15px",
+              borderRadius: "5px",
+            }}
+          >
+            <div style={{ fontSize: "14px", color: "#aaa" }}>Unique Destination Ports</div>
+            <div style={{ fontSize: "24px", fontWeight: "bold" }}>{uniqueDestPorts}</div>
+          </div>
+        </div>
+
+        {/* Column Selector */}
+        {showColumnSelector && (
+          <div
+            style={{
+              background: "white",
+              padding: "15px",
+              borderRadius: "5px",
+              marginBottom: "20px",
+              boxShadow: "0 1px 3px rgba(0,0,0,0.1)",
+            }}
+          >
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "space-between",
+                marginBottom: "10px",
+              }}
+            >
+              <h3 style={{ margin: 0 }}>Column Selection</h3>
+              <div>
+                <button
+                  onClick={selectAllColumns}
+                  style={{
+                    marginRight: "10px",
+                    padding: "4px 8px",
+                    background: "#f0f0f0",
+                    border: "1px solid #ddd",
+                    borderRadius: "4px",
+                    cursor: "pointer",
+                  }}
+                >
+                  Select All
+                </button>
+                <button
+                  onClick={deselectAllColumns}
+                  style={{
+                    padding: "4px 8px",
+                    background: "#f0f0f0",
+                    border: "1px solid #ddd",
+                    borderRadius: "4px",
+                    cursor: "pointer",
+                  }}
+                >
+                  Deselect All
+                </button>
+              </div>
+            </div>
+
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: "repeat(auto-fill, minmax(200px, 1fr))",
+                gap: "8px",
+                maxHeight: "200px",
+                overflowY: "auto",
+              }}
+            >
+              {logs.length > 0 &&
+                Object.keys(logs[0])
+                  .filter((col) => col !== "@timestamp")
+                  .map((column) => (
+                    <div key={column} style={{ display: "flex", alignItems: "center" }}>
+                      <input
+                        type="checkbox"
+                        id={`col-${column}`}
+                        checked={selectedColumns.includes(column)}
+                        onChange={() => toggleColumn(column)}
+                        style={{ marginRight: "5px" }}
+                      />
+                      <label htmlFor={`col-${column}`}>{column}</label>
+                    </div>
+                  ))}
+            </div>
+          </div>
+        )}
+
+        {/* Search and Filter */}
+        <div
+          style={{
+            display: "flex",
+            gap: "10px",
+            marginBottom: "20px",
+            flexDirection: window.innerWidth < 768 ? "column" : "row",
+          }}
+        >
+          <select
+            value={filterType}
+            onChange={(e) => setFilterType(e.target.value)}
+            style={{
+              padding: "8px",
+              border: "1px solid #ddd",
+              borderRadius: "4px",
+              flex: "0 0 200px",
+            }}
+          >
+            <option value="">Filter By (All Fields)</option>
+            {logs.length > 0 &&
+              Object.keys(logs[0])
+                .filter((col) => col !== "@timestamp")
+                .map((column) => (
+                  <option key={column} value={column}>
+                    {column}
+                  </option>
+                ))}
+          </select>
+
+          <div style={{ position: "relative", flex: 1 }}>
+            <input
+              type="text"
+              placeholder={filterType ? `Search by ${filterType}...` : "Search all fields..."}
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              style={{
+                width: "100%",
+                padding: "8px",
+                paddingRight: "30px",
+                border: "1px solid #ddd",
+                borderRadius: "4px",
+                boxSizing: "border-box",
+              }}
+            />
+            <span
+              style={{
+                position: "absolute",
+                right: "10px",
+                top: "50%",
+                transform: "translateY(-50%)",
+              }}
+            >
+              🔍
+            </span>
+          </div>
+        </div>
+
+        {/* Live update indicator */}
+        {liveUpdate && (
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              marginBottom: "15px",
+            }}
+          >
+            <div
+              style={{
+                width: "10px",
+                height: "10px",
+                borderRadius: "50%",
+                background: "#4CAF50",
+                marginRight: "8px",
+                animation: "pulse 1.5s infinite",
+              }}
+            ></div>
+            <span style={{ fontSize: "14px", color: "#666" }}>
+              Live updates enabled - new data will appear automatically
+            </span>
+          </div>
+        )}
+
+        {/* Loading indicator */}
+        {loading && logs.length === 0 && <div style={{ textAlign: "center", padding: "40px" }}>Loading...</div>}
+
+        {/* Error message */}
+        {error && logs.length === 0 && (
+          <div
+            style={{
+              background: "#ffebee",
+              color: "#c62828",
+              padding: "15px",
+              borderRadius: "5px",
+              marginBottom: "20px",
+            }}
+          >
+            <h3 style={{ margin: "0 0 10px 0" }}>Error</h3>
+            <p>{error}</p>
+            <button
+              onClick={() => fetchLogs()}
+              style={{
+                padding: "8px 12px",
+                background: "#f0f0f0",
+                border: "1px solid #ddd",
+                borderRadius: "4px",
+                cursor: "pointer",
+                marginTop: "10px",
+              }}
+            >
+              Retry
+            </button>
+          </div>
+        )}
+
+        {/* Logs Table */}
+        <div
+          style={{
+            border: "1px solid #ddd",
+            borderRadius: "5px",
+            overflow: "hidden",
+          }}
+        >
+          <div style={{ overflowX: "auto" }}>
+            <table
+              style={{
+                width: "100%",
+                borderCollapse: "collapse",
+                whiteSpace: "nowrap",
+              }}
+            >
+              <thead>
+                <tr style={{ background: "#f5f5f5" }}>
+                  {selectedColumns.map((column) => (
+                    <th
+                      key={column}
+                      style={{
+                        padding: "12px 15px",
+                        textAlign: "left",
+                        borderBottom: "1px solid #ddd",
+                        fontSize: "12px",
+                        fontWeight: "bold",
+                        color: "#666",
+                        textTransform: "uppercase",
+                      }}
+                    >
+                      {column}
+                    </th>
+                  ))}
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {filteredLogs.length > 0 ? (
+                  filteredLogs.map((log, index) => (
+                    <tr key={index} style={{ background: index % 2 === 0 ? "white" : "#f9f9f9" }}>
+                      {selectedColumns.map((column) => (
+                        <td
+                          key={column}
+                          style={{
+                            padding: "10px 15px",
+                            borderBottom: "1px solid #eee",
+                            fontSize: "14px",
+                            color: "#333",
+                          }}
+                        >
+                          {log[column] !== null && log[column] !== undefined ? String(log[column]) : "N/A"}
+                        </td>
+                      ))}
+                    </tr>
+                  ))
+                ) : (
+                  <tr>
+                    <td
+                      colSpan={selectedColumns.length}
+                      style={{
+                        padding: "20px",
+                        textAlign: "center",
+                        color: "#666",
+                      }}
+                    >
+                      No logs found matching your criteria
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
         </div>
       </div>
     </div>
@@ -198,4 +539,3 @@ const EventLogPage = () => {
 }
 
 export default EventLogPage
-

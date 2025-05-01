@@ -218,6 +218,7 @@ class Logs(Base):
 
     class Config:
         orm_mode = True
+     
 
 class Playbook(Base):
     __tablename__ = "Playbooks"
