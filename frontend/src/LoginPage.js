@@ -172,27 +172,48 @@ export default function LoginPage() {
       // Store the token in localStorage
       const token = loginData.access_token
       localStorage.setItem("token", token)
+      
+      // Store additional data from response if available
+      if (loginData.userEmail) {
+        localStorage.setItem("clientEmail", loginData.userEmail)
+      }
+      
+      if (loginData.orgId) {
+        localStorage.setItem("orgId", String(loginData.orgId))
+      }
 
       try {
-        // Decode the JWT token to extract user information
-        const decodedToken = jwtDecode(token)
-        console.log("Decoded token:", decodedToken) // Debug log
-
-        // Extract user data from the decoded token
-        // The structure depends on how your backend structures the JWT payload
-        const userData = {
+        // Create user data object, combining direct response data and decoded token data
+        let userData = {
           token: token,
-          // Check if user data is in the 'user' property or directly in the token
-          userRole: decodedToken.user?.userRole || decodedToken.userRole,
-          username: decodedToken.user?.username || decodedToken.sub,
-          userComName: decodedToken.user?.userComName || decodedToken.company,
-          // Add any other needed user properties
-          id: decodedToken.user?.id || decodedToken.id,
-          userFirstName: decodedToken.user?.userFirstName,
-          userLastName: decodedToken.user?.userLastName,
-          userEmail: decodedToken.user?.userEmail,
-          userPhoneNum: decodedToken.user?.userPhoneNum,
-          userSuspend: decodedToken.user?.userSuspend || false,
+          userRole: loginData.userRole,
+          username: loginData.username,
+          userComName: loginData.userComName,
+          userEmail: loginData.userEmail,
+          orgId: loginData.orgId
+        }
+        
+        // If we need additional data not in the direct response, decode the token
+        if (!userData.userRole || !userData.username) {
+          // Decode the JWT token to extract user information
+          const decodedToken = jwtDecode(token)
+          console.log("Decoded token:", decodedToken) // Debug log
+
+          // Extract user data from the decoded token
+          userData = {
+            ...userData,
+            // Check if user data is in the 'user' property or directly in the token
+            userRole: userData.userRole || decodedToken.user?.userRole || decodedToken.userRole,
+            username: userData.username || decodedToken.user?.username || decodedToken.sub,
+            userComName: userData.userComName || decodedToken.user?.userComName || decodedToken.company,
+            // Add any other needed user properties
+            id: decodedToken.user?.id || decodedToken.id,
+            userFirstName: decodedToken.user?.userFirstName,
+            userLastName: decodedToken.user?.userLastName,
+            userEmail: userData.userEmail || decodedToken.user?.userEmail,
+            userPhoneNum: decodedToken.user?.userPhoneNum,
+            userSuspend: decodedToken.user?.userSuspend || false,
+          }
         }
 
         console.log("Extracted user data:", userData) // Debug log

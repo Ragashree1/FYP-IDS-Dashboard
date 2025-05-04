@@ -7,96 +7,165 @@ from fastapi import HTTPException
 import uuid
 from services.ip_blocking_service import block_ip
 from services.email_service import send_email
+from sqlalchemy import text, inspect
 
 def get_all_playbooks(company_name: str = None) -> List[PlaybookOut]:
     """Get all playbooks, optionally filtered by company name"""
     with SessionLocal() as db:
-        query = db.query(Playbook)
-        if company_name:
-            # Check if company_name column exists in the Playbook model
-            if hasattr(Playbook, 'company_name'):
-                query = query.filter(Playbook.company_name == company_name)
-            # If not, try to filter by organization_id using a join
-            elif hasattr(Playbook, 'organization_id'):
-                # This assumes there's a relationship between Playbook and Organization
-                # If not, you'll need to modify this to use a join
-                from models.models import Organization
-                query = query.join(Organization, Playbook.organization_id == Organization.id)
-                query = query.filter(Organization.name == company_name)
+        # First, let's determine the actual table name for organizations
+        inspector = inspect(db.bind)
+        table_names = inspector.get_table_names()
+        org_table_name = None
+        for name in table_names:
+            if name.lower() == 'organizations':
+                org_table_name = name
+                break
         
-        playbooks = query.all()
-        return [PlaybookOut.model_validate(playbook) for playbook in playbooks]
+        if company_name and hasattr(Playbook, 'organization_id') and org_table_name:
+            # Use raw SQL with explicit type casting to handle UUID vs integer comparison
+            query = text(f"""
+                SELECT p.* FROM "Playbooks" p
+                JOIN "{org_table_name}" o ON p.organization_id::text = o.id::text
+                WHERE o.name = :company_name
+            """)
+            result = db.execute(query, {"company_name": company_name})
+            playbooks = []
+            for row in result:
+                # Convert row to dict
+                playbook_dict = {column: value for column, value in row._mapping.items()}
+                playbook = Playbook(**playbook_dict)
+                playbooks.append(playbook)
+            return [PlaybookOut.model_validate(playbook) for playbook in playbooks]
+        else:
+            query = db.query(Playbook)
+            if company_name and hasattr(Playbook, 'company_name'):
+                query = query.filter(Playbook.company_name == company_name)
+            
+            playbooks = query.all()
+            return [PlaybookOut.model_validate(playbook) for playbook in playbooks]
 
 def get_playbook_by_id(playbook_id: int, company_name: str = None) -> Optional[PlaybookOut]:
     """Get a playbook by its ID"""
     with SessionLocal() as db:
-        query = db.query(Playbook).filter(Playbook.id == playbook_id)
-        if company_name:
-            # Check if company_name column exists in the Playbook model
-            if hasattr(Playbook, 'company_name'):
-                query = query.filter(Playbook.company_name == company_name)
-            # If not, try to filter by organization_id using a join
-            elif hasattr(Playbook, 'organization_id'):
-                # This assumes there's a relationship between Playbook and Organization
-                # If not, you'll need to modify this to use a join
-                from models.models import Organization
-                query = query.join(Organization, Playbook.organization_id == Organization.id)
-                query = query.filter(Organization.name == company_name)
+        # Determine the actual table name for organizations
+        inspector = inspect(db.bind)
+        table_names = inspector.get_table_names()
+        org_table_name = None
+        for name in table_names:
+            if name.lower() == 'organizations':
+                org_table_name = name
+                break
                 
-        playbook = query.first()
-        if playbook:
-            return PlaybookOut.model_validate(playbook)
-        return None
+        if company_name and hasattr(Playbook, 'organization_id') and org_table_name:
+            # Use raw SQL with explicit type casting to handle UUID vs integer comparison
+            query = text(f"""
+                SELECT p.* FROM "Playbooks" p
+                JOIN "{org_table_name}" o ON p.organization_id::text = o.id::text
+                WHERE p.id = :playbook_id AND o.name = :company_name
+            """)
+            result = db.execute(query, {"playbook_id": playbook_id, "company_name": company_name})
+            row = result.fetchone()
+            if row:
+                # Convert row to dict
+                playbook_dict = {column: value for column, value in row._mapping.items()}
+                playbook = Playbook(**playbook_dict)
+                return PlaybookOut.model_validate(playbook)
+            return None
+        else:
+            query = db.query(Playbook).filter(Playbook.id == playbook_id)
+            if company_name and hasattr(Playbook, 'company_name'):
+                query = query.filter(Playbook.company_name == company_name)
+                
+            playbook = query.first()
+            if playbook:
+                return PlaybookOut.model_validate(playbook)
+            return None
 
 def add_playbook(playbook_data: PlaybookBase, company_name: str = None) -> PlaybookOut:
     with SessionLocal() as db:
-        # Check if playbook with same name exists for this company
-        query = db.query(Playbook).filter(Playbook.name == playbook_data.name)
-        if company_name:
-            # Check if company_name column exists in the Playbook model
-            if hasattr(Playbook, 'company_name'):
-                query = query.filter(Playbook.company_name == company_name)
-            # If not, try to filter by organization_id using a join
-            elif hasattr(Playbook, 'organization_id'):
-                # This assumes there's a relationship between Playbook and Organization
-                # If not, you'll need to modify this to use a join
-                from models.models import Organization
-                query = query.join(Organization, Playbook.organization_id == Organization.id)
-                query = query.filter(Organization.name == company_name)
-                
-        existing = query.first()
+        # Determine the actual table name for organizations
+        inspector = inspect(db.bind)
+        table_names = inspector.get_table_names()
+        org_table_name = None
+        for name in table_names:
+            if name.lower() == 'organizations':
+                org_table_name = name
+                break
         
-        if existing:
-            raise HTTPException(status_code=400, detail="Playbook with this name already exists")
+        # Check if playbook with same name exists for this company
+        if company_name and hasattr(Playbook, 'organization_id') and org_table_name:
+            # Use raw SQL with explicit type casting to handle UUID vs integer comparison
+            query = text(f"""
+                SELECT p.* FROM "Playbooks" p
+                JOIN "{org_table_name}" o ON p.organization_id::text = o.id::text
+                WHERE p.name = :playbook_name AND o.name = :company_name
+            """)
+            result = db.execute(query, {"playbook_name": playbook_data.name, "company_name": company_name})
+            existing = result.fetchone()
+            
+            if existing:
+                raise HTTPException(status_code=400, detail="Playbook with this name already exists")
+        else:
+            query = db.query(Playbook).filter(Playbook.name == playbook_data.name)
+            if company_name and hasattr(Playbook, 'company_name'):
+                query = query.filter(Playbook.company_name == company_name)
+                
+            existing = query.first()
+            if existing:
+                raise HTTPException(status_code=400, detail="Playbook with this name already exists")
 
         # Create a dictionary from the playbook_data
         playbook_dict = playbook_data.model_dump()
         
-        # Add company_name to the dictionary if it exists in the model
+        # Add company_name or organization_id to the dictionary
         db_playbook = None
         if hasattr(Playbook, 'company_name') and company_name:
             db_playbook = Playbook(
                 company_name=company_name,
                 **playbook_dict
             )
-        elif hasattr(Playbook, 'organization_id') and company_name:
-            # Get organization_id from company_name
-            from models.models import Organization
-            organization = db.query(Organization).filter(Organization.name == company_name).first()
+        elif hasattr(Playbook, 'organization_id') and company_name and org_table_name:
+            # Get organization_id from company_name using raw SQL
+            org_query = text(f'SELECT id FROM "{org_table_name}" WHERE name = :name')
+            org_result = db.execute(org_query, {"name": company_name})
+            org = org_result.fetchone()
             
-            if not organization:
+            if not org:
                 # Create organization if it doesn't exist
-                organization_id = uuid.uuid4()
-                organization = Organization(
-                    id=organization_id,
-                    name=company_name
-                )
-                db.add(organization)
-                db.commit()
-                db.refresh(organization)
+                # Check if the id column is UUID or integer
+                columns = inspector.get_columns(org_table_name)
+                id_type = None
+                for col in columns:
+                    if col['name'] == 'id':
+                        id_type = col['type']
+                        break
                 
+                # Generate appropriate ID based on column type
+                if str(id_type).lower().find('uuid') >= 0:
+                    org_id = uuid.uuid4()
+                else:
+                    # Use an integer ID
+                    import random
+                    org_id = random.randint(1000000, 9999999)
+                
+                # Insert the organization using raw SQL
+                db.execute(
+                    text(f'INSERT INTO "{org_table_name}" (id, name) VALUES (:id, :name)'),
+                    {"id": org_id, "name": company_name}
+                )
+                db.commit()
+                
+                # Get the new organization ID
+                org_query = text(f'SELECT id FROM "{org_table_name}" WHERE name = :name')
+                org_result = db.execute(org_query, {"name": company_name})
+                org = org_result.fetchone()
+            
+            # Use the organization ID directly without conversion
+            org_id = org[0]
+            
+            # Create the playbook with the organization ID
             db_playbook = Playbook(
-                organization_id=organization.id,
+                organization_id=org_id,
                 **playbook_dict
             )
         else:
@@ -110,20 +179,41 @@ def add_playbook(playbook_data: PlaybookBase, company_name: str = None) -> Playb
 
 def delete_playbook(playbook_id: int, company_name: str = None) -> bool:
     with SessionLocal() as db:
-        query = db.query(Playbook).filter(Playbook.id == playbook_id)
-        if company_name:
-            # Check if company_name column exists in the Playbook model
-            if hasattr(Playbook, 'company_name'):
-                query = query.filter(Playbook.company_name == company_name)
-            # If not, try to filter by organization_id using a join
-            elif hasattr(Playbook, 'organization_id'):
-                # This assumes there's a relationship between Playbook and Organization
-                # If not, you'll need to modify this to use a join
-                from models.models import Organization
-                query = query.join(Organization, Playbook.organization_id == Organization.id)
-                query = query.filter(Organization.name == company_name)
+        # Try to get the playbook directly first
+        playbook = db.query(Playbook).filter(Playbook.id == playbook_id).first()
+        
+        # If we need to filter by company and have organization_id
+        if company_name and hasattr(Playbook, 'organization_id') and not playbook:
+            # Determine the actual table name for organizations
+            inspector = inspect(db.bind)
+            table_names = inspector.get_table_names()
+            org_table_name = None
+            for name in table_names:
+                if name.lower() == 'organizations':
+                    org_table_name = name
+                    break
+                    
+            if org_table_name:
+                # Get the organization ID
+                org_query = text(f'SELECT id FROM "{org_table_name}" WHERE name = :name')
+                org_result = db.execute(org_query, {"name": company_name})
+                org = org_result.fetchone()
                 
-        playbook = query.first()
+                if org:
+                    org_id = org[0]
+                    # Try to get the playbook with the organization ID
+                    playbook = db.query(Playbook).filter(
+                        Playbook.id == playbook_id,
+                        Playbook.organization_id == org_id
+                    ).first()
+        
+        # If we need to filter by company_name
+        elif company_name and hasattr(Playbook, 'company_name') and not playbook:
+            playbook = db.query(Playbook).filter(
+                Playbook.id == playbook_id,
+                Playbook.company_name == company_name
+            ).first()
+        
         if playbook:
             db.delete(playbook)
             db.commit()
@@ -132,93 +222,162 @@ def delete_playbook(playbook_id: int, company_name: str = None) -> bool:
 
 def update_playbook(playbook_id: int, update_data: PlaybookBase, company_name: str = None) -> Optional[PlaybookOut]:
     with SessionLocal() as db:
-        query = db.query(Playbook).filter(Playbook.id == playbook_id)
-        if company_name:
-            # Check if company_name column exists in the Playbook model
-            if hasattr(Playbook, 'company_name'):
-                query = query.filter(Playbook.company_name == company_name)
-            # If not, try to filter by organization_id using a join
-            elif hasattr(Playbook, 'organization_id'):
-                # This assumes there's a relationship between Playbook and Organization
-                # If not, you'll need to modify this to use a join
-                from models.models import Organization
-                query = query.join(Organization, Playbook.organization_id == Organization.id)
-                query = query.filter(Organization.name == company_name)
+        try:
+            # First, get the playbook directly without any joins
+            playbook = db.query(Playbook).filter(Playbook.id == playbook_id).first()
+            
+            if not playbook:
+                return None
                 
-        playbook = query.first()
-        if not playbook:
-            return None
-
-        # Check if updated name conflicts with existing playbook
-        if update_data.name != playbook.name:
-            name_query = db.query(Playbook).filter(Playbook.name == update_data.name)
-            if company_name:
-                # Check if company_name column exists in the Playbook model
-                if hasattr(Playbook, 'company_name'):
-                    name_query = name_query.filter(Playbook.company_name == company_name)
-                # If not, try to filter by organization_id using a join
-                elif hasattr(Playbook, 'organization_id'):
-                    # This assumes there's a relationship between Playbook and Organization
-                    # If not, you'll need to modify this to use a join
-                    from models.models import Organization
-                    name_query = name_query.join(Organization, Playbook.organization_id == Organization.id)
-                    name_query = name_query.filter(Organization.name == company_name)
+            # If we need to check company name and have organization_id
+            if company_name and hasattr(playbook, 'organization_id'):
+                # Determine the actual table name for organizations
+                inspector = inspect(db.bind)
+                table_names = inspector.get_table_names()
+                org_table_name = None
+                for name in table_names:
+                    if name.lower() == 'organizations':
+                        org_table_name = name
+                        break
+                        
+                if org_table_name:
+                    # Get the organization ID for the company name
+                    org_query = text(f'SELECT id FROM "{org_table_name}" WHERE name = :name')
+                    org_result = db.execute(org_query, {"name": company_name})
+                    org = org_result.fetchone()
                     
-            name_query = name_query.filter(Playbook.id != playbook_id)
-            existing = name_query.first()
-            if existing:
-                raise HTTPException(status_code=400, detail="Playbook with this name already exists")
+                    if org and str(playbook.organization_id) != str(org[0]):
+                        # This playbook doesn't belong to the specified company
+                        return None
+            
+            # If we need to check company_name field
+            elif company_name and hasattr(playbook, 'company_name') and playbook.company_name != company_name:
+                return None
 
-        # Update playbook fields
-        update_dict = update_data.model_dump()
-        for key, value in update_dict.items():
-            setattr(playbook, key, value)
+            # Check if updated name conflicts with existing playbook
+            if update_data.name != playbook.name:
+                name_query = db.query(Playbook).filter(Playbook.name == update_data.name)
+                
+                if company_name and hasattr(Playbook, 'organization_id'):
+                    # Get the organization ID for the company name
+                    inspector = inspect(db.bind)
+                    table_names = inspector.get_table_names()
+                    org_table_name = None
+                    for name in table_names:
+                        if name.lower() == 'organizations':
+                            org_table_name = name
+                            break
+                            
+                    if org_table_name:
+                        # Get the organization ID
+                        org_query = text(f'SELECT id FROM "{org_table_name}" WHERE name = :name')
+                        org_result = db.execute(org_query, {"name": company_name})
+                        org = org_result.fetchone()
+                        
+                        if org:
+                            org_id = org[0]
+                            name_query = name_query.filter(Playbook.organization_id == org_id)
+                
+                elif company_name and hasattr(Playbook, 'company_name'):
+                    name_query = name_query.filter(Playbook.company_name == company_name)
+                    
+                name_query = name_query.filter(Playbook.id != playbook_id)
+                existing = name_query.first()
+                if existing:
+                    raise HTTPException(status_code=400, detail="Playbook with this name already exists")
 
-        db.commit()
-        db.refresh(playbook)
-        return PlaybookOut.model_validate(playbook)
+            # Update playbook fields - don't touch organization_id
+            update_dict = update_data.model_dump()
+            for key, value in update_dict.items():
+                if key != 'organization_id':  # Skip organization_id to avoid FK issues
+                    setattr(playbook, key, value)
+
+            db.commit()
+            db.refresh(playbook)
+            return PlaybookOut.model_validate(playbook)
+        except Exception as e:
+            db.rollback()
+            print(f"Error updating playbook: {e}")
+            raise
 
 def toggle_playbook_status(playbook_id: int, company_name: str = None) -> Optional[PlaybookOut]:
     with SessionLocal() as db:
-        query = db.query(Playbook).filter(Playbook.id == playbook_id)
-        if company_name:
-            # Check if company_name column exists in the Playbook model
-            if hasattr(Playbook, 'company_name'):
-                query = query.filter(Playbook.company_name == company_name)
-            # If not, try to filter by organization_id using a join
-            elif hasattr(Playbook, 'organization_id'):
-                # This assumes there's a relationship between Playbook and Organization
-                # If not, you'll need to modify this to use a join
-                from models.models import Organization
-                query = query.join(Organization, Playbook.organization_id == Organization.id)
-                query = query.filter(Organization.name == company_name)
+        try:
+            # First, get the playbook directly without any joins
+            playbook = db.query(Playbook).filter(Playbook.id == playbook_id).first()
+            
+            if not playbook:
+                return None
                 
-        playbook = query.first()
-        if not playbook:
-            return None
+            # If we need to check company name and have organization_id
+            if company_name and hasattr(playbook, 'organization_id'):
+                # Determine the actual table name for organizations
+                inspector = inspect(db.bind)
+                table_names = inspector.get_table_names()
+                org_table_name = None
+                for name in table_names:
+                    if name.lower() == 'organizations':
+                        org_table_name = name
+                        break
+                        
+                if org_table_name:
+                    # Get the organization ID for the company name
+                    org_query = text(f'SELECT id FROM "{org_table_name}" WHERE name = :name')
+                    org_result = db.execute(org_query, {"name": company_name})
+                    org = org_result.fetchone()
+                    
+                    if org and str(playbook.organization_id) != str(org[0]):
+                        # This playbook doesn't belong to the specified company
+                        return None
+            
+            # If we need to check company_name field
+            elif company_name and hasattr(playbook, 'company_name') and playbook.company_name != company_name:
+                return None
 
-        playbook.is_active = not playbook.is_active
-        db.commit()
-        db.refresh(playbook)
-        return PlaybookOut.model_validate(playbook)
+            # Toggle the status - this is the only operation we need to perform
+            playbook.is_active = not playbook.is_active
+            
+            db.commit()
+            db.refresh(playbook)
+            return PlaybookOut.model_validate(playbook)
+        except Exception as e:
+            db.rollback()
+            print(f"Error toggling playbook status: {e}")
+            raise
 
 def get_active_playbooks(company_name: str = None) -> List[PlaybookOut]:
     with SessionLocal() as db:
-        query = db.query(Playbook).filter(Playbook.is_active == True)
-        if company_name:
-            # Check if company_name column exists in the Playbook model
-            if hasattr(Playbook, 'company_name'):
-                query = query.filter(Playbook.company_name == company_name)
-            # If not, try to filter by organization_id using a join
-            elif hasattr(Playbook, 'organization_id'):
-                # This assumes there's a relationship between Playbook and Organization
-                # If not, you'll need to modify this to use a join
-                from models.models import Organization
-                query = query.join(Organization, Playbook.organization_id == Organization.id)
-                query = query.filter(Organization.name == company_name)
+        # Determine the actual table name for organizations
+        inspector = inspect(db.bind)
+        table_names = inspector.get_table_names()
+        org_table_name = None
+        for name in table_names:
+            if name.lower() == 'organizations':
+                org_table_name = name
+                break
                 
-        playbooks = query.all()
-        return [PlaybookOut.model_validate(playbook) for playbook in playbooks]
+        if company_name and hasattr(Playbook, 'organization_id') and org_table_name:
+            # Use raw SQL with explicit type casting to handle UUID vs integer comparison
+            query = text(f"""
+                SELECT p.* FROM "Playbooks" p
+                JOIN "{org_table_name}" o ON p.organization_id::text = o.id::text
+                WHERE p.is_active = TRUE AND o.name = :company_name
+            """)
+            result = db.execute(query, {"company_name": company_name})
+            playbooks = []
+            for row in result:
+                # Convert row to dict and create Playbook object
+                playbook_dict = {column: value for column, value in row._mapping.items()}
+                playbook = Playbook(**playbook_dict)
+                playbooks.append(playbook)
+            return [PlaybookOut.model_validate(playbook) for playbook in playbooks]
+        else:
+            query = db.query(Playbook).filter(Playbook.is_active == True)
+            if company_name and hasattr(Playbook, 'company_name'):
+                query = query.filter(Playbook.company_name == company_name)
+                
+            playbooks = query.all()
+            return [PlaybookOut.model_validate(playbook) for playbook in playbooks]
 
 # Additional functions from master branch, modified to support company filtering
 
@@ -376,20 +535,58 @@ def execute_playbook_rules(company_name: str = None):
     """
     try:
         with SessionLocal() as db:
-            # Get active playbooks, filtered by company if provided
-            query = db.query(Playbook).filter(Playbook.is_active == True)
-            if company_name:
-                # Check if company_name column exists in the Playbook model
-                if hasattr(Playbook, 'company_name'):
-                    query = query.filter(Playbook.company_name == company_name)
-                # If not, try to filter by organization_id using a join
-                elif hasattr(Playbook, 'organization_id'):
-                    # This assumes there's a relationship between Playbook and Organization
-                    from models.models import Organization
-                    query = query.join(Organization, Playbook.organization_id == Organization.id)
-                    query = query.filter(Organization.name == company_name)
+            # Get active playbooks using ORM when possible
+            active_playbooks = []
+            
+            # Basic query for active playbooks
+            base_query = db.query(Playbook).filter(Playbook.is_active == True)
+            
+            # If filtering by company name with company_name field
+            if company_name and hasattr(Playbook, 'company_name'):
+                filtered_playbooks = base_query.filter(Playbook.company_name == company_name).all()
+                active_playbooks.extend(filtered_playbooks)
+            
+            # If filtering by company name with organization_id field
+            elif company_name and hasattr(Playbook, 'organization_id'):
+                # Determine the actual table name for organizations
+                inspector = inspect(db.bind)
+                table_names = inspector.get_table_names()
+                org_table_name = None
+                for name in table_names:
+                    if name.lower() == 'organizations':
+                        org_table_name = name
+                        break
+                        
+                if org_table_name:
+                    # Get the organization ID
+                    org_query = text(f'SELECT id FROM "{org_table_name}" WHERE name = :name')
+                    org_result = db.execute(org_query, {"name": company_name})
+                    org = org_result.fetchone()
                     
-            active_playbooks = query.all()
+                    if org:
+                        org_id = org[0]
+                        # Get playbooks with this organization ID
+                        filtered_playbooks = base_query.filter(Playbook.organization_id == org_id).all()
+                        active_playbooks.extend(filtered_playbooks)
+                    
+                    # If we couldn't find the organization or filter by ID, use raw SQL as fallback
+                    if not active_playbooks and org_table_name:
+                        query = text(f"""
+                            SELECT p.* FROM "Playbooks" p
+                            JOIN "{org_table_name}" o ON p.organization_id::text = o.id::text
+                            WHERE p.is_active = TRUE AND o.name = :company_name
+                        """)
+                        result = db.execute(query, {"company_name": company_name})
+                        for row in result:
+                            # Convert row to dict and create Playbook object
+                            playbook_dict = {column: value for column, value in row._mapping.items()}
+                            playbook = Playbook(**playbook_dict)
+                            # Merge with session to make it persistent
+                            playbook = db.merge(playbook)
+                            active_playbooks.append(playbook)
+            else:
+                # No company filtering, get all active playbooks
+                active_playbooks = base_query.all()
 
             for playbook in active_playbooks:
                 conditions = playbook.conditions
@@ -400,11 +597,22 @@ def execute_playbook_rules(company_name: str = None):
                 if hasattr(playbook, 'company_name'):
                     playbook_company = playbook.company_name
                 elif hasattr(playbook, 'organization_id') and playbook.organization_id:
-                    # Get company name from organization_id
-                    from models.models import Organization
-                    org = db.query(Organization).filter(Organization.id == playbook.organization_id).first()
-                    if org:
-                        playbook_company = org.name
+                    # Determine the actual table name for organizations
+                    inspector = inspect(db.bind)
+                    table_names = inspector.get_table_names()
+                    org_table_name = None
+                    for name in table_names:
+                        if name.lower() == 'organizations':
+                            org_table_name = name
+                            break
+                            
+                    if org_table_name:
+                        # Get company name from organization_id using raw SQL
+                        org_query = text(f'SELECT name FROM "{org_table_name}" WHERE id::text = :org_id::text')
+                        org_result = db.execute(org_query, {"org_id": str(playbook.organization_id)})
+                        org = org_result.fetchone()
+                        if org:
+                            playbook_company = org[0]
 
                 # Parse conditions and actions
                 if not conditions:

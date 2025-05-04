@@ -1,5 +1,5 @@
 from database import SessionLocal
-from models.models import Account, Role
+from models.models import Account, Role, Organization
 from models.schemas import AccountBase
 from typing import List, Optional, Annotated
 from passlib.context import CryptContext
@@ -7,7 +7,6 @@ from datetime import timedelta, timezone, datetime
 from jose import jwt, JWTError
 from fastapi.security import OAuth2PasswordRequestForm, OAuth2PasswordBearer
 from fastapi import APIRouter, Depends, HTTPException
-
 
 SECRET_KEY = 's3cr3tk3y'  #Could be anything
 ALGORITHM = 'HS256'
@@ -52,22 +51,26 @@ def add_user(user_particulars: AccountBase):
             # Create a dict of user particulars and hash the password
             hashed_password = bcrypt_context.hash(user_particulars.passwd)
             
-            # Convert Pydantic model to dict, excluding id if it's empty
+            # Convert Pydantic model to dict, excluding id
             user_data = {}
-            if user_particulars.id is None or user_particulars.id == "":
-                # Exclude id when it's empty
-                for key, value in user_particulars.model_dump().items():
-                    if key != "id" and key != "passwd":
-                        user_data[key] = value
-            else:
-                # Include all fields except password
-                for key, value in user_particulars.model_dump().items():
-                    if key != "passwd":
-                        user_data[key] = value
+            for key, value in user_particulars.model_dump().items():
+                if key != "id" and key != "passwd":
+                    user_data[key] = value
             
             # Ensure userSuspend and userRejected are set correctly
             user_data["userSuspend"] = False  # Changed to False - no approval needed
             user_data["userRejected"] = False
+            
+            # Check if organization exists and create it if not
+            org = db.query(Organization).filter(Organization.name == user_particulars.userComName).first()
+            if not org:
+                org = Organization(name=user_particulars.userComName)
+                db.add(org)
+                db.commit()
+                db.refresh(org)
+            
+            # Set organization_id on the user
+            user_data["organization_id"] = org.id
             
             # Create user object with hashed password
             create_user = Account(**user_data, passwd=hashed_password)
@@ -75,6 +78,11 @@ def add_user(user_particulars: AccountBase):
             db.add(create_user)
             db.commit()
             db.refresh(create_user)
+            
+            # Create a response object without the id field
+            response_data = user_particulars.model_dump()
+            if "id" in response_data:
+                del response_data["id"]
                 
             return create_user
         except HTTPException as e:

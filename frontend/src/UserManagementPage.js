@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
+import { jwtDecode } from "jwt-decode"
 import { useNavigate, useLocation } from "react-router-dom"
 import { useAuth } from "./context/AuthContext" // Import useAuth
 import Sidebar from "./Sidebar"
@@ -25,6 +26,45 @@ const UserManagementPage = () => {
   const [userToSuspend, setUserToSuspend] = useState(null)
   const [loading, setLoading] = useState(true) // Added loading state
   const [error, setError] = useState(null)
+
+  // Function to extract organization ID from token and save to localStorage
+  const extractOrgIdFromToken = () => {
+    try {
+      const token = localStorage.getItem("token")
+      if (!token) {
+        console.error("No token found in localStorage")
+        return null
+      }
+
+      // Decode the token
+      const decodedToken = jwtDecode(token)
+      console.log("Decoded token:", decodedToken)
+
+      // Try to find organization_id in different possible locations in the token
+      let orgId = null
+
+      // Check if organization_id is directly in the token
+      if (decodedToken.organization_id) {
+        orgId = decodedToken.organization_id
+      }
+      // Check if it's in the user object
+      else if (decodedToken.user && decodedToken.user.organization_id) {
+        orgId = decodedToken.user.organization_id
+      }
+
+      if (orgId) {
+        console.log("Found organization ID in token:", orgId)
+        localStorage.setItem("orgId", String(orgId))
+        return orgId
+      } else {
+        console.warn("Organization ID not found in token")
+        return null
+      }
+    } catch (err) {
+      console.error("Error extracting organization ID from token:", err)
+      return null
+    }
+  }
 
   // Function to log user activity
   const logActivity = async (action, targetUser, description) => {
@@ -86,6 +126,29 @@ const UserManagementPage = () => {
       setLoading(false)
     }
   }
+
+  // Check for organization ID on component mount
+  useEffect(() => {
+    // Check if orgId exists in localStorage
+    const orgId = localStorage.getItem("orgId")
+
+    if (!orgId || isNaN(Number(orgId))) {
+      console.log("No valid organization ID in localStorage, attempting to extract from token")
+      const extractedOrgId = extractOrgIdFromToken()
+
+      if (!extractedOrgId) {
+        // If we still don't have an orgId, try to get it from authData
+        if (authData && authData.orgId) {
+          console.log("Using organization ID from authData:", authData.orgId)
+          localStorage.setItem("orgId", String(authData.orgId))
+        } else {
+          console.warn("Could not find organization ID in token or authData")
+        }
+      }
+    } else {
+      console.log("Found organization ID in localStorage:", orgId)
+    }
+  }, [authData])
 
   useEffect(() => {
     fetchRoles()
@@ -204,6 +267,34 @@ const UserManagementPage = () => {
   const addUser = async (user) => {
     try {
       const token = localStorage.getItem("token") // Get the token from localStorage
+      let orgId = localStorage.getItem("orgId") // Get the organization ID
+
+      console.log("Organization ID from localStorage:", orgId)
+
+      // If no orgId in localStorage, try to extract from token
+      if (!orgId || isNaN(Number(orgId))) {
+        console.log("No valid organization ID in localStorage, attempting to extract from token")
+        orgId = extractOrgIdFromToken()
+
+        // If still no orgId, try from authData
+        if (!orgId && authData && authData.orgId) {
+          orgId = String(authData.orgId)
+          console.log("Using organization ID from authData:", orgId)
+          localStorage.setItem("orgId", orgId)
+        }
+      }
+
+      // Parse organization ID as a number
+      let parsedOrgId = null
+      if (orgId && !isNaN(Number(orgId))) {
+        parsedOrgId = Number(orgId)
+        console.log("Parsed organization ID:", parsedOrgId)
+      } else {
+        console.error("Invalid or missing organization ID")
+        setError("Organization ID is missing or invalid. Please log in again.")
+        setTimeout(() => setError(null), 5000)
+        return false
+      }
 
       // Set userSuspend to false for users created in user management page
       // This allows them to log in immediately without approval
@@ -211,7 +302,10 @@ const UserManagementPage = () => {
         ...user,
         userSuspend: false,
         userRejected: false,
+        organization_id: parsedOrgId, // Add organization_id to the new user
       }
+
+      console.log("Creating new user with data:", newUser)
 
       const response = await fetch("http://127.0.0.1:8000/user-management/", {
         method: "POST",
@@ -228,6 +322,7 @@ const UserManagementPage = () => {
       }
 
       const addedUser = await response.json()
+      console.log("Successfully added user:", addedUser)
 
       // Log the activity
       const description = `Created new user account: ${newUser.username} with role ${getRoleName(newUser.userRole)}`
@@ -252,6 +347,24 @@ const UserManagementPage = () => {
   const updateUser = async (user) => {
     try {
       const token = localStorage.getItem("token") // Get the token from localStorage
+      let orgId = localStorage.getItem("orgId") // Get the organization ID
+
+      // If no orgId in localStorage, try to extract from token
+      if (!orgId || isNaN(Number(orgId))) {
+        orgId = extractOrgIdFromToken()
+
+        // If still no orgId, try from authData
+        if (!orgId && authData && authData.orgId) {
+          orgId = String(authData.orgId)
+          localStorage.setItem("orgId", orgId)
+        }
+      }
+
+      // Parse organization ID as a number
+      let parsedOrgId = null
+      if (orgId && !isNaN(Number(orgId))) {
+        parsedOrgId = Number(orgId)
+      }
 
       // Get the original user to compare changes
       const originalUser = users.find((u) => u.id === user.id)
@@ -268,6 +381,7 @@ const UserManagementPage = () => {
         userRole: user.userRole,
         userSuspend: user.userSuspend,
         userRejected: user.userRejected || false,
+        organization_id: parsedOrgId || user.organization_id, // Preserve or update organization_id
       }
 
       // Include password only if it is provided

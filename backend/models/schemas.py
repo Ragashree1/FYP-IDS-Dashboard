@@ -1,7 +1,7 @@
 import uuid
 from datetime import datetime
 from pydantic import BaseModel, EmailStr, IPvAnyAddress, validator, constr
-from typing import List, Optional
+from typing import List, Optional, Dict, Any
 import re
 
 class MeetingMinutesBase(BaseModel):
@@ -56,6 +56,8 @@ class SnortAlertsBase(BaseModel):
     message: str
     signature_id: str
     host: str
+    alert_source: str = "snort"
+    organization_id: Optional[int] = None
 
 class SnortAlertsOut(BaseModel):
     id: int
@@ -74,9 +76,105 @@ class SnortAlertsOut(BaseModel):
     message: str
     signature_id: str
     host: str
-
+    alert_source: str
+    organization_id: Optional[int] = None
+    
     class Config:
         from_attributes = True  # Updated from orm_mode = True
+        
+class SuricataAlertsBase(BaseModel):
+    timestamp: str
+    priority: int
+    protocol: str
+    raw: str
+    length: int
+    direction: str
+    src_ip: str
+    src_port: int
+    dest_ip: str
+    dest_port: int
+    classification: str
+    action: str
+    message: str
+    signature_id: str
+    host: str
+    alert_source: str = "suricata"
+    organization_id: Optional[int] = None
+
+class SuricataAlertsOut(BaseModel):
+    id: int
+    timestamp: str
+    priority: int
+    protocol: str
+    raw: str
+    length: int
+    direction: str
+    src_ip: str
+    src_port: int
+    dest_ip: str
+    dest_port: int
+    classification: str
+    action: str
+    message: str
+    signature_id: str
+    host: str
+    alert_source: str
+    organization_id: Optional[int] = None
+
+    class Config:
+        from_attributes = True
+
+class ZeekAlertsBase(BaseModel):
+    timestamp: str
+    priority: int
+    priority_name: Optional[str] = None  # Add this line
+    protocol: str
+    raw: str
+    length: int = 0
+    direction: str = "->"
+    src_ip: str
+    src_port: int
+    dest_ip: str
+    dest_port: int
+    classification: str
+    action: str = "ALERT"
+    message: str
+    signature_id: str = "0"
+    host: str
+    alert_source: str = "zeek"
+    organization_id: Optional[int] = None
+    conn_id: Optional[str] = None
+    event_type: Optional[str] = None
+    uid: Optional[str] = None
+    service: Optional[str] = None
+
+class ZeekAlertsOut(BaseModel):
+    id: int
+    timestamp: str
+    priority: int
+    priority_name: Optional[str] = None  # Add this line
+    protocol: str
+    raw: str
+    length: int
+    direction: str
+    src_ip: str
+    src_port: int
+    dest_ip: str
+    dest_port: int
+    classification: str
+    action: str
+    message: str
+    signature_id: str
+    host: str
+    alert_source: str
+    organization_id: Optional[int] = None
+    conn_id: Optional[str] = None
+    event_type: Optional[str] = None
+    uid: Optional[str] = None
+    service: Optional[str] = None
+
+    class Config:
+        from_attributes = True
 
 class AccountBase(BaseModel):
     id: Optional[int] = None
@@ -90,6 +188,7 @@ class AccountBase(BaseModel):
     userRole: Optional[int] = 1
     userSuspend: bool = True
     userRejected: Optional[bool] = False
+    organization_id: Optional[int] = None
     fromOrgRequestsPage: Optional[bool] = False  # Ensure consistent naming
 
     @validator('id', pre=True)
@@ -224,6 +323,21 @@ class LogsOut(BaseModel):
 class IPAddressSchema(BaseModel):
     ip: str
     reason: str
+    organization_id: int
+
+    class Config:
+        from_attributes = True
+
+class ClientSchema(BaseModel):
+    name: str
+    email: str
+
+    class Config:
+        from_attributes = True
+
+class VerifyIPRequest(BaseModel):
+    organization_id: int
+    ip: str
 
 class PlaybookBase(BaseModel):
     name: str
@@ -234,6 +348,27 @@ class PlaybookBase(BaseModel):
 
     class Config:
         from_attributes = True
+
+class LogRequest(BaseModel):
+    log_data: str
+
+    class Config:
+        from_attributes = True  
+
+class ClientRequest(BaseModel):
+    name: str
+    email: str
+
+    class Config:
+        from_attributes = True
+
+class LogEntryOut(BaseModel):
+    timestamp: str
+    ip: str
+    log_data: str
+
+    class Config:
+        orm_mode = True
 
 class PlaybookOut(PlaybookBase):
     id: int
@@ -247,6 +382,13 @@ class PlaybookOut(PlaybookBase):
 
     class Config:
         from_attributes = True  # Updated from orm_mode = True
+
+class CombinedLogResponse(BaseModel):
+    source: str
+    timestamp: str
+    message: str
+    type: str
+    additional_data: Optional[Dict[str, Any]] = None
 
 class ActivityLogBase(BaseModel):
     user: str

@@ -2,7 +2,7 @@ import os
 from dotenv import load_dotenv
 from sqlalchemy import create_engine
 from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import sessionmaker
+from sqlalchemy.orm import sessionmaker, Session
 
 # Load environment variables
 load_dotenv()
@@ -14,7 +14,7 @@ if not DATABASE_URL:
     raise ValueError("DATABASE_URL is not set in the .env file! Please check.")
 
 # Print loaded database URL (for debugging)
-print(f"DATABASE_URL from .env: {DATABASE_URL}")
+#print(f"DATABASE_URL from .env: {DATABASE_URL}")
 
 #  Add connection pooling settings
 engine = create_engine(
@@ -31,7 +31,7 @@ Base = declarative_base()
 
 # Add the get_db dependency function
 def get_db():
-    db = SessionLocal()
+    db: Session = SessionLocal()
     try:
         yield db
     finally:

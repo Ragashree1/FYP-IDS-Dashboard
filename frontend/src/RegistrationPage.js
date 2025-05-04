@@ -1,6 +1,7 @@
-﻿import { useState, useEffect } from "react"
+﻿"use client"
+
+import { useState, useEffect } from "react"
 import { useNavigate } from "react-router-dom"
-import { validatePhoneNumber, validateEmail, validatePassword } from './utils/validation';
 
 const RegistrationPage = () => {
   const navigate = useNavigate() // Add navigation hook
@@ -508,12 +509,15 @@ const RegistrationPage = () => {
     e.preventDefault()
     if (!validateForm()) return
 
-    // Ensure userSuspend is set to true for new registrations
+    // Remove the id field completely from the data being sent
+    const { id, ...registrationDataWithoutId } = formData
+
+    // Ensure userSuspend is set to false for new registrations (allow immediate login)
     const registrationData = {
-      ...formData,
-      userSuspend: true,
+      ...registrationDataWithoutId,
+      userSuspend: false,
       userRejected: false,
-      fromOrgRequestsPage: false, // Corrected field name with 's'
+      fromOrgRequestsPage: false,
     }
 
     console.log("Submitting registration data:", registrationData)

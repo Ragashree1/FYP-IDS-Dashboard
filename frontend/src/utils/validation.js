@@ -1,3 +1,5 @@
+import React from 'react';
+
 export const validatePhoneNumber = (phone) => {
   // New regex pattern following E.164 format
   const phoneRegex = /^\+[1-9]\d{0,2}\d{6,14}$/;

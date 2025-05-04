@@ -1,3 +1,5 @@
+import React from "react";
+
 const DeleteConfirmationModal = ({ onClose, onConfirm }) => {
   return (
     <div

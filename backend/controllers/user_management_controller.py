@@ -1,12 +1,11 @@
 # controllers/user_management_controller.py
-from fastapi import APIRouter, HTTPException, Depends, Header, Response, Request
-from starlette import status
-from models.schemas import AccountBase, RoleOut, AccountStatusCheck, ActivityLogBase
-from services import user_management_service, audit_service
-from typing import List, Dict, Any
-from services.auth_service import get_company_name_from_token, check_user_status, get_current_user
-from database import get_db
+from fastapi import APIRouter, Depends, HTTPException, Request, Response, Header
+from typing import List, Optional, Dict, Any
 from sqlalchemy.orm import Session
+from models.schemas import AccountBase, RoleOut, ActivityLogBase, AccountStatusCheck
+from services import user_management_service, audit_service
+from database import get_db
+from services.auth_service import get_company_name_from_token, check_user_status, get_current_user
 
 router = APIRouter(prefix="/user-management", tags=["user-management"])
 
@@ -46,11 +45,26 @@ def add_user(
         if not user.userPhoneNum or user.userPhoneNum.strip() == "":
             user.userPhoneNum = "+65123456789"  # Set default phone number if empty
         
+        # If organization_id is not provided, try to get it from the current user
+        if user.organization_id is None:
+            # Get the organization_id from the current user
+            current_user_org_id = getattr(current_user, 'organization_id', None)
+            if current_user_org_id:
+                user.organization_id = current_user_org_id
+                print(f"Setting organization_id from current user: {current_user_org_id}")
+            else:
+                # If current_user doesn't have organization_id, log an error
+                print("WARNING: Current user does not have an organization_id")
+        
+        print(f"User data before adding: {user.dict()}")
+        
         # Add the user with the role they were assigned
         new_user = user_management_service.add_user(user_particulars=user)
         
+        print(f"New user created: {new_user.dict()}")
+        
         # Check if the request is from the organization requests page
-        if not user.fromOrgRequestsPage:
+        if not getattr(user, 'fromOrgRequestsPage', False):
             # Log the activity only if not from organization requests page
             client_ip = "127.0.0.1"
             if request:
@@ -84,6 +98,7 @@ def add_user(
             response.headers["Access-Control-Allow-Credentials"] = "true"
             response.headers["Access-Control-Allow-Methods"] = "GET, POST, PUT, DELETE, OPTIONS"
             response.headers["Access-Control-Allow-Headers"] = "Content-Type, Authorization, X-Requested-With"
+        print(f"Error in add_user: {str(e)}")
         raise HTTPException(
             status_code=500,
             detail=str(e)
@@ -91,7 +106,7 @@ def add_user(
 
 @router.get("/", response_model=List[AccountBase])
 def fetch_user(
-    company_name: str = Depends(get_company_name_from_token),
+    token: str = Depends(get_token),
     response: Response = None,
 ):
     try:
@@ -102,6 +117,9 @@ def fetch_user(
             response.headers["Access-Control-Allow-Methods"] = "GET, POST, PUT, DELETE, OPTIONS"
             response.headers["Access-Control-Allow-Headers"] = "Content-Type, Authorization, X-Requested-With"
             
+        current_user = get_current_user(token)
+        company_name = get_company_name_from_token(token)
+        
         # Check if the request is from the platform admin
         if company_name == "secuboard":
             # If it's the platform admin, return all users
@@ -124,7 +142,10 @@ def fetch_user(
         )
 
 @router.get("/roles", response_model=List[RoleOut])
-def fetch_roles(response: Response = None):
+def fetch_roles(
+    token: str = Depends(get_token),
+    response: Response = None
+):
     try:
         # Set CORS headers
         if response:
@@ -189,12 +210,10 @@ def fetch_roles(response: Response = None):
             RoleOut(id=IT_MANAGER_ROLE_ID, roleName="IT Manager")  # Include IT Manager in default roles
         ]
 
-@router.delete("/{account_id}")
-def remove_user(
-    account_id: int, 
+@router.get("/{user_id}", response_model=AccountBase)
+def get_user_by_id(
+    user_id: int,
     token: str = Depends(get_token),
-    db: Session = Depends(get_db),
-    request: Request = None,
     response: Response = None
 ):
     try:
@@ -205,38 +224,10 @@ def remove_user(
             response.headers["Access-Control-Allow-Methods"] = "GET, POST, PUT, DELETE, OPTIONS"
             response.headers["Access-Control-Allow-Headers"] = "Content-Type, Authorization, X-Requested-With"
             
-        # Get current user and company name
-        current_user = get_current_user(token)
-        comp = get_company_name_from_token(token)
-        
-        # Get user details before deletion for logging
-        user_to_delete = user_management_service.get_user_by_id(account_id)
-        if not user_to_delete:
-            raise HTTPException(status_code=404, detail="User not found.")
-            
-        # Delete the user
-        success = user_management_service.delete_user(account_id=account_id)
-        if not success:
-            raise HTTPException(status_code=404, detail="User not found.")
-            
-        # Log the activity
-        client_ip = "127.0.0.1"
-        if request:
-            client_ip = request.client.host
-            
-        log_data = ActivityLogBase(
-            user=current_user.username,
-            targetUser=user_to_delete.username,
-            action="user_deleted",
-            description=f"Deleted user account: {user_to_delete.username}",
-            ipAddress=client_ip,
-            userComName=comp
-        )
-        
-        # Save to audit log
-        audit_service.add_activity_log(db, log_data, comp)
-        
-        return {"message": "User deleted successfully"}
+        user = user_management_service.get_user_by_id(user_id)
+        if not user:
+            raise HTTPException(status_code=404, detail="User not found")
+        return user
     except HTTPException as e:
         # Set CORS headers even on error
         if response:
@@ -252,14 +243,15 @@ def remove_user(
             response.headers["Access-Control-Allow-Credentials"] = "true"
             response.headers["Access-Control-Allow-Methods"] = "GET, POST, PUT, DELETE, OPTIONS"
             response.headers["Access-Control-Allow-Headers"] = "Content-Type, Authorization, X-Requested-With"
+        print(f"Error in get_user_by_id endpoint: {str(e)}")
         raise HTTPException(
             status_code=500,
             detail=str(e)
         )
 
-@router.put("/{account_id}", response_model=AccountBase)
+@router.put("/{user_id}", response_model=AccountBase)
 def modify_account(
-    account_id: int, 
+    user_id: int, 
     update_data: AccountBase, 
     token: str = Depends(get_token),
     db: Session = Depends(get_db),
@@ -279,7 +271,7 @@ def modify_account(
         comp = get_company_name_from_token(token)
         
         # Ensure the account ID matches the one in the request body
-        if update_data.id != account_id:
+        if update_data.id != user_id:
             raise HTTPException(status_code=400, detail="Account ID mismatch")
             
         # Get the company name from the user data
@@ -290,18 +282,18 @@ def modify_account(
             update_data.userPhoneNum = "+65123456789"  # Set default phone number if empty
         
         # Get original user data for comparison
-        original_user = user_management_service.get_user_by_id(account_id)
+        original_user = user_management_service.get_user_by_id(user_id)
         if not original_user:
             raise HTTPException(status_code=404, detail="User not found")
             
         # Update the user
-        updated_account = user_management_service.update_account(account_id=account_id, update_data=update_data)
+        updated_account = user_management_service.update_account(account_id=user_id, update_data=update_data)
         if not updated_account:
             raise HTTPException(status_code=404, detail="User not found")
             
         # Check if the request is from the organization requests page
         # by looking for the fromOrgRequestsPage flag in the update_data
-        from_org_requests_page = update_data.fromOrgRequestsPage
+        from_org_requests_page = getattr(update_data, 'fromOrgRequestsPage', False)
         
         # Debug log to verify the flag is being received
         print(f"fromOrgRequestsPage flag: {from_org_requests_page}")
@@ -379,6 +371,74 @@ def modify_account(
             response.headers["Access-Control-Allow-Methods"] = "GET, POST, PUT, DELETE, OPTIONS"
             response.headers["Access-Control-Allow-Headers"] = "Content-Type, Authorization, X-Requested-With"
         raise HTTPException(status_code=500, detail=str(e))
+
+@router.delete("/{user_id}")
+def remove_user(
+    user_id: int, 
+    token: str = Depends(get_token),
+    db: Session = Depends(get_db),
+    request: Request = None,
+    response: Response = None
+):
+    try:
+        # Set CORS headers
+        if response:
+            response.headers["Access-Control-Allow-Origin"] = "*"
+            response.headers["Access-Control-Allow-Credentials"] = "true"
+            response.headers["Access-Control-Allow-Methods"] = "GET, POST, PUT, DELETE, OPTIONS"
+            response.headers["Access-Control-Allow-Headers"] = "Content-Type, Authorization, X-Requested-With"
+            
+        # Get current user and company name
+        current_user = get_current_user(token)
+        comp = get_company_name_from_token(token)
+        
+        # Get user details before deletion for logging
+        user_to_delete = user_management_service.get_user_by_id(user_id)
+        if not user_to_delete:
+            raise HTTPException(status_code=404, detail="User not found.")
+            
+        # Delete the user
+        success = user_management_service.delete_user(account_id=user_id)
+        if not success:
+            raise HTTPException(status_code=404, detail="User not found.")
+            
+        # Log the activity
+        client_ip = "127.0.0.1"
+        if request:
+            client_ip = request.client.host
+            
+        log_data = ActivityLogBase(
+            user=current_user.username,
+            targetUser=user_to_delete.username,
+            action="user_deleted",
+            description=f"Deleted user account: {user_to_delete.username}",
+            ipAddress=client_ip,
+            userComName=comp
+        )
+        
+        # Save to audit log
+        audit_service.add_activity_log(db, log_data, comp)
+        
+        return {"message": "User deleted successfully"}
+    except HTTPException as e:
+        # Set CORS headers even on error
+        if response:
+            response.headers["Access-Control-Allow-Origin"] = "*"
+            response.headers["Access-Control-Allow-Credentials"] = "true"
+            response.headers["Access-Control-Allow-Methods"] = "GET, POST, PUT, DELETE, OPTIONS"
+            response.headers["Access-Control-Allow-Headers"] = "Content-Type, Authorization, X-Requested-With"
+        raise e
+    except Exception as e:
+        # Set CORS headers even on error
+        if response:
+            response.headers["Access-Control-Allow-Origin"] = "*"
+            response.headers["Access-Control-Allow-Credentials"] = "true"
+            response.headers["Access-Control-Allow-Methods"] = "GET, POST, PUT, DELETE, OPTIONS"
+            response.headers["Access-Control-Allow-Headers"] = "Content-Type, Authorization, X-Requested-With"
+        raise HTTPException(
+            status_code=500,
+            detail=str(e)
+        )
 
 # Add a new endpoint to check user status before login
 @router.post("/check-status", response_model=AccountStatusCheck)

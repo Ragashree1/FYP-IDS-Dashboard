@@ -9,8 +9,8 @@ def init_database():
     # Create all tables
     Base.metadata.create_all(bind=engine)
     
-    # Initialize roles
-    with SessionLocal() as db:
+    db = SessionLocal()
+    try:
         # Check if roles already exist
         existing_roles = db.query(Role).all()
         if not existing_roles:
@@ -32,23 +32,18 @@ def init_database():
             API_KEY = os.getenv("API_KEY")
 
             url = 'https://api.abuseipdb.com/api/v2/blacklist'
-
-            querystring = {
-                'confidenceMinimum': '90'
-            }
-
+            querystring = { 'confidenceMinimum': '90' }
             headers = {
                 'Accept': 'application/json',
                 'Key': API_KEY
             }
 
-            response = requests.request(method='GET', url=url, headers=headers, params=querystring)
+            response = requests.get(url, headers=headers, params=querystring)
 
             if response.status_code == 200:
-                decoded_response = json.loads(response.text)
+                decoded_response = response.json()
                 blacklist_data = decoded_response.get("data", [])
 
-                # Insert IPs into the international_blacklist table
                 blacklist_entries = [
                     InternationalBlacklist(ip=entry["ipAddress"])
                     for entry in blacklist_data
@@ -114,6 +109,8 @@ def init_database():
             print("Priority classification table populated successfully")
         else:
             print("Priority classification table already populated")
+    finally:
+        db.close()
 
 if __name__ == "__main__":
     init_database()

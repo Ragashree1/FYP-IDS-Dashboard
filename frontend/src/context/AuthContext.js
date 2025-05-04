@@ -1,4 +1,4 @@
-import { createContext, useState, useContext, useEffect } from 'react';
+import React, { createContext, useState, useContext, useEffect } from 'react';
 import {jwtDecode} from 'jwt-decode'; // Install this package if not already installed
 
 const AuthContext = createContext(null);
@@ -59,14 +59,20 @@ export const AuthProvider = ({ children }) => {
     console.log("Processed user data for login:", userData); // Debug log after processing
     
     setUser(userData);
+
+    localStorage.setItem("orgId", String(userData.orgId));                
+    localStorage.setItem("clientEmail", userData.userEmail);       
+    localStorage.setItem("token", userData.token);
     localStorage.setItem("user", JSON.stringify(userData));
-  };
+  };  
 
   const logout = () => {
     console.log("Logging out user"); // Debug log
     setUser(null);
     localStorage.removeItem('user');
     localStorage.removeItem('token'); // Clear token on logout
+    localStorage.removeItem('orgId');         
+    localStorage.removeItem('clientEmail'); 
   };
 
   // Verify token periodically

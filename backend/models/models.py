@@ -32,24 +32,25 @@ class Journal(Base):
         from_attributes = True  # Updated from orm_mode = True
 
 class Organization(Base):
-    __tablename__ = "Organizations"
-
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    __tablename__ = "organizations"
+    id = Column(Integer, primary_key=True, index=True)
     name = Column(String, unique=True, nullable=False)
+
+    logs = relationship("LogEntry", back_populates="organization")
 
 class BlockedIP(Base):
     __tablename__ = "blocked_ips"
+    __table_args__ = (
+        UniqueConstraint('ip', 'organization_id', name='unique_ip_per_org'),
+    )
 
     id = Column(Integer, primary_key=True, index=True)
-    ip = Column(String, nullable=False)
+    ip = Column(String, nullable=False)  
     reason = Column(String, nullable=False)
-    company = Column(String, nullable=False, default="default")  # Added company field
     created_at = Column(DateTime, server_default=func.now())
-    
-    # Add a unique constraint for ip + company combination
-    __table_args__ = (
-        UniqueConstraint('ip', 'company', name='uix_ip_company'),
-    )
+
+    organization_id = Column(Integer, ForeignKey("organizations.id"), nullable=False)
+    organization = relationship("Organization")
 
 class SnortAlerts(Base):
     __tablename__ = 'SnortAlerts'
@@ -69,10 +70,99 @@ class SnortAlerts(Base):
     message = Column(String)
     signature_id = Column(String)
     host = Column(String)
+    alert_source = Column(String, default="snort")
+    organization_id = Column(Integer)
 
     class Config:
         from_attributes = True  # Updated from orm_mode = True
 
+# New SuricataAlerts model
+class SuricataAlerts(Base):
+    __tablename__ = 'SuricataAlerts'
+    id = Column(Integer, primary_key=True, index=True)
+    timestamp = Column(String)
+    priority = Column(Integer)
+    protocol = Column(String)
+    raw = Column(String)
+    length = Column(Integer)
+    direction = Column(String)
+    src_ip = Column(String)
+    src_port = Column(Integer)
+    dest_ip = Column(String)
+    dest_port = Column(Integer)
+    classification = Column(String)
+    action = Column(String)
+    message = Column(String)
+    signature_id = Column(String)
+    host = Column(String)
+    alert_source = Column(String, default="suricata") 
+    organization_id = Column(Integer)
+
+    class Config:
+        from_attributes = True  # Updated from orm_mode = True
+		
+class ZeekAlerts(Base):
+    __tablename__ = 'ZeekAlerts'
+    id = Column(Integer, primary_key=True, index=True)
+    timestamp = Column(String)
+    priority = Column(Integer)
+    priority_name = Column(String)  # Add this line
+    protocol = Column(String)
+    raw = Column(String)
+    length = Column(Integer, default=0)
+    direction = Column(String, default="->")
+    src_ip = Column(String)
+    src_port = Column(Integer)
+    dest_ip = Column(String)
+    dest_port = Column(Integer)
+    classification = Column(String)
+    action = Column(String, default="ALERT")
+    message = Column(String)
+    signature_id = Column(String, default="0")
+    host = Column(String)
+    alert_source = Column(String, default="zeek")
+    organization_id = Column(Integer)
+    conn_id = Column(String, nullable=True)
+    event_type = Column(String, nullable=True)
+    uid = Column(String, nullable=True)
+    service = Column(String, nullable=True)
+
+    class Config:
+        from_attributes = True
+
+class Client(Base):
+    __tablename__ = "clients"
+    id = Column(Integer, primary_key=True, index=True)
+    organization_id = Column(Integer, ForeignKey("organizations.id"), nullable=True)
+    organization = relationship("Organization")
+    
+    # Removed name and email since they're no longer needed
+    # name = Column(String, nullable=False)
+    email = Column(String, unique=True, nullable=False)
+
+class VerifiedIP(Base):
+    __tablename__ = "verified_ips"
+    id = Column(Integer, primary_key=True, index=True)
+    ip = Column(String, nullable=False)  # Remove unique=True constraint
+    is_verified = Column(Boolean, default=False)
+    organization_id = Column(Integer, ForeignKey("organizations.id"), nullable=False)  # Make this non-nullable
+    organization = relationship("Organization")
+    
+    # Add a unique constraint for ip + organization_id combination
+    __table_args__ = (
+        UniqueConstraint('ip', 'organization_id', name='unique_ip_per_org'),
+    )
+
+class LogEntry(Base):
+    __tablename__ = "logs"
+
+    id = Column(Integer, primary_key=True, index=True)
+    organization_id = Column(Integer, ForeignKey("organizations.id"), nullable=False)
+    ip = Column(String, nullable=False)
+    log_data = Column(Text, nullable=False)
+    timestamp = Column(DateTime, default=datetime.utcnow)
+
+    organization = relationship("Organization", back_populates="logs")
 
 class Account(Base):
     __tablename__= 'Account'
@@ -88,6 +178,9 @@ class Account(Base):
     userSuspend = Column(Boolean)
     userRejected = Column(Boolean, default=False)  # Added userRejected field
     fromOrgRequestsPage = Column(Boolean, default=False)
+    organization_id = Column(Integer, ForeignKey("organizations.id"))  
+    organization = relationship("Organization")  
+   
     role = relationship("Role", back_populates="accounts")
     
     __table_args__ = (
@@ -107,7 +200,7 @@ class CreditCard(Base):
     creditCVV = Column(Integer)
     subscription = Column(String)
     total = Column(String)
-    userid = Column(String, ForeignKey('Account.id')) #Encountered error while trying to import username as a foreign key, remember to come back when free and try solve this issue
+    userid = Column(Integer, ForeignKey('Account.id')) #Encountered error while trying to import username as a foreign key, remember to come back when free and try solve this issue
 
 
     class Config:
@@ -197,7 +290,7 @@ class Playbook(Base):
     __tablename__ = "Playbooks"
 
     id = Column(Integer, primary_key=True, index=True)
-    organization_id = Column(UUID(as_uuid=True), ForeignKey("Organizations.id", ondelete="SET NULL"), nullable=True, index=True)  # Foreign key to an Organization table
+    organization_id = Column(UUID(as_uuid=True), ForeignKey("organizations.id", ondelete="SET NULL"), nullable=True, index=True)  # Foreign key to an Organization table
     name = Column(String, unique=True, nullable=False)  # Name of the playbook
     description = Column(String, nullable=True)  # Optional description of what the playbook does
     conditions = Column(JSON, nullable=False)  # JSON structure to define rules (e.g., {"log_type": "alert", "priority": ">3"})

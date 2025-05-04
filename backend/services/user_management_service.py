@@ -20,6 +20,9 @@ def add_user(user_particulars: AccountBase) -> AccountBase:
         if user_particulars.passwd:
             hashed_password = bcrypt.hashpw(user_particulars.passwd.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
         
+        # Log the organization_id before creating the user
+        print(f"Creating user with organization_id: {user_particulars.organization_id}")
+        
         # Create new user
         new_user = Account(
             username=user_particulars.username,
@@ -31,12 +34,16 @@ def add_user(user_particulars: AccountBase) -> AccountBase:
             userRole=user_particulars.userRole,
             userSuspend=user_particulars.userSuspend,
             userRejected=user_particulars.userRejected,
-            passwd=hashed_password
+            passwd=hashed_password,
+            organization_id=user_particulars.organization_id  # Ensure organization_id is included
         )
         
         db.add(new_user)
         db.commit()
         db.refresh(new_user)
+        
+        # Log the created user's organization_id
+        print(f"Created user with organization_id: {new_user.organization_id}")
         
         # Convert to Pydantic model
         result = AccountBase(
@@ -49,12 +56,14 @@ def add_user(user_particulars: AccountBase) -> AccountBase:
             userPhoneNum=new_user.userPhoneNum,
             userRole=new_user.userRole,
             userSuspend=new_user.userSuspend,
-            userRejected=new_user.userRejected
+            userRejected=new_user.userRejected,
+            organization_id=new_user.organization_id  # Include organization_id in the response
         )
         
         return result
     except Exception as e:
         db.rollback()
+        print(f"Error in add_user: {str(e)}")
         raise e
     finally:
         db.close()
@@ -77,11 +86,13 @@ def get_all_users(company_name: str) -> List[AccountBase]:
                 userPhoneNum=user.userPhoneNum,
                 userRole=user.userRole,
                 userSuspend=user.userSuspend,
-                userRejected=user.userRejected
+                userRejected=user.userRejected,
+                organization_id=user.organization_id  # Include organization_id
             ))
         
         return result
     except Exception as e:
+        print(f"Error in get_all_users: {str(e)}")
         raise e
     finally:
         db.close()
@@ -104,11 +115,13 @@ def get_all_users_for_admin() -> List[AccountBase]:
                 userPhoneNum=user.userPhoneNum,
                 userRole=user.userRole,
                 userSuspend=user.userSuspend,
-                userRejected=user.userRejected
+                userRejected=user.userRejected,
+                organization_id=user.organization_id  # Include organization_id
             ))
         
         return result
     except Exception as e:
+        print(f"Error in get_all_users_for_admin: {str(e)}")
         raise e
     finally:
         db.close()
@@ -131,11 +144,13 @@ def get_user_by_id(user_id: int) -> Optional[AccountBase]:
             userPhoneNum=user.userPhoneNum,
             userRole=user.userRole,
             userSuspend=user.userSuspend,
-            userRejected=user.userRejected
+            userRejected=user.userRejected,
+            organization_id=user.organization_id  # Include organization_id
         )
         
         return result
     except Exception as e:
+        print(f"Error in get_user_by_id: {str(e)}")
         raise e
     finally:
         db.close()
@@ -158,6 +173,11 @@ def update_account(account_id: int, update_data: AccountBase) -> Optional[Accoun
         user.userSuspend = update_data.userSuspend
         user.userRejected = update_data.userRejected
         
+        # Update organization_id if provided
+        if update_data.organization_id is not None:
+            print(f"Updating organization_id from {user.organization_id} to {update_data.organization_id}")
+            user.organization_id = update_data.organization_id
+        
         # Update password if provided
         if update_data.passwd:
             user.passwd = bcrypt.hashpw(update_data.passwd.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
@@ -176,12 +196,14 @@ def update_account(account_id: int, update_data: AccountBase) -> Optional[Accoun
             userPhoneNum=user.userPhoneNum,
             userRole=user.userRole,
             userSuspend=user.userSuspend,
-            userRejected=user.userRejected
+            userRejected=user.userRejected,
+            organization_id=user.organization_id  # Include organization_id
         )
         
         return result
     except Exception as e:
         db.rollback()
+        print(f"Error in update_account: {str(e)}")
         raise e
     finally:
         db.close()
@@ -198,6 +220,7 @@ def delete_user(account_id: int) -> bool:
         return True
     except Exception as e:
         db.rollback()
+        print(f"Error in delete_user: {str(e)}")
         raise e
     finally:
         db.close()
@@ -217,6 +240,7 @@ def get_all_roles() -> List[RoleOut]:
         
         return result
     except Exception as e:
+        print(f"Error in get_all_roles: {str(e)}")
         raise e
     finally:
         db.close()
