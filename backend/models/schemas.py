@@ -242,4 +242,87 @@ class PlaybookOut(PlaybookBase):
     class Config:
         orm_mode = True
 
+class NetworkLogsBase(BaseModel):
+    # timestamp: str
+    dstport: int
+    flow_duration: int
+    total_fwd_packets: int
+    total_bwd_packets: int
+    total_length_fwd_packets: float
+    total_length_bwd_packets: float
+    fwd_packet_length_max: float
+    fwd_packet_length_min: float
+    fwd_packet_length_mean: float
+    fwd_packet_length_std: float
+    bwd_packet_length_max: float
+    bwd_packet_length_min: float
+    bwd_packet_length_mean: float
+    bwd_packet_length_std: float
+    flow_bytes_per_s: float
+    flow_packets_per_s: float
+    flow_iat_mean: float
+    flow_iat_std: float
+    flow_iat_max: float
+    flow_iat_min: float
+    fwd_iat_total: float
+    fwd_iat_mean: float
+    fwd_iat_std: float
+    fwd_iat_max: float
+    fwd_iat_min: float
+    bwd_iat_total: float
+    bwd_iat_mean: float
+    bwd_iat_std: float
+    bwd_iat_max: float
+    bwd_iat_min: float
+    fwd_psh_flags: int
+    bwd_psh_flags: int
+    fwd_urg_flags: int
+    bwd_urg_flags: int
+    fwd_header_length: int
+    bwd_header_length: int
+    fwd_packets_per_s: float
+    bwd_packets_per_s: float
+    min_packet_length: float
+    max_packet_length: float
+    packet_length_mean: float
+    packet_length_std: float
+    packet_length_variance: float
+    fin_flag_count: int
+    syn_flag_count: int
+    rst_flag_count: int
+    psh_flag_count: int
+    ack_flag_count: int
+    urg_flag_count: int
+    cwe_flag_count: int
+    ece_flag_count: int
+    down_up_ratio: float
+    average_packet_size: float
+    avg_fwd_segment_size: float
+    avg_bwd_segment_size: float
+    fwd_avg_bytes_bulk: float
+    fwd_avg_packets_bulk: float
+    fwd_avg_bulk_rate: float
+    bwd_avg_bytes_bulk: float
+    bwd_avg_packets_bulk: float
+    bwd_avg_bulk_rate: float
+    subflow_fwd_packets: int
+    subflow_fwd_bytes: int
+    subflow_bwd_packets: int
+    subflow_bwd_bytes: int
+    init_win_bytes_forward: int
+    init_win_bytes_backward: int
+    act_data_pkt_fwd: int
+    min_seg_size_forward: int
+    active_mean: float
+    active_std: float
+    active_max: float
+    active_min: float
+    idle_mean: float
+    idle_std: float
+    idle_max: float
+    idle_min: float
+
+    class Config:
+        orm_mode = True
+
 

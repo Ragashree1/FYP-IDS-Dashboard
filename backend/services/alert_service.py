@@ -4,6 +4,24 @@ from database import SessionLocal
 from models.models import SnortAlerts
 from apscheduler.schedulers.background import BackgroundScheduler
 
+def parse_timestamp(timestamp_str):
+    """
+    Parse a timestamp string into a datetime object, supporting multiple formats.
+    """
+    formats = [
+        "%Y-%m-%dT%H:%M:%S.%fZ",  # ISO 8601 with milliseconds and 'Z'
+        "%Y-%m-%dT%H:%M:%S.%f",   # ISO 8601 with milliseconds
+        "%Y-%m-%d %H:%M:%S.%f",   # Datetime with space and milliseconds
+        "%Y-%m-%dT%H:%M:%S",      # ISO 8601 without milliseconds
+        "%Y-%m-%d %H:%M:%S",      # Datetime with space and no milliseconds
+    ]
+    for fmt in formats:
+        try:
+            return datetime.strptime(timestamp_str, fmt)
+        except ValueError:
+            continue
+    raise ValueError(f"Timestamp '{timestamp_str}' does not match any supported formats.")
+
 
 def fetch_alerts():
     es_url = "http://localhost:9200/snort-logs-*/_search"
@@ -62,6 +80,8 @@ def save_alerts(alerts):
 
 def update_and_fetch_alerts():
     last_alert_time = get_last_alert_time()
+    if last_alert_time:
+        last_alert_time = parse_timestamp(last_alert_time)
     alerts = fetch_alerts()
     
     new_alerts = []

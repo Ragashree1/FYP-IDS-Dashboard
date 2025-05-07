@@ -1,6 +1,6 @@
 import uuid  
 from sqlalchemy.dialects.postgresql import UUID
-from sqlalchemy import Column, ForeignKey, Integer, String, ARRAY, TIMESTAMP, JSON, DateTime, func, Boolean, Table, UniqueConstraint
+from sqlalchemy import Column, ForeignKey, Integer, Float, String, ARRAY, TIMESTAMP, JSON, DateTime, func, Boolean, Table, UniqueConstraint
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import validates, relationship
 from database import Base
@@ -251,3 +251,89 @@ class Playbook(Base):
         geo_ip_map = {"192.168.1.1": "North Korea", "203.0.113.5": "USA"}  # Example IP-to-country mapping
 
         return {log.src_ip for log in logs if geo_ip_map.get(log.src_ip) in restricted_countries}
+
+class NetworkLogs(Base):
+    __tablename__ = "NetworkLogs"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    # timestamp = Column(TIMESTAMP, default=datetime.utcnow)
+    dstport = Column(Integer, nullable=True)
+    flow_duration = Column(Integer, nullable=True)
+    total_fwd_packets = Column(Integer, nullable=True)
+    total_bwd_packets = Column(Integer, nullable=True)
+    total_length_fwd_packets = Column(Float, nullable=True)
+    total_length_bwd_packets = Column(Float, nullable=True)
+    fwd_packet_length_max = Column(Float, nullable=True)
+    fwd_packet_length_min = Column(Float, nullable=True)
+    fwd_packet_length_mean = Column(Float, nullable=True)
+    fwd_packet_length_std = Column(Float, nullable=True)
+    bwd_packet_length_max = Column(Float, nullable=True)
+    bwd_packet_length_min = Column(Float, nullable=True)
+    bwd_packet_length_mean = Column(Float, nullable=True)
+    bwd_packet_length_std = Column(Float, nullable=True)
+    flow_bytes_per_s = Column(Float, nullable=True)
+    flow_packets_per_s = Column(Float, nullable=True)
+    flow_iat_mean = Column(Float, nullable=True)
+    flow_iat_std = Column(Float, nullable=True)
+    flow_iat_max = Column(Float, nullable=True)
+    flow_iat_min = Column(Float, nullable=True)
+    fwd_iat_total = Column(Float, nullable=True)
+    fwd_iat_mean = Column(Float, nullable=True)
+    fwd_iat_std = Column(Float, nullable=True)
+    fwd_iat_max = Column(Float, nullable=True)
+    fwd_iat_min = Column(Float, nullable=True)
+    bwd_iat_total = Column(Float, nullable=True)
+    bwd_iat_mean = Column(Float, nullable=True)
+    bwd_iat_std = Column(Float, nullable=True)
+    bwd_iat_max = Column(Float, nullable=True)
+    bwd_iat_min = Column(Float, nullable=True)
+    fwd_psh_flags = Column(Integer, nullable=True)
+    bwd_psh_flags = Column(Integer, nullable=True)
+    fwd_urg_flags = Column(Integer, nullable=True)
+    bwd_urg_flags = Column(Integer, nullable=True)
+    fwd_header_length = Column(Integer, nullable=True)
+    bwd_header_length = Column(Integer, nullable=True)
+    fwd_packets_per_s = Column(Float, nullable=True)
+    bwd_packets_per_s = Column(Float, nullable=True)
+    min_packet_length = Column(Float, nullable=True)
+    max_packet_length = Column(Float, nullable=True)
+    packet_length_mean = Column(Float, nullable=True)
+    packet_length_std = Column(Float, nullable=True)
+    packet_length_variance = Column(Float, nullable=True)
+    fin_flag_count = Column(Integer, nullable=True)
+    syn_flag_count = Column(Integer, nullable=True)
+    rst_flag_count = Column(Integer, nullable=True)
+    psh_flag_count = Column(Integer, nullable=True)
+    ack_flag_count = Column(Integer, nullable=True)
+    urg_flag_count = Column(Integer, nullable=True)
+    cwe_flag_count = Column(Integer, nullable=True)
+    ece_flag_count = Column(Integer, nullable=True)
+    down_up_ratio = Column(Float, nullable=True)
+    average_packet_size = Column(Float, nullable=True)
+    avg_fwd_segment_size = Column(Float, nullable=True)
+    avg_bwd_segment_size = Column(Float, nullable=True)
+    fwd_avg_bytes_bulk = Column(Float, nullable=True)
+    fwd_avg_packets_bulk = Column(Float, nullable=True)
+    fwd_avg_bulk_rate = Column(Float, nullable=True)
+    bwd_avg_bytes_bulk = Column(Float, nullable=True)
+    bwd_avg_packets_bulk = Column(Float, nullable=True)
+    bwd_avg_bulk_rate = Column(Float, nullable=True)
+    subflow_fwd_packets = Column(Integer, nullable=True)
+    subflow_fwd_bytes = Column(Integer, nullable=True)
+    subflow_bwd_packets = Column(Integer, nullable=True)
+    subflow_bwd_bytes = Column(Integer, nullable=True)
+    init_win_bytes_forward = Column(Integer, nullable=True)
+    init_win_bytes_backward = Column(Integer, nullable=True)
+    act_data_pkt_fwd = Column(Integer, nullable=True)
+    min_seg_size_forward = Column(Integer, nullable=True)
+    active_mean = Column(Float, nullable=True)
+    active_std = Column(Float, nullable=True)
+    active_max = Column(Float, nullable=True)
+    active_min = Column(Float, nullable=True)
+    idle_mean = Column(Float, nullable=True)
+    idle_std = Column(Float, nullable=True)
+    idle_max = Column(Float, nullable=True)
+    idle_min = Column(Float, nullable=True)
+
+    class Config:
+        orm_mode = True

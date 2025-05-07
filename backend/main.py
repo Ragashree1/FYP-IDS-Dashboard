@@ -12,6 +12,7 @@ from controllers.journal_controller import router as journal_router
 from controllers.meeting_minutes_controller import router as meeting_minutes_router
 from controllers.alert_controller import router as alerts_router
 from controllers.log_controller import router as logs_router
+from controllers.threat_detector_controller import router as threat_detector_router
 from controllers.playbook_controller import router as playbooks_router
 from controllers.login_controller import router as login_router
 from controllers.registration_controller import router as registration_router 
@@ -28,6 +29,7 @@ from fastapi.security import OAuth2PasswordBearer
 from jose import JWTError, jwt
 from services.ip_blocking_service import evaluate_and_block_ips
 from services.playbook_service import execute_playbook_rules  # Import the method
+from services.log_service import fetch_logs
 import time
 
 load_dotenv()
@@ -44,6 +46,9 @@ oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
 def fetch_alerts_job():
     update_and_fetch_alerts()
 
+def fetch_logs_job():
+    fetch_logs()
+
 def execute_playbook_rules_job():
     """
     Periodically execute playbook rules.
@@ -55,8 +60,9 @@ def execute_playbook_rules_job():
 @app.on_event("startup")
 async def startup_event():
     init_database()
-    scheduler.add_job(fetch_alerts_job, "interval", minutes=5)
-    scheduler.add_job(execute_playbook_rules_job, "interval", minutes=1)
+    # scheduler.add_job(fetch_logs_job, "interval", seconds=30)  # Fetch logs every 30 seconds
+    # scheduler.add_job(fetch_alerts_job, "interval", minutes=5)
+    # scheduler.add_job(execute_playbook_rules_job, "interval", minutes=1)
     scheduler.start()
     print('Scheduler started.')
 
@@ -105,6 +111,7 @@ app.include_router(user_management_router)
 app.include_router(role_permission_router)
 app.include_router(ip_blocking_router)
 app.include_router(playbooks_router)
+app.include_router(threat_detector_router)
 
 
 
