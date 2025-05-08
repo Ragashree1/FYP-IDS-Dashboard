@@ -72,3 +72,17 @@ async def get_token(token: str = Depends(oauth2_bearer)):
     except JWTError:
 
         raise HTTPException(status_code=403, detail="Invalid token")       
+    
+@router.get("/get_user")
+async def get_user(token: str = Depends(oauth2_bearer)):
+    """
+    Protected route to fetch the current user's details.
+    """
+    try:
+        # Use the log_service method to get the current user
+        user = login_service.get_current_user(token)
+        return {"user": user}
+    except HTTPException as e:
+        raise e
+    except JWTError:
+        raise HTTPException(status_code=401, detail="Invalid token")

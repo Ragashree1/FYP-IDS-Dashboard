@@ -14,6 +14,7 @@ SECRET_KEY = os.getenv("SECRET_KEY", "default_secret_key")
 ALGORITHM = os.getenv("ALGORITHM", "HS256")
 
 bcrypt_context = CryptContext (schemes = ['bcrypt'], deprecated = 'auto') 
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/token")
 # ^Where most password hashing and unhashing is done
 
 oauth2_bearer = OAuth2PasswordBearer(tokenUrl='/login/token')
@@ -43,3 +44,18 @@ def create_access_token(username: str, user_id: str, userRole: str, userComName:
 def get_user_by_username(username: str):
     with SessionLocal() as db:   
         return db.query(Account).filter(Account.username == username).first()       
+
+def get_current_user(token: str = Depends(oauth2_scheme)) -> Account:
+    try:
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        print(f"Decoded payload: {payload}")
+        username: str = payload.get("sub")
+        user_id: str = payload.get("id")
+        with SessionLocal() as db:
+            user = db.query(Account).filter(Account.id == user_id).first()
+            if not user:
+                raise HTTPException(status_code=404, detail="User not found")
+            return user
+       
+    except JWTError:
+        raise HTTPException(status_code=401, detail="Invalid token")

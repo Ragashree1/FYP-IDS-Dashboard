@@ -5,7 +5,6 @@ from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import validates, relationship
 from database import Base
 from datetime import datetime 
-import json
 
 class MeetingMinutes(Base):
     __tablename__= 'Meeting'
@@ -34,8 +33,16 @@ class Journal(Base):
 class Organization(Base):
     __tablename__ = "Organizations"
 
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    id = Column(Integer, primary_key=True, index=True)
     name = Column(String, unique=True, nullable=False)
+
+class VerifiedIP(Base):
+    __tablename__ = "verified_ips"
+    id = Column(Integer, primary_key=True, index=True)
+    ip = Column(String, unique=True, nullable=False)
+    is_verified = Column(Boolean, default=False)
+    organization_id = Column(Integer, ForeignKey("Organizations.id"), nullable=True)  # Ensure IP is linked to an organization
+    organization = relationship("Organization")
 
 class BlockedIP(Base):
     __tablename__ = "blocked_ips"
@@ -80,7 +87,8 @@ class Account(Base):
     userPhoneNum = Column(String)
     userRole = Column(Integer, ForeignKey("role.id"))
     userSuspend = Column(Boolean)
-   
+    organization_id = Column(Integer, ForeignKey("Organizations.id"))  
+    organization = relationship("Organization") 
     role = relationship("Role", back_populates="accounts")
     
     __table_args__ = (
@@ -175,7 +183,7 @@ class Playbook(Base):
     __tablename__ = "Playbooks"
 
     id = Column(Integer, primary_key=True, index=True)
-    organization_id = Column(UUID(as_uuid=True), ForeignKey("Organizations.id", ondelete="SET NULL"), nullable=True, index=True)  # Foreign key to an Organization table
+    organization_id = Column(Integer, ForeignKey("Organizations.id", ondelete="SET NULL"), nullable=True, index=True)  # Foreign key to an Organization table
     name = Column(String, unique=True, nullable=False)  # Name of the playbook
     description = Column(String, nullable=True)  # Optional description of what the playbook does
     conditions = Column(JSON, nullable=False)  # JSON structure to define rules (e.g., {"log_type": "alert", "priority": ">3"})
@@ -337,3 +345,22 @@ class NetworkLogs(Base):
 
     class Config:
         orm_mode = True
+
+class LogPredictions(Base):
+    __tablename__ = "logPredictions"
+
+    id = Column(Integer, primary_key=True, index=True)
+    log_id = Column(Integer, ForeignKey("NetworkLogs.id", ondelete="CASCADE"), nullable=False)  # Foreign key to Logs table
+    prediction = Column(String, nullable=False)  # Store the prediction result
+    confidence = Column(Float, nullable=True)  # Optional: Confidence score of the prediction
+    created_at = Column(TIMESTAMP, server_default=func.now())  # Timestamp of prediction creation
+
+    # Relationship to Logs table
+    log = relationship("NetworkLogs", backref="predictions")
+
+    class Config:
+        orm_mode = True
+
+
+
+    

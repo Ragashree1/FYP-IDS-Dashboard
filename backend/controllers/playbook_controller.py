@@ -15,7 +15,7 @@ def fetch_playbooks():
 def create_playbook(playbook: PlaybookBase):
     """Create a new playbook"""
     # Hardcoded organization_id for now - you might want to get this from auth context
-    organization_id = uuid.UUID("12345678-1234-5678-1234-567812345678")
+    organization_id = 1
     return playbook_service.add_playbook(playbook_data=playbook, organization_id=organization_id)
 
 @router.delete("/{playbook_id}")

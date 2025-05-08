@@ -2,7 +2,7 @@ import uuid
 from database import SessionLocal
 from models.models import Organization
 
-DEFAULT_ORG_ID = uuid.UUID("12345678-1234-5678-1234-567812345678")
+DEFAULT_ORG_ID = 1
 
 def ensure_default_organization():
     with SessionLocal() as db:

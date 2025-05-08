@@ -15,7 +15,7 @@ def get_all_playbooks() -> List[PlaybookOut]:
         playbooks = db.query(Playbook).all()
         return [PlaybookOut.model_validate(playbook) for playbook in playbooks]
 
-def add_playbook(playbook_data: PlaybookBase, organization_id: uuid.UUID = DEFAULT_ORG_ID) -> PlaybookOut:
+def add_playbook(playbook_data: PlaybookBase, organization_id: int = DEFAULT_ORG_ID) -> PlaybookOut:
     with SessionLocal() as db:
         # Ensure default organization exists
         ensure_default_organization()

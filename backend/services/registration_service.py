@@ -1,5 +1,5 @@
 from database import SessionLocal
-from models.models import Account
+from models.models import Account, Organization
 from models.schemas import AccountBase
 from typing import List, Optional, Annotated
 from passlib.context import CryptContext
@@ -28,6 +28,19 @@ def add_user(user_particulars: AccountBase):
             hashed_password = bcrypt_context.hash(user_particulars.passwd)
             user_data = user_particulars.model_dump()
             user_data.pop("passwd", None)
+
+            org = db.query(Organization).filter(Organization.name == user_particulars.userComName).first()
+
+            if not org:
+                print("FIRST")
+                org = Organization(name=user_particulars.userComName)
+                db.add(org)
+                db.commit()
+                db.refresh(org)
+            
+            
+            user_data["organization_id"] = org.id
+
             create_user = Account(**user_data,passwd=hashed_password)
             db.add(create_user)
             db.commit()
@@ -60,6 +73,12 @@ async def get_current_user(token: Annotated[str,Depends(oauth2_bearer)]):
        user_id: int = payload.get('id','-1')
        if username is None or user_id is None:
         raise 
+       
+        with SessionLocal() as db:
+            account = db.query(Account).filter(Account.id == user_id).first()
+            if account is None:
+                raise HTTPException(status_code=404, detail="User not found")
+            organisation_id = account.organisation_id
        
        return {'username':username,'id':user_id}    
    except JWTError: #JWTError is the error raised for when the payload= jwt.decode line fails to decode

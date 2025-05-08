@@ -234,7 +234,7 @@ class PlaybookOut(PlaybookBase):
     description: str = None  
     conditions: list  # JSON field
     actions: dict  # JSON field
-    organization_id: uuid.UUID  # Foreign key to Organizations table
+    organization_id: int  # Foreign key to Organizations table
     is_active: bool = True
     created_at: datetime
     updated_at: datetime
@@ -326,3 +326,6 @@ class NetworkLogsBase(BaseModel):
         orm_mode = True
 
 
+class VerifyIPRequest(BaseModel):
+    organization_id: int
+    ip: str

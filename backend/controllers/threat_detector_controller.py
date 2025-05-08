@@ -1,6 +1,6 @@
 from fastapi import APIRouter, HTTPException, Body
 from typing import List
-from services.threat_detector_service import predict_threat
+from services.threat_detector_service import predict_threat, fetch_predictions
 
 router = APIRouter()
 
@@ -28,3 +28,27 @@ def predict_threat_batch(payload: dict = Body(...)):
             )
         results.append(result)
     return results
+
+#TODO remove this endpoint after grouping by organisation id is dont
+@router.get("/threat/predictions")
+def get_all_predictions():
+    """
+    Fetch all predictions from the LogPredictions table.
+    """
+    print('yay')
+    predictions = fetch_predictions()
+    if isinstance(predictions, dict) and "error" in predictions:
+        raise HTTPException(status_code=404, detail=predictions["error"])
+    return predictions
+
+#TODO change logid to organisation id
+
+# @router.get("/threat/predictions/{log_id}")
+# def get_prediction_by_log_id(log_id: int):
+#     """
+#     Fetch a specific prediction by log ID from the LogPredictions table.
+#     """
+#     prediction = fetch_predictions(log_id=log_id)
+#     if isinstance(prediction, dict) and "error" in prediction:
+#         raise HTTPException(status_code=404, detail=prediction["error"])
+#     return prediction

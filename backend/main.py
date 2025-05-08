@@ -20,6 +20,7 @@ from controllers.registration_controller import router as registration_router
 from controllers.user_management_controller import router as user_management_router 
 from controllers.role_permission_controller import router as role_permission_router 
 from controllers.ip_blocking_controller import router as ip_blocking_router
+from controllers.ip_verification_controller import router as ip_verification_router
 from apscheduler.schedulers.background import BackgroundScheduler
 from services.alert_service import update_and_fetch_alerts
 from database import engine, Base
@@ -112,6 +113,7 @@ app.include_router(role_permission_router)
 app.include_router(ip_blocking_router)
 app.include_router(playbooks_router)
 app.include_router(threat_detector_router)
+app.include_router(ip_verification_router)
 
 
 

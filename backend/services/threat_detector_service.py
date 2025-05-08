@@ -2,7 +2,7 @@ import joblib
 import numpy as np
 import os
 from database import SessionLocal
-from models.models import NetworkLogs
+from models.models import NetworkLogs, LogPredictions
 
 # Load the model
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -39,13 +39,115 @@ def predict_threat(log_id: int):
             log.bwd_iat_total
         ])
         features_scaled = scaler.transform(np.array(features).reshape(1, -1))
-
-        print(f"Features extracted for prediction: {features}")  # Log the extracted features
-
-        type = [ 'BENIGN', 'DDoS', 'PortScan', 'Bot', 'Infiltration',
+        types = [ 'BENIGN', 'DDoS', 'PortScan', 'Bot', 'Infiltration',
        'Web Attack � Brute Force', 'Web Attack � XSS',
        'Web Attack � Sql Injection']
+
         # Predict
         prediction = model.predict(features_scaled)
-        print(f"Prediction result: {prediction}")  # Log the prediction result
-        return {"log_id": log_id, "prediction": type[int(prediction[0]) - 1]}
+        # confidence = model.predict_proba(features_scaled).max()  # Get the confidence score
+        predicted_type = types[int(prediction[0]) - 1]
+
+        print(f"Prediction result: {predicted_type}")  # Log the prediction result
+
+        if predicted_type == 'BENIGN':
+            print("No threat detected.")
+        else:
+            new_prediction = LogPredictions(
+                log_id=log_id,
+                prediction=predicted_type,
+                # confidence=confidence
+            )
+            db.add(new_prediction)
+            db.commit()
+            db.refresh(new_prediction)
+
+        return {"log_id": log_id, "prediction": predicted_type}
+
+# #TODO change log id to organisation id
+# def fetch_predictions(log_id: int = None):
+#     """
+#     Fetch predictions from the LogPredictions table.
+#     If log_id is provided, fetch predictions for that specific log.
+#     """
+#     with SessionLocal() as db:
+#         if log_id:
+#             # Fetch predictions for a specific log ID
+#             prediction = db.query(LogPredictions).filter(LogPredictions.log_id == log_id).first()
+#             if not prediction:
+#                 return {"error": f"No prediction found for log ID {log_id}"}
+#             return {
+#                 "log_id": prediction.log_id,
+#                 "prediction": prediction.prediction,
+#                 "confidence": prediction.confidence,
+#                 "created_at": prediction.created_at
+#             }
+#         else:
+#             # Fetch all predictions
+#             predictions = db.query(LogPredictions).all()
+#             return [
+#                 {
+#                     "log_id": pred.log_id,
+#                     "prediction": pred.prediction,
+#                     "confidence": pred.confidence,
+#                     "created_at": pred.created_at
+#                 }
+#                 for pred in predictions
+#             ]
+        
+def fetch_predictions(log_id: int = None):
+    """
+    Fetch predictions from the LogPredictions table.
+    If log_id is provided, fetch predictions for that specific log.
+    Include log details in the response.
+    """
+    with SessionLocal() as db:
+        if log_id:
+            # Fetch predictions for a specific log ID
+            prediction = db.query(LogPredictions).filter(LogPredictions.log_id == log_id).first()
+            if not prediction:
+                return {"error": f"No prediction found for log ID {log_id}"}
+            log = db.query(NetworkLogs).filter(NetworkLogs.id == prediction.log_id).first()
+            return {
+                "log_id": prediction.log_id,
+                "prediction": prediction.prediction,
+                "confidence": prediction.confidence,
+                "created_at": prediction.created_at,
+                "log_details": {
+                    "dstport": log.dstport,
+                    "flow_duration": log.flow_duration,
+                    "total_fwd_packets": log.total_fwd_packets,
+                    "total_bwd_packets": log.total_bwd_packets,
+                    "total_length_fwd_packets": log.total_length_fwd_packets,
+                    "total_length_bwd_packets": log.total_length_bwd_packets,
+                    "fwd_packet_length_mean": log.fwd_packet_length_mean,
+                    "bwd_packet_length_mean": log.bwd_packet_length_mean,
+                    "flow_bytes_per_s": log.flow_bytes_per_s,
+                    "flow_packets_per_s": log.flow_packets_per_s,
+                }
+            }
+        else:
+            # Fetch all predictions
+            predictions = db.query(LogPredictions).all()
+            results = []
+            for pred in predictions:
+                log = db.query(NetworkLogs).filter(NetworkLogs.id == pred.log_id).first()
+                results.append({
+                    "log_id": pred.log_id,
+                    "prediction": pred.prediction,
+                    "confidence": pred.confidence,
+                    "created_at": pred.created_at,
+                    "log_details": {
+                        "dstport": log.dstport,
+                        "flow_duration": log.flow_duration,
+                        "total_fwd_packets": log.total_fwd_packets,
+                        "total_bwd_packets": log.total_bwd_packets,
+                        "total_length_fwd_packets": log.total_length_fwd_packets,
+                        "total_length_bwd_packets": log.total_length_bwd_packets,
+                        "fwd_packet_length_mean": log.fwd_packet_length_mean,
+                        "bwd_packet_length_mean": log.bwd_packet_length_mean,
+                        "flow_bytes_per_s": log.flow_bytes_per_s,
+                        "flow_packets_per_s": log.flow_packets_per_s,
+                    }
+                })
+            return results
