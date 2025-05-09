@@ -7,6 +7,7 @@ from datetime import timedelta, timezone, datetime
 from jose import jwt, JWTError
 from fastapi.security import OAuth2PasswordRequestForm, OAuth2PasswordBearer
 from fastapi import APIRouter, Depends, HTTPException
+from sqlalchemy.orm import joinedload
 
 
 SECRET_KEY = 's3cr3tk3y'  #Could be anything
@@ -20,27 +21,43 @@ oauth2_bearer = OAuth2PasswordBearer(tokenUrl='/token')
 def add_user(user_particulars: AccountBase):
     with SessionLocal() as db:
         try:
-            # Remove empty id if present
-            if hasattr(user_particulars, 'id'):
-                delattr(user_particulars, 'id')
+            # Access the nested organisation name correctly
+            org_name = user_particulars.organisation.name.lower().strip()
+            if not org_name:
+                raise HTTPException(
+                    status_code=400, 
+                    detail="Organisation name cannot be empty."
+                )
             
-            org = db.query(Organisation).filter(Organisation.name == user_particulars.userComName).first()
+            org = db.query(Organisation).filter(Organisation.name == org_name).first()
             if not org:
-                org = Organisation(name=user_particulars.userComName)
+                org = Organisation(name=org_name)
                 db.add(org)
                 db.commit()
                 db.refresh(org)
+
+            # Check if user with same username and company exists
+            existing_user = db.query(Account).filter(Account.username == user_particulars.username,Account.organisation_id == org.id).first()
+            if existing_user:
+                raise HTTPException(
+                status_code=400,
+                detail=f"User with username '{user_particulars.username}' already exists in company '{user_particulars.userComName}'"
+            )
+
 
             # Create a dict of user particulars and hash the password
             hashed_password = bcrypt_context.hash(user_particulars.passwd)
             user_data = user_particulars.model_dump()
             user_data.pop("passwd", None)
-            create_user = Account(**user_data,passwd=hashed_password)
+            user_data.pop("organisation", None)
+            create_user = Account(**user_data,passwd=hashed_password,organisation_id=org.id)
             db.add(create_user)
             db.commit()
             db.refresh(create_user)
                 
-            return create_user
+            user_with_org = db.query(Account).options(joinedload(Account.organisation)).filter_by(id=create_user.id).first()
+            return user_with_org
+
         except Exception as e:
             db.rollback()
             raise HTTPException(status_code=422, detail=str(e))
