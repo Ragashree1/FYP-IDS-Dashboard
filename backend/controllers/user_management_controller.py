@@ -21,7 +21,7 @@ def add_user(
         comp = get_company_name_from_token(token)  
         
         # Set the company name from the token
-        user.userComName = comp
+        user.org = comp
         new_user = user_management_service.add_user(user_particulars=user)
         return new_user
     except HTTPException as e:
