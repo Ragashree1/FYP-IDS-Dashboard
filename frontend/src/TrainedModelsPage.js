@@ -24,7 +24,7 @@ const Switch = ({ isOn, onToggle, disabled = false }) => {
           height: "16px",
           backgroundColor: "white",
           borderRadius: "50%",
-          transform: translateX(${isOn ? "20px" : "0"}),
+          transform: `translateX(${isOn ? "20px" : "0"})`,
           transition: "transform 0.3s",
         }}
       />
