@@ -193,29 +193,6 @@ const EventLogPage = () => {
           <p style={{ margin: 0, fontSize: "24px", fontWeight: "bold" }}>{filteredLogs.length}</p>
         </div>
 
-        {/* File Upload */}
-        <div style={{ marginBottom: "20px" }}>
-          <input
-            type="file"
-            accept=".csv"
-            ref={fileInputRef}
-            onChange={handleFileUpload}
-            style={{ display: "none" }}
-          />
-          <button
-            onClick={() => fileInputRef.current.click()}
-            style={{
-              padding: "10px 20px",
-              background: "#007bff",
-              color: "white",
-              border: "none",
-              borderRadius: "4px",
-              cursor: "pointer",
-            }}
-          >
-            Upload CSV
-          </button>
-        </div>
 
         {/* Search and Filter */}
         <div style={{ display: "flex", gap: "10px", marginBottom: "20px" }}>
@@ -264,38 +241,72 @@ const EventLogPage = () => {
           </div>
         </div>
 
-        {/* Clear Selection Button */}
         {logType === "network" && (
-          <div style={{ marginBottom: "20px" }}>
-            <button
-              onClick={clearSelection}
-              style={{
-                padding: "10px 20px",
-                background: "#dc3545",
-                color: "white",
-                border: "none",
-                borderRadius: "4px",
-                cursor: "pointer",
-                marginRight: "10px",
-              }}
-            >
-              Clear Selection
-            </button>
-            <button
-              onClick={handlePredict}
-              style={{
-                padding: "10px 20px",
-                background: "#28a745",
-                color: "white",
-                border: "none",
-                borderRadius: "4px",
-                cursor: "pointer",
-              }}
-            >
-              Predict Selected Logs
-            </button>
-          </div>
-        )}
+  <div
+    style={{
+      display: "flex",
+      justifyContent: "space-between",
+      alignItems: "center",
+      marginBottom: "20px",
+    }}
+  >
+    {/* Left side: Clear + Predict */}
+    <div>
+      <button
+        onClick={clearSelection}
+        style={{
+          padding: "10px 20px",
+          background: "#dc3545",
+          color: "white",
+          border: "none",
+          borderRadius: "4px",
+          cursor: "pointer",
+          marginRight: "10px",
+        }}
+      >
+        Clear Selection
+      </button>
+      <button
+        onClick={handlePredict}
+        style={{
+          padding: "10px 20px",
+          background: "#28a745",
+          color: "white",
+          border: "none",
+          borderRadius: "4px",
+          cursor: "pointer",
+        }}
+      >
+        Predict Selected Logs
+      </button>
+    </div>
+
+    {/* Right side: Upload CSV */}
+    <div>
+      <input
+        type="file"
+        accept=".csv"
+        ref={fileInputRef}
+        onChange={handleFileUpload}
+        style={{ display: "none" }}
+      />
+      <button
+        onClick={() => fileInputRef.current.click()}
+        style={{
+          padding: "10px 20px",
+          background: "#007bff",
+          color: "white",
+          border: "none",
+          borderRadius: "4px",
+          cursor: "pointer",
+        }}
+      >
+        Upload CSV
+      </button>
+    </div>
+  </div>
+)}
+
 
         {/* Logs Table */}
         <div style={{ width: "100%", maxHeight: "700px", overflowY: "auto" }}>

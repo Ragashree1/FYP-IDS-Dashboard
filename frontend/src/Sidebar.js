@@ -224,7 +224,7 @@ const Sidebar = ({ userRole }) => {
               <li
                 style={{
                   padding: "12px 16px",
-                  background: isActive("/reports") ? "#555" : "#333",
+                  background: isActive("/threatAlerts") ? "#555" : "#333",
                   marginBottom: "8px",
                   borderRadius: "4px",
                   display: "flex",
@@ -232,10 +232,10 @@ const Sidebar = ({ userRole }) => {
                   gap: "12px",
                   cursor: "pointer",
                 }}
-                onClick={() => navigate("/reports")}
+                onClick={() => navigate("/threatAlerts")}
               >
                 <span style={{ fontSize: "18px" }}>📄</span>
-                Reports
+                ML Predictions
               </li>
               <li
                 style={{

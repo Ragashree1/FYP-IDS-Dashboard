@@ -1,20 +1,34 @@
+import React, { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
+import Sidebar from "./Sidebar";
 
-import { useState } from "react"
-import { useNavigate, useLocation } from "react-router-dom"
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
-import Sidebar from "./Sidebar" // Import the Sidebar component
+const userRole = "2";
 
-const userRole = "2"
 const AddIPModal = ({ onClose, onAdd }) => {
-  const [newIP, setNewIP] = useState("")
+  const [newIP, setNewIP] = useState("");
+  const [userOrgId, setOrgId] = useState(0);
 
   const handleSubmit = (e) => {
-    e.preventDefault()
+    e.preventDefault();
     if (newIP) {
-      onAdd(newIP)
-      onClose()
+      onAdd(newIP);
+      onClose();
     }
-  }
+  };
+
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (e.key === "Escape") {
+        onClose();
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => {
+      window.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [onClose]);
 
   return (
     <div
@@ -31,6 +45,7 @@ const AddIPModal = ({ onClose, onAdd }) => {
         zIndex: 1000,
       }}
     >
+
       <div
         style={{
           backgroundColor: "white",
@@ -76,7 +91,7 @@ const AddIPModal = ({ onClose, onAdd }) => {
                 border: "1px solid #ddd",
                 borderRadius: "4px",
                 marginBottom: "15px",
-                boxSizing: "border-box", // Added to prevent overflow
+                boxSizing: "border-box",
               }}
             />
             <div style={{ display: "flex", justifyContent: "space-between", gap: "10px" }}>
@@ -114,47 +129,173 @@ const AddIPModal = ({ onClose, onAdd }) => {
         </form>
       </div>
     </div>
-  )
-}
+  );
+};
 
 const SystemConfiguration = () => {
-  const navigate = useNavigate()
-  const location = useLocation()
-  const [searchQuery, setSearchQuery] = useState("")
-  const [clients, setClients] = useState([
-    { id: 1, ip: "192.168.10.1" },
-    { id: 2, ip: "192.168.10.2" },
-  ])
-  const [isModalOpen, setIsModalOpen] = useState(false)
+  const [logType, setLogType] = useState("all");
+  const navigate = useNavigate();
+  const [searchQuery, setSearchQuery] = useState("");
+  const [clients, setClients] = useState([]); // Ensure clients is initialized as an empty array
+  const [logs, setLogs] = useState([]);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [userOrgId, setOrgId] = useState(0);
 
-  const isActive = (path) => location.pathname.startsWith(path)
+  const fetchVerifiedIPs = async (orgId) => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/ip-verification/verified-ips/${orgId}`);
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || "Failed to fetch verified IPs");
+      }
+      const data = await response.json();
+      setClients(data[0]);
+      console.log("printing data.verified_ips")
+      console.log(data.verified_ips)
+      console.log("printing clients")
+      console.log(clients)
+      console.log(orgId)
+      console.log(data)
+    } catch (error) {
+      console.error("Error fetching verified IPs:", error.message);
+      alert(`Error: ${error.message}`);
+    }
+  };
 
-  const handleLogout = () => {
-    navigate("/login")
-  }
+  
+
+  const handleRemoveClient = async (id) => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/ip-verification/remove-ip/${id}`, {
+        method: "DELETE",
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || "Failed to remove IP");
+      }
+
+      fetchVerifiedIPs(userOrgId); // Refresh the list after deletion
+      setClients((prevClients) => prevClients.filter((client) => client.id !== id));
+      alert("IP removed successfully!");
+    } catch (error) {
+      console.error("Error removing IP:", error.message);
+      alert(`Error: ${error.message}`);
+    }
+  };
+
+  const handleAddIP = async (newIP) => {
+    // const token = localStorage.getItem("token");
+    // const response = await fetch(`${API_BASE_URL}/login/get_user`, {
+    //   headers: { Authorization: `Bearer ${token}` },
+    // });
+
+    // if (!response.ok) {
+    //   const errorData = await response.json();
+    //   throw new Error(errorData.message || "Failed to fetch user details");
+    // }
+
+    // const data = await response.json();
+    // console.log(data)
+    // const orgId = data.user.organization_id;
+    // if (!orgId) {
+    //   alert("Organization ID is missing. Please register again." + token);
+    //   return;
+    // }
+
+    try {
+      const response = await fetch(`${API_BASE_URL}/ip-verification/verify-ip`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ organization_id: userOrgId, ip: newIP }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || "Failed to verify IP");
+      }
+
+      alert("IP verified successfully!");
+      fetchVerifiedIPs(getOrgId()); // Refresh the list after adding
+      console.log(fetchVerifiedIPs(userOrgId))
+      // setClients((prevClients) => [...prevClients, { ip: newIP }]); // Add the new IP to the list
+    } catch (error) {
+      console.error("Error verifying IP:", error.message);
+      alert(`Error: ${error.message}`);
+    }
+  };
+
+  const getOrgId = async () => {
+    const token = localStorage.getItem("token");
+    console.log("printing token ")
+    console.log(token)
+    const response = await fetch(`${API_BASE_URL}/login/get_user`, {
+      headers : { Authorization: `Bearer ${token}` },
+    });
+    if (!response.ok) { 
+      return null;
+    }
+    const data = await response.json();
+    console.log("printing data")
+    console.log(data)
+    return data.user.organization_id;}
+
+
+    useEffect(() => {
+      const fetchOrgAndIPs = async () => {
+        const fetchedOrgId = await getOrgId();
+        if (!fetchedOrgId) {
+          alert("Organization ID is missing. Please register again.");
+          return;
+        }
+        setOrgId(fetchedOrgId);
+        fetchVerifiedIPs(fetchedOrgId);
+        console.log("printing fetchedOrgId")
+        console.log(fetchedOrgId)
+        console.log("printing userOrgId")
+        console.log(userOrgId)
+      };
+    
+      // Only run on page load
+      fetchOrgAndIPs();
+
+    }, []);
+
+  // useEffect(() => {
+  //   (async () => {
+  //     if (userOrgId == 0) {
+  //       const fetchedOrgId = await getOrgId();
+  //       setOrgId(fetchedOrgId);
+  //       console.log("printing fetchedOrgId")
+  //       console.log(fetchedOrgId)
+  //       console.log("printing userOrgId")
+  //       console.log(userOrgId)
+  //       if (!fetchedOrgId) {
+  //         alert("Organization ID is missing aaa. Please register again.");
+  //         return;
+  //       }
+
+  //     }
+  //       fetchVerifiedIPs(userOrgId);
+  //   })();
+  // }, [navigate, logType, userOrgId]);
 
   const handleSearch = (e) => {
-    setSearchQuery(e.target.value)
-  }
+    setSearchQuery(e.target.value);
+  };
 
-  const handleRemoveClient = (id) => {
-    setClients(clients.filter((client) => client.id !== id))
-  }
-
-  const handleAddClient = (newIP) => {
-    const newClient = { id: Date.now(), ip: newIP }
-    setClients([...clients, newClient])
-  }
-
-  const filteredClients = clients.filter((client) => client.ip.toLowerCase().includes(searchQuery.toLowerCase()))
+  // const filteredClients = clients && clients.filter((client) => client.ip.toLowerCase().includes(searchQuery.toLowerCase()));
+  const filteredClients = clients && clients.length > 0
+    ? clients.filter((client) => client.ip && client.ip.toLowerCase().includes(searchQuery.toLowerCase()))
+    : [];
 
   const openModal = () => {
-    setIsModalOpen(true)
-  }
+    setIsModalOpen(true);
+  };
 
   const closeModal = () => {
-    setIsModalOpen(false)
-  }
+    setIsModalOpen(false);
+  };
 
   return (
     <div
@@ -162,24 +303,22 @@ const SystemConfiguration = () => {
         display: "flex",
         height: "100vh",
         background: "#f4f4f4",
-        overflow: "hidden", // Added to prevent horizontal scrolling
+        overflow: "hidden",
       }}
     >
-      {/* Use the Sidebar component instead of hardcoded sidebar */}
+     
       <Sidebar userRole={userRole} />
 
-      {/* Main Content */}
       <div
         style={{
           flex: 1,
           padding: "20px",
-          overflowY: "auto", // Allow vertical scrolling
-          overflowX: "hidden", // Prevent horizontal scrolling
+          overflowY: "auto",
+          overflowX: "hidden",
         }}
       >
         <h1>Log Forwarding Configuration</h1>
 
-        {/* Search Bar */}
         <div
           style={{
             position: "relative",
@@ -198,7 +337,7 @@ const SystemConfiguration = () => {
               border: "1px solid #ddd",
               fontSize: "14px",
               backgroundColor: "#f5f5f5",
-              boxSizing: "border-box", // Added to prevent overflow
+              boxSizing: "border-box",
             }}
           />
           <span
@@ -214,7 +353,6 @@ const SystemConfiguration = () => {
           </span>
         </div>
 
-        {/* Client List */}
         <div>
           <div
             style={{
@@ -246,8 +384,8 @@ const SystemConfiguration = () => {
             style={{
               background: "white",
               borderRadius: "4px",
-              overflow: "auto", // Changed from "hidden" to "auto" to allow scrolling if needed
-              maxWidth: "100%", // Added to prevent overflow
+              overflow: "auto",
+              maxWidth: "100%",
             }}
           >
             {filteredClients.map((client) => (
@@ -278,11 +416,11 @@ const SystemConfiguration = () => {
             ))}
           </div>
         </div>
+
       </div>
-      {isModalOpen && <AddIPModal onClose={closeModal} onAdd={handleAddClient} />}
+      {isModalOpen && <AddIPModal onClose={closeModal} onAdd={handleAddIP} />}
     </div>
-  )
-}
+  );
+};
 
-export default SystemConfiguration
-
+export default SystemConfiguration;

@@ -17,6 +17,7 @@ import Sidebar from "./Sidebar";
 import TrainModelPage from "./TrainModelPage";
 import TrainedModelsPage from "./TrainedModelsPage";
 import PlayBooksPage from "./PlayBooksPage";
+import PredictedThreatsPage from "./PredictedThreatsPage";
 
 const ProtectedRoute = ({ children }) => {
   const { user } = useAuth();
@@ -70,6 +71,7 @@ function App() {
         <Route path="/sidebar" element={<ProtectedRoute> <Sidebar />   </ProtectedRoute>   }  />
         <Route path="/train-model" element={<ProtectedRoute> <TrainModelPage />   </ProtectedRoute>   }  />
         <Route path="/trained-models" element={<ProtectedRoute> <TrainedModelsPage />   </ProtectedRoute>   }  />
+        <Route path="/threatAlerts" element={<ProtectedRoute> <PredictedThreatsPage />   </ProtectedRoute>   }  />
 		<Route path="/playbooks" element={<ProtectedRoute> <PlayBooksPage />   </ProtectedRoute>   }  />
         {/* Add other protected routes here */}
       </Routes>
