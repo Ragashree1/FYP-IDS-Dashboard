@@ -56,6 +56,7 @@ const UserManagementPage = () => {
   const fetchRoles = async () => {
     try {
       const response = await fetch ("http://localhost:8000/user-management/roles", {
+      //const response = await fetch ("https://api.secuboard.live/user-management/roles", {
           method: "GET",
         });
 
@@ -109,6 +110,7 @@ const UserManagementPage = () => {
   const fetchUsers = async () => {
     try {
       const response = await fetch("http://localhost:8000/user-management/", {
+     // const response = await fetch("https://api.secuboard.live/user-management/", {
         method: "GET",
         headers: {
           "Content-Type": "application/json",
@@ -184,6 +186,7 @@ const UserManagementPage = () => {
   const updateUserSuspend = async (user) => {
     try {
       const response = await fetch(`http://localhost:8000/user-management/${user.id}`, {
+      //const response = await fetch(`https://api.secuboard.live/user-management/${user.id}`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
@@ -215,6 +218,7 @@ const addUser = async (user) => {
   try {
     const token = localStorage.getItem("token"); // Get the token from localStorage
     const response = await fetch("http://localhost:8000/user-management/", {
+    //const response = await fetch("https://api.secuboard.live/user-management/", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -250,7 +254,7 @@ const addUser = async (user) => {
         username: user.username,
         userFirstName: user.userFirstName,
         userLastName: user.userLastName,
-        userComName: user.userComName,
+        org: user.org,
         userEmail: user.userEmail,
         userPhoneNum: user.userPhoneNum,
         userRole: user.userRole,
@@ -261,8 +265,8 @@ const addUser = async (user) => {
       if (user.passwd) {
         payload.passwd = user.passwd;
       }
-  
       const response = await fetch(`http://localhost:8000/user-management/${user.id}`, {
+      //const response = await fetch(`https://api.secuboard.live/user-management/${user.id}`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
@@ -291,6 +295,7 @@ const addUser = async (user) => {
   const deleteUser = async (id) => {
     try {
       await fetch(`http://localhost:8000/user-management/${id}`, { method: "DELETE" });
+      //await fetch(`https://api.secuboard.live/user-management/${id}`, { method: "DELETE" });
       fetchUsers()
     } catch (err) {
       setError("Failed to delete user");
@@ -316,7 +321,7 @@ const addUser = async (user) => {
         username: formData.username,
         userFirstName: formData.userFirstName,
         userLastName:formData.userLastName,
-        userComName:formData.userComName,
+        org:formData.org,
         userRole: formData.userRole,
         userEmail: formData.userEmail,
         userPhoneNum: formData.userPhoneNum,
