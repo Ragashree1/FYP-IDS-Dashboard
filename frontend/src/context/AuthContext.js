@@ -1,4 +1,4 @@
-import { createContext, useState, useContext, useEffect } from 'react';
+import React, { createContext, useState, useContext, useEffect } from 'react';
 import {jwtDecode} from 'jwt-decode'; // Install this package if not already installed
 
 const AuthContext = createContext(null);
@@ -10,6 +10,20 @@ export const AuthProvider = ({ children }) => {
   useEffect(() => {
     const savedToken = localStorage.getItem('token');
     console.log("Saved token from localStorage:", savedToken); // Debug log
+    
+    // Special case for platform admin mock token
+    if (savedToken === "mock-token-for-platform-admin") {
+      const userData = {
+        username: "test",
+        userRole: "platform-admin",
+        userComName: "secuboard",
+        token: savedToken,
+      };
+      setUser(userData);
+      setLoading(false);
+      return;
+    }
+    
     if (savedToken) {
       try {
         const decodedToken = jwtDecode(savedToken); // Decode the token
@@ -36,20 +50,39 @@ export const AuthProvider = ({ children }) => {
 
   const login = (userData) => {
     console.log("Logging in user:", userData); // Debug log
+    
+    // Ensure userRole is stored as a number if it's a numeric string
+    if (userData.userRole && !isNaN(userData.userRole)) {
+      userData.userRole = parseInt(userData.userRole, 10);
+    }
+    
+    console.log("Processed user data for login:", userData); // Debug log after processing
+    
     setUser(userData);
+
+    localStorage.setItem("orgId", String(userData.orgId));                
+    localStorage.setItem("clientEmail", userData.userEmail);       
+    localStorage.setItem("token", userData.token);
     localStorage.setItem("user", JSON.stringify(userData));
-  };
+  };  
 
   const logout = () => {
     console.log("Logging out user"); // Debug log
     setUser(null);
     localStorage.removeItem('user');
     localStorage.removeItem('token'); // Clear token on logout
+    localStorage.removeItem('orgId');         
+    localStorage.removeItem('clientEmail'); 
   };
 
   // Verify token periodically
   useEffect(() => {
     if (user?.token) {
+      // Skip verification for mock token
+      if (user.token === "mock-token-for-platform-admin") {
+        return;
+      }
+      
       console.log("Token being sent for validation:", user.token); // Debug log
       const verifyToken = async () => {
         try {
@@ -70,7 +103,7 @@ export const AuthProvider = ({ children }) => {
       };
 
       verifyToken();
-      const interval = setInterval(verifyToken, 10 * 60 * 1000); // Check every 5 minutes
+      const interval = setInterval(verifyToken, 10 * 60 * 1000); // Check every 10 minutes
       return () => clearInterval(interval);
     }
   }, [user]);

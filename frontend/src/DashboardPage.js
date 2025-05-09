@@ -56,7 +56,7 @@ const Dashboard = () => {
   
 
   useEffect(() => {
-    axios.get('http://localhost:8000/alerts')
+    axios.get(`http://localhost:8000/alerts?orgId=${localStorage.getItem('orgId')}`)
       .then(response => {
         if (response.data) {
           setLogs(response.data);

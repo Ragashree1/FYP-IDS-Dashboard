@@ -4,7 +4,7 @@ from services import log_service
 from services.log_service import update_and_fetch_logs, process_csv_file, fetch_cicflow_logs_from_es
 import math  # Add this import for checking NaN and infinity
 
-router = APIRouter()
+router = APIRouter(tags=["Logs"])
 
 @router.get("/logs")
 def get_logs():

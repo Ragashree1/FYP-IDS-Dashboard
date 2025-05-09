@@ -3,7 +3,6 @@ from datetime import datetime
 from database import SessionLocal
 from models.models import Logs, NetworkLogs
 import json
-from apscheduler.schedulers.background import BackgroundScheduler
 import pandas as pd
 import os
 import csv

@@ -1,5 +1,5 @@
 from database import SessionLocal
-from models.models import Account, Organization
+from models.models import Account, Role, Organization
 from models.schemas import AccountBase
 from typing import List, Optional, Annotated
 from passlib.context import CryptContext
@@ -8,11 +8,10 @@ from jose import jwt, JWTError
 from fastapi.security import OAuth2PasswordRequestForm, OAuth2PasswordBearer
 from fastapi import APIRouter, Depends, HTTPException
 
-
 SECRET_KEY = 's3cr3tk3y'  #Could be anything
 ALGORITHM = 'HS256'
 
-bcrypt_context = CryptContext (schemes = ['bcrypt'], deprecated = 'auto') 
+bcrypt_context = CryptContext(schemes=['bcrypt'], deprecated='auto') 
 # ^Where most password hashing and unhashing is done
 
 oauth2_bearer = OAuth2PasswordBearer(tokenUrl='/token')
@@ -20,9 +19,34 @@ oauth2_bearer = OAuth2PasswordBearer(tokenUrl='/token')
 def add_user(user_particulars: AccountBase):
     with SessionLocal() as db:
         try:
-            # Remove empty id if present
-            if hasattr(user_particulars, 'id'):
-                delattr(user_particulars, 'id')
+            # Check if username already exists for this company
+            existing_user = db.query(Account).filter(
+                Account.username == user_particulars.username,
+                Account.userComName == user_particulars.userComName
+            ).first()
+            
+            if existing_user:
+                raise HTTPException(status_code=400, detail="Username already exists for this company")
+            
+            # Check if email already exists
+            existing_email = db.query(Account).filter(
+                Account.userEmail == user_particulars.userEmail
+            ).first()
+            
+            if existing_email:
+                raise HTTPException(status_code=400, detail="Email already registered")
+            
+            # Verify that the role exists
+            role = db.query(Role).filter(Role.id == user_particulars.userRole).first()
+            if not role:
+                # If role doesn't exist, use a default role or create one
+                default_role = db.query(Role).filter(Role.id == 1).first()
+                if not default_role:
+                    # Create a default role if it doesn't exist
+                    default_role = Role(id=1, roleName="User")
+                    db.add(default_role)
+                    db.commit()
+                user_particulars.userRole = 1
             
             # Create a dict of user particulars and hash the password
             hashed_password = bcrypt_context.hash(user_particulars.passwd)
@@ -45,10 +69,19 @@ def add_user(user_particulars: AccountBase):
             db.add(create_user)
             db.commit()
             db.refresh(create_user)
+            
+            # Create a response object without the id field
+            response_data = user_particulars.model_dump()
+            if "id" in response_data:
+                del response_data["id"]
                 
             return create_user
+        except HTTPException as e:
+            db.rollback()
+            raise e
         except Exception as e:
             db.rollback()
+            print(f"Error in add_user: {str(e)}")  # Add logging
             raise HTTPException(status_code=422, detail=str(e))
         finally:
             db.close()

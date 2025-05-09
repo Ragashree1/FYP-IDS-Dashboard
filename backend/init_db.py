@@ -5,14 +5,12 @@ import json
 from dotenv import load_dotenv
 import os
 
-
-
 def init_database():
     # Create all tables
     Base.metadata.create_all(bind=engine)
     
-    # Initialize roles
-    with SessionLocal() as db:
+    db = SessionLocal()
+    try:
         # Check if roles already exist
         existing_roles = db.query(Role).all()
         if not existing_roles:
@@ -27,7 +25,6 @@ def init_database():
         else:
             print("Roles already exist")
 
-
         # Check if the international blacklist table is already filled
         existing_blacklist = db.query(InternationalBlacklist).first()
         if not existing_blacklist:
@@ -35,23 +32,18 @@ def init_database():
             API_KEY = os.getenv("API_KEY")
 
             url = 'https://api.abuseipdb.com/api/v2/blacklist'
-
-            querystring = {
-                'confidenceMinimum': '90'
-            }
-
+            querystring = { 'confidenceMinimum': '90' }
             headers = {
                 'Accept': 'application/json',
                 'Key': API_KEY
             }
 
-            response = requests.request(method='GET', url=url, headers=headers, params=querystring)
+            response = requests.get(url, headers=headers, params=querystring)
 
             if response.status_code == 200:
-                decoded_response = json.loads(response.text)
+                decoded_response = response.json()
                 blacklist_data = decoded_response.get("data", [])
 
-                # Insert IPs into the international_blacklist table
                 blacklist_entries = [
                     InternationalBlacklist(ip=entry["ipAddress"])
                     for entry in blacklist_data
@@ -103,7 +95,7 @@ def init_database():
             { "name": "file-format",  "priority": 1,  "text": "Known malicious file or file based exploit" },
             { "name": "malware-cnc",  "priority": 1,  "text": "Known malware command and control traffic" },
             { "name": "client-side-exploit",  "priority": 1,  "text": "Known client side exploit attempt" }
-        ];
+        ]
 
         # Populate priority_classification table
         existing_priority_classifications = db.query(PriorityClassification).first()
@@ -117,6 +109,8 @@ def init_database():
             print("Priority classification table populated successfully")
         else:
             print("Priority classification table already populated")
+    finally:
+        db.close()
 
 if __name__ == "__main__":
     init_database()

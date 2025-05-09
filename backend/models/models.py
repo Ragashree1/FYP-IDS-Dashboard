@@ -1,10 +1,15 @@
-import uuid  
-from sqlalchemy.dialects.postgresql import UUID
-from sqlalchemy import Column, ForeignKey, Integer, Float, String, ARRAY, TIMESTAMP, JSON, DateTime, func, Boolean, Table, UniqueConstraint
+import uuid
+from sqlalchemy.dialects.postgresql import UUID 
+from sqlalchemy import (
+    Column, ForeignKey, Integer, Float, String, ARRAY, TIMESTAMP, JSON, DateTime,
+    func, Boolean, Table, UniqueConstraint, Text
+)
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import validates, relationship
+from sqlalchemy.dialects.postgresql import UUID
 from database import Base
-from datetime import datetime 
+from datetime import datetime
+import json
 
 class MeetingMinutes(Base):
     __tablename__= 'Meeting'
@@ -18,7 +23,7 @@ class MeetingMinutes(Base):
     actions = Column(String)
 
     class Config:
-        orm_mode = True  
+        from_attributes = True  # Updated from orm_mode = True
 
 class Journal(Base):
     __tablename__= 'Journal'
@@ -28,7 +33,7 @@ class Journal(Base):
     jWeek = Column(String)
 
     class Config:
-        orm_mode = True
+        from_attributes = True  # Updated from orm_mode = True
 
 class Organization(Base):
     __tablename__ = "Organizations"
@@ -36,21 +41,19 @@ class Organization(Base):
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String, unique=True, nullable=False)
 
-class VerifiedIP(Base):
-    __tablename__ = "verified_ips"
-    id = Column(Integer, primary_key=True, index=True)
-    ip = Column(String, unique=True, nullable=False)
-    is_verified = Column(Boolean, default=False)
-    organization_id = Column(Integer, ForeignKey("Organizations.id"), nullable=True)  # Ensure IP is linked to an organization
-    organization = relationship("Organization")
-
 class BlockedIP(Base):
     __tablename__ = "blocked_ips"
+    __table_args__ = (
+        UniqueConstraint('ip', 'organization_id', name='unique_ip_per_org'),
+    )
 
     id = Column(Integer, primary_key=True, index=True)
-    ip = Column(String, unique=True, nullable=False)
+    ip = Column(String, nullable=False)  
     reason = Column(String, nullable=False)
     created_at = Column(DateTime, server_default=func.now())
+
+    organization_id = Column(Integer, ForeignKey("Organizations.id"), nullable=False)
+    organization = relationship("Organization")
 
 class SnortAlerts(Base):
     __tablename__ = 'SnortAlerts'
@@ -70,14 +73,77 @@ class SnortAlerts(Base):
     message = Column(String)
     signature_id = Column(String)
     host = Column(String)
+    # alert_source = Column(String, default="snort")
+    # organization_id = Column(Integer)
 
     class Config:
-        orm_mode = True
+        from_attributes = True  # Updated from orm_mode = True
 
+# New SuricataAlerts model
+class SuricataAlerts(Base):
+    __tablename__ = 'SuricataAlerts'
+    id = Column(Integer, primary_key=True, index=True)
+    timestamp = Column(String)
+    priority = Column(Integer)
+    protocol = Column(String)
+    raw = Column(String)
+    length = Column(Integer)
+    direction = Column(String)
+    src_ip = Column(String)
+    src_port = Column(Integer)
+    dest_ip = Column(String)
+    dest_port = Column(Integer)
+    classification = Column(String)
+    action = Column(String)
+    message = Column(String)
+    signature_id = Column(String)
+    host = Column(String)
+    alert_source = Column(String, default="suricata") 
+    organization_id = Column(Integer)
+
+    class Config:
+        from_attributes = True  # Updated from orm_mode = True
+		
+class ZeekAlerts(Base):
+    __tablename__ = 'ZeekAlerts'
+    id = Column(Integer, primary_key=True, index=True)
+    timestamp = Column(String)
+    priority = Column(Integer)
+    priority_name = Column(String)  # Add this line
+    protocol = Column(String)
+    raw = Column(String)
+    length = Column(Integer, default=0)
+    direction = Column(String, default="->")
+    src_ip = Column(String)
+    src_port = Column(Integer)
+    dest_ip = Column(String)
+    dest_port = Column(Integer)
+    classification = Column(String)
+    action = Column(String, default="ALERT")
+    message = Column(String)
+    signature_id = Column(String, default="0")
+    host = Column(String)
+    alert_source = Column(String, default="zeek")
+    organization_id = Column(Integer)
+    conn_id = Column(String, nullable=True)
+    event_type = Column(String, nullable=True)
+    uid = Column(String, nullable=True)
+    service = Column(String, nullable=True)
+
+    class Config:
+        from_attributes = True
+
+class VerifiedIP(Base):
+    __tablename__ = "verified_ips"
+    id = Column(Integer, primary_key=True, index=True)
+    ip = Column(String, unique=True, nullable=False)
+    is_verified = Column(Boolean, default=False)
+    organization_id = Column(Integer, ForeignKey("Organizations.id"), nullable=True)  # Ensure IP is linked to an organization
+    organization = relationship("Organization")
 
 class Account(Base):
     __tablename__= 'Account'
-    id = Column(Integer,primary_key=True, index=True)
+    id = Column(Integer, primary_key=True, index=True)
     username = Column(String)
     userFirstName = Column(String)
     userLastName = Column(String)
@@ -90,14 +156,31 @@ class Account(Base):
     organization_id = Column(Integer, ForeignKey("Organizations.id"))  
     organization = relationship("Organization") 
     role = relationship("Role", back_populates="accounts")
+    userRejected = Column(Boolean, default=False)  # Added userRejected field
+    fromOrgRequestsPage = Column(Boolean, default=False)
     
     __table_args__ = (
         UniqueConstraint('username', 'userComName', name='unique_username_company'),
     )
     
     class Config:
-        orm_mode = True
+        from_attributes = True  # Updated from orm_mode = True
 
+class CreditCard(Base):
+    __tablename__= 'creditcard'
+    id = Column(Integer,primary_key=True, index=True)
+    creditFirstName = Column(String) #Maybe later make it so that it retreives the userFirstName
+    creditLastName = Column(String) #Maybe later make it so that it retreives the userLastName
+    creditNum = Column(String)
+    creditDate= Column(String)
+    creditCVV = Column(Integer)
+    subscription = Column(String)
+    total = Column(String)
+    userid = Column(Integer, ForeignKey('Account.id')) #Encountered error while trying to import username as a foreign key, remember to come back when free and try solve this issue
+
+
+    class Config:
+        from_attributes = True  # Updated from orm_mode = True
 
 role_permission_association = Table(
     'role_permission_association', Base.metadata,
@@ -118,7 +201,7 @@ class Role(Base):
     permissions = relationship('Permission', secondary=role_permission_association, back_populates='roles')
 
     class Config:
-        orm_mode = True
+        from_attributes = True  # Updated from orm_mode = True
 
 class Permission(Base):
     __tablename__ = 'permission'
@@ -129,7 +212,7 @@ class Permission(Base):
     roles = relationship('Role', secondary=role_permission_association, back_populates='permissions')
 
     class Config:
-        orm_mode = True
+        from_attributes = True  # Updated from orm_mode = True
 
 
 class Report(Base):
@@ -140,7 +223,7 @@ class Report(Base):
     reportType = Column(String)
 
     class Config:
-        orm_mode = True
+        from_attributes = True  # Updated from orm_mode = True
 
 class InternationalBlacklist(Base):
     __tablename__ = "international_blacklist"
@@ -177,7 +260,7 @@ class Logs(Base):
     log_path = Column(String, nullable=True)
 
     class Config:
-        orm_mode = True
+        from_attributes = True  # Updated from orm_mode = True
 
 class Playbook(Base):
     __tablename__ = "Playbooks"
@@ -193,7 +276,7 @@ class Playbook(Base):
     updated_at = Column(TIMESTAMP, server_default=func.now(), onupdate=func.now())  # Timestamp of last update
 
     class Config:
-        orm_mode = True
+        from_attributes = True  # Updated from orm_mode = True
 
     def evaluate_conditions(self, logs, blocked_ips):
         """
@@ -364,3 +447,51 @@ class LogPredictions(Base):
 
 
     
+# New ActivityLog model for tracking user management activities
+class ActivityLog(Base):
+    __tablename__ = "activity_logs"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    timestamp = Column(TIMESTAMP, server_default=func.now())
+    user = Column(String, nullable=False)  # Username of the user who performed the action
+    targetUser = Column(String, nullable=False)  # Username of the user who was affected
+    action = Column(String, nullable=False)  # Type of action (user_created, user_updated, etc.)
+    description = Column(String, nullable=False)  # Description of the action
+    ipAddress = Column(String)  # IP address of the user who performed the action
+    userComName = Column(String, nullable=False)  # Company name for filtering logs by company
+    
+    class Config:
+        from_attributes = True
+
+# New SystemLog model for tracking system activities (playbooks, etc.)
+class SystemLog(Base):
+    __tablename__ = "system_logs"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    timestamp = Column(TIMESTAMP, server_default=func.now())
+    user = Column(String, nullable=False)  # Username of the user who performed the action
+    component = Column(String, nullable=False)  # System component affected (e.g., "Playbook", "Firewall", etc.)
+    action = Column(String, nullable=False)  # Type of action (playbook_created, rule_added, etc.)
+    description = Column(String, nullable=False)  # Description of the action
+    ipAddress = Column(String)  # IP address of the user who performed the action
+    resourceId = Column(String, nullable=True)  # ID of the affected resource (e.g., playbook ID)
+    resourceName = Column(String, nullable=True)  # Name of the affected resource (e.g., playbook name)
+    userComName = Column(String, nullable=True)
+	
+    class Config:
+        from_attributes = True
+
+# New Review model for storing customer reviews
+class Review(Base):
+    __tablename__ = "reviews"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    name = Column(String, nullable=False)
+    email = Column(String, nullable=False)
+    company = Column(String, nullable=True)
+    rating = Column(Integer, nullable=False)
+    review_text = Column(Text, nullable=False)
+    created_at = Column(TIMESTAMP, server_default=func.now())
+    
+    class Config:
+        from_attributes = True

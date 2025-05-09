@@ -1,3 +1,5 @@
+import React from "react";
+
 const SuspendConfirmationModal = ({ onClose, onConfirm, user, isSuspending }) => {
   return (
     <div

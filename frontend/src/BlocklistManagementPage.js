@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom"
 
 import Sidebar from "./Sidebar" // Import the Sidebar component
@@ -7,13 +7,35 @@ const userRole = "2"
 
 const API_URL = "http://localhost:8000/ip-blocking"; // backend API base URL
 
-const fetchBlockedIPs = async (setBlocklist) => {
+const fetchBlockedIPs = async (setBlocklist, navigate) => {
+  const orgId = localStorage.getItem("orgId");
+  const clientEmail = localStorage.getItem("clientEmail");
+  const token = localStorage.getItem("token");
+
+  console.log("DEBUG orgId:", orgId);
+  console.log("DEBUG clientEmail:", clientEmail);
+  console.log("DEBUG token:", token);
+
+  if (!orgId || orgId === "null" || !clientEmail || !token) {
+    alert("Missing authentication info. Please log in again.");
+    localStorage.clear();
+    navigate("/login");
+    return;
+  }
+
   try {
-    const response = await fetch(`${API_URL}/blocked-ips/`);
+    const response = await fetch(`http://localhost:8000/ip-blocking/${orgId}/blocked-ips`, {
+      method: "GET",
+      headers: {
+        "Content-Type": "application/json"
+      }
+    });
+
     if (response.status === 403) {
-      alert("Access denied: Your IP is blocked.");
+      alert("Access denied: You are not authorized to view this organization's blocklist.");
       return;
     }
+
     if (!response.ok) {
       throw new Error(`Failed to fetch: ${response.status} ${response.statusText}`);
     }
@@ -29,13 +51,11 @@ const fetchBlockedIPs = async (setBlocklist) => {
     // Fix: Extract both IP and reason correctly
     setBlocklist(data.map(({ ip, reason }) => ({
       ip,
-      reason: reason || "No reason provided"  // Use actual reason, fallback if missing
+      reason: reason || "No reason provided"
     })));
   } catch (error) {
     console.error("Error fetching blocked IPs:", error);
-    if (error.message.includes("Failed to fetch")) {
-      alert("Could not connect to the server. Ensure backend is running.");
-    }
+    alert("Could not connect to the server: " + error.message);
   }
 };
 
@@ -243,66 +263,78 @@ const BlocklistManagementPage = () => {
   const [showRemoveModal, setShowRemoveModal] = useState(false)
   const [selectedIP, setSelectedIP] = useState(null)
   const [blocklist, setBlocklist] = useState([])
+  const handleSearch = (e) => {
+    setSearchQuery(e.target.value);
+  };  
 
   useEffect(() => {
-    fetchBlockedIPs(setBlocklist);
+    const clientEmail = localStorage.getItem("clientEmail");
+    const orgId = localStorage.getItem("orgId");
+  
+    if (!clientEmail || !orgId) {
+      alert("Missing authentication info. Please log in again.");
+      navigate("/login");
+      return;
+    }
+  
+    fetchBlockedIPs(setBlocklist, navigate);
     checkUserIP(navigate);
-  }, [navigate]);
-
-  const isActive = (path) => location.pathname.startsWith(path)
-
-  const handleLogout = () => {
-    navigate("/login")
-  }
-
-  const handleSearch = (e) => {
-    setSearchQuery(e.target.value)
-  }
+  }, [navigate]);  
 
   const handleRemoveIP = async (ip) => {
     try {
-      const response = await fetch(`${API_URL}/unblock-ip/${ip}`, {
+      const token = localStorage.getItem("token");
+      const orgId = localStorage.getItem("orgId");
+      const response = await fetch(`${API_URL}/unblock-ip/${ip}?org_id=${orgId}`, {
         method: "DELETE",
+        headers: {
+          "Authorization": `Bearer ${token}`
+        }
       });
-  
+    
       if (!response.ok){
         const data = await response.json();
         alert(data.detail || "Failed to remove IP");
         console.error("Failed to remove IP:", data.detail || "Failed to remove IP");
+        return; // Add return to prevent UI update on error
       }
-  
+    
       setBlocklist((prevBlocklist) => prevBlocklist.filter((item) => item.ip !== ip)); 
     } catch (error) {
       console.error("Error removing IP:", error);
+      alert("Error removing IP: " + error.message);
     }
   };    
 
   const handleAddIP = async (ip, reason) => {
-    if (!ip.trim() || !reason.trim()) {
-      alert("IP and reason are required!");
-      return;
-    }
-  
     try {
+      console.log("Sending orgId:", localStorage.getItem("orgId"));
       const response = await fetch(`${API_URL}/block-ip/`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ip: ip.trim(), reason: reason.trim() }),
+        body: JSON.stringify({
+          ip: ip.trim(),
+          reason: reason.trim(),
+          organization_id: parseInt(localStorage.getItem("orgId"))
+        }),
       });
   
       const data = await response.json();
   
       if (!response.ok) {
-        alert(data.detail || "Failed to block IP");
-        throw new Error(data.detail || "Failed to block IP");
+        console.error("Backend error:", data);  // ✅ Print full error
+        alert("Failed to block IP: " + (data.detail || JSON.stringify(data)));  // ✅ Show proper message
+        return;
       }
   
-      setBlocklist((prevBlocklist) => [...prevBlocklist, data]); 
+      alert("IP blocked successfully");
+      // reload IP list
     } catch (error) {
-      console.error("Error blocking IP:", error);
+      console.error("Frontend error:", error);  // ✅ Print actual error
+      alert("Network error: " + error.message);  // ✅ Show readable alert
     }
-  };    
-
+  };
+  
   const handleIPClick = (ip) => {
     setSelectedIP(ip)
     setShowRemoveModal(true)

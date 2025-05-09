@@ -1,12 +1,16 @@
-﻿import { useState, useEffect } from "react"
+﻿"use client"
+
+import { useState, useEffect } from "react"
 import { useNavigate } from "react-router-dom"
-import { validatePhoneNumber, validateEmail, validatePassword } from './utils/validation';
 
 const RegistrationPage = () => {
   const navigate = useNavigate() // Add navigation hook
 
   // Add state for success popup
   const [showSuccessPopup, setShowSuccessPopup] = useState(false)
+  // Add state for error popup
+  const [showErrorPopup, setShowErrorPopup] = useState(false)
+  const [errorMessage, setErrorMessage] = useState("")
 
   // Add scoped styles to the component when it mounts
   useEffect(() => {
@@ -217,6 +221,91 @@ const RegistrationPage = () => {
           background-color: #7CB342;
         }
 
+        /* Error Popup Styles */
+        .error-popup-overlay {
+          position: fixed;
+          top: 0;
+          left: 0;
+          right: 0;
+          bottom: 0;
+          background-color: rgba(0, 0, 0, 0.5);
+          display: flex;
+          justify-content: center;
+          align-items: center;
+          z-index: 1000;
+        }
+
+        .error-popup {
+          background-color: white;
+          border-radius: 8px;
+          overflow: hidden;
+          width: 90%;
+          max-width: 400px;
+          box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+          text-align: center;
+        }
+
+        .error-popup-header {
+          background-color: #EF5350;
+          padding: 24px;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          justify-content: center;
+        }
+
+        .error-popup-icon {
+          width: 60px;
+          height: 60px;
+          background-color: white;
+          border-radius: 50%;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          margin-bottom: 12px;
+        }
+
+        .error-popup-icon svg {
+          width: 30px;
+          height: 30px;
+          color: #EF5350;
+        }
+
+        .error-popup-title {
+          color: white;
+          font-size: 18px;
+          font-weight: 500;
+          letter-spacing: 1px;
+        }
+
+        .error-popup-content {
+          padding: 32px 24px;
+        }
+
+        .error-popup-message {
+          color: #666;
+          font-size: 16px;
+          line-height: 1.5;
+          margin-bottom: 24px;
+        }
+
+        .error-popup-button {
+          background-color: #EF5350;
+          color: white;
+          border: none;
+          border-radius: 50px;
+          padding: 12px 36px;
+          font-size: 16px;
+          font-weight: 500;
+          cursor: pointer;
+          transition: background-color 0.2s;
+          box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        .error-popup-button:hover {
+          background-color: #E53935;
+        }
+
         @media (max-width: 640px) {
           .registration-page-wrapper .registration-container {
             margin: 1rem;
@@ -255,8 +344,10 @@ const RegistrationPage = () => {
     userComName: "",
     userEmail: "",
     userPhoneNum: "",
-    userRole: 1,  // Set default role
-    userSuspend: false  // Set default suspend status
+    userRole: 1, // Set default role
+    userSuspend: true, // Set default suspend status to true (pending approval)
+    userRejected: false, // Not rejected initially
+    fromOrgRequestsPage: false, // Corrected field name with 's'
   })
 
   const [message, setMessage] = useState("")
@@ -294,21 +385,13 @@ const RegistrationPage = () => {
         }
         return ""
       case "username":
-        return value.trim() !== ""
-          ? ""
-          : "username is required."
+        return value.trim() !== "" ? "" : "Login ID is required."
       case "userFirstName":
-        return value.trim() !== ""
-          ? ""
-          : "First Name is required."
+        return value.trim() !== "" ? "" : "First Name is required."
       case "userLastName":
-        return value.trim() !== ""
-          ? ""
-          : "Last Name is required."
+        return value.trim() !== "" ? "" : "Last Name is required."
       case "userComName":
-        return value.trim() !== ""
-          ? ""
-          : "Company Name is required."
+        return value.trim() !== "" ? "" : "Company Name is required."
       default:
         return ""
     }
@@ -350,7 +433,7 @@ const RegistrationPage = () => {
       newErrors.userEmail = "Please enter a valid email format (e.g., name@example.com)."
     }
     if (!formData.userPhoneNum.match(/^\+[1-9]\d{0,2}\d{6,14}$/)) {
-      newErrors.userPhoneNum = "Phone number must start with + followed by a country code (1-3 digits) and 6-14 digits.";
+      newErrors.userPhoneNum = "Phone number must start with + followed by a country code (1-3 digits) and 6-14 digits."
     }
 
     if (formData.passwd.length < 6) {
@@ -394,12 +477,12 @@ const RegistrationPage = () => {
   }
 
   const handlePhoneChange = (e) => {
-    const value = e.target.value;
+    const value = e.target.value
     // Allow only + and digits
-    if (value === '' || value === '+' || /^\+\d*$/.test(value)) {
-      handleChange(e);
+    if (value === "" || value === "+" || /^\+\d*$/.test(value)) {
+      handleChange(e)
     }
-  };
+  }
 
   // Handle continue button click in success popup
   const handleContinue = () => {
@@ -416,11 +499,28 @@ const RegistrationPage = () => {
     navigate("/login")
   }
 
+  // Handle close button click in error popup
+  const handleCloseError = () => {
+    setShowErrorPopup(false)
+  }
+
   // Handle form submission
   const handleSubmit = async (e) => {
     e.preventDefault()
     if (!validateForm()) return
-    console.log(formData)
+
+    // Remove the id field completely from the data being sent
+    const { id, ...registrationDataWithoutId } = formData
+
+    // Ensure userSuspend is set to false for new registrations (allow immediate login)
+    const registrationData = {
+      ...registrationDataWithoutId,
+      userSuspend: false,
+      userRejected: false,
+      fromOrgRequestsPage: false,
+    }
+
+    console.log("Submitting registration data:", registrationData)
 
     try {
       const response = await fetch("http://127.0.0.1:8000/register/", {
@@ -428,21 +528,41 @@ const RegistrationPage = () => {
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify(formData),
+        body: JSON.stringify(registrationData),
       })
 
       if (!response.ok) {
-        const errorData = await response.json();
-        setMessage(`Error: ${errorData.detail || "Registration failed"}`);
-        return;
+        const errorData = await response.json()
+        console.error("Registration error:", errorData)
+
+        // Check for specific error messages from the backend
+        if (errorData.detail) {
+          if (errorData.detail.includes("Username already exists")) {
+            setErrorMessage("This username is already registered for this company. Please use a different username.")
+          } else if (errorData.detail.includes("Email already registered")) {
+            setErrorMessage("This email address is already registered. Please use a different email address.")
+          } else {
+            setErrorMessage(errorData.detail || "Registration failed. Please try again.")
+          }
+        } else {
+          setErrorMessage("Registration failed. Please try again.")
+        }
+
+        // Show error popup
+        setShowErrorPopup(true)
+        return
       }
 
-      const data = await response.json();
-      setMessage("User registered successfully!");
-      setShowSuccessPopup(true);
+      const data = await response.json()
+      console.log("Registration successful:", data)
+      setMessage("User registered successfully!")
+
+      // Show success popup
+      setShowSuccessPopup(true)
     } catch (error) {
-      console.error("Registration error:", error);
-      setMessage("Network error. Please try again.");
+      console.error("Registration error:", error)
+      setErrorMessage("Network error. Please try again.")
+      setShowErrorPopup(true)
     }
   }
 
@@ -469,6 +589,37 @@ const RegistrationPage = () => {
           <div className="success-popup-message">Congratulations, your account has been successfully created.</div>
           <button className="success-popup-button" onClick={handleContinue}>
             Continue
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+
+  // Error Popup Component
+  const ErrorPopup = () => (
+    <div className="error-popup-overlay">
+      <div className="error-popup">
+        <div className="error-popup-header">
+          <div className="error-popup-icon">
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <circle cx="12" cy="12" r="10"></circle>
+              <line x1="15" y1="9" x2="9" y2="15"></line>
+              <line x1="9" y1="9" x2="15" y2="15"></line>
+            </svg>
+          </div>
+          <div className="error-popup-title">ERROR</div>
+        </div>
+        <div className="error-popup-content">
+          <div className="error-popup-message">{errorMessage}</div>
+          <button className="error-popup-button" onClick={handleCloseError}>
+            Close
           </button>
         </div>
       </div>
@@ -531,7 +682,7 @@ const RegistrationPage = () => {
                 type="text"
                 name="username"
                 id="username"
-                placeholder="username"
+                placeholder="Login ID"
                 value={formData.username}
                 onChange={handleChange}
                 required
@@ -580,12 +731,8 @@ const RegistrationPage = () => {
               pattern="^\+[1-9]\d{0,2}\d{6,14}$"
               required
             />
-            <small className="input-hint">
-              Format: +[country code][number] (e.g., +65 for Singapore)
-            </small>
-            {errors.userPhoneNum && touched.userPhoneNum && (
-              <small className="error-hint">{errors.userPhoneNum}</small>
-            )}
+            <small className="input-hint">Format: +[country code][number] (e.g., +65 for Singapore)</small>
+            {errors.userPhoneNum && touched.userPhoneNum && <small className="error-hint">{errors.userPhoneNum}</small>}
           </div>
 
           <div className="form-actions">
@@ -598,9 +745,11 @@ const RegistrationPage = () => {
 
       {/* Success Popup */}
       {showSuccessPopup && <SuccessPopup />}
+
+      {/* Error Popup */}
+      {showErrorPopup && <ErrorPopup />}
     </div>
   )
 }
 
 export default RegistrationPage
-
