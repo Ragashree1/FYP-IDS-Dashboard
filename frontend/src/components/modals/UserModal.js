@@ -8,7 +8,7 @@ const UserModal = ({ onClose, onConfirm, user = null }) => {
     userFirstName: user?.userFirstName || '',
     userLastName: user?.userLastName || '',
     passwd: '',
-    userComName: user?.userComName || 'Company Name',
+    org: user?.org || 'Company Name',
     userEmail: user?.userEmail || '',
     userPhoneNum: user?.userPhoneNum || '',
     userRole: user?.userRole || 1,
@@ -18,6 +18,7 @@ const UserModal = ({ onClose, onConfirm, user = null }) => {
   const fetchRoles = async () => {
     try {
       const response = await fetch ("http://localhost:8000/user-management/roles", {
+      //const response = await fetch ("https://api.secuboard.live/user-management/roles", {
           method: "GET",
         });
 
