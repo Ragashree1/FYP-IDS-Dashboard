@@ -79,7 +79,7 @@ class Account(Base):
     userFirstName = Column(String)
     userLastName = Column(String)
     passwd = Column(String)
-    userComName = Column(String)
+    #userComName = Column(String) Rmb to delete later
     userEmail = Column(String)
     userPhoneNum = Column(String)
     userRole = Column(Integer, ForeignKey("role.id"))
@@ -90,7 +90,7 @@ class Account(Base):
     organisation_id = Column(UUID(as_uuid=True), ForeignKey("Organisations.id", ondelete="SET NULL"), nullable=True)
     
     __table_args__ = (
-        UniqueConstraint('username', 'userComName', name='unique_username_company'),
+        UniqueConstraint('username', name='unique_username_company'),
     )
     
     class Config:
@@ -148,13 +148,13 @@ class InternationalBlacklist(Base):
     __tablename__ = "international_blacklist"
     ip = Column(String, primary_key=True, nullable=False)
 
-class TokenTable(Base):
+class Token(Base):
     __tablename__ = "token"
     id = Column(Integer,primary_key=True, index=True)
-    access_token = Column(String)
-    refresh_token = Column(String,nullable=False)
+    token = Column(String)
     status = Column(Boolean)
     created_date = Column(DateTime, default=datetime.now)
+    user_id = Column(Integer, ForeignKey("Account.id"), nullable=False)
 
 class PriorityClassification(Base):
     __tablename__ = "priority_classification"

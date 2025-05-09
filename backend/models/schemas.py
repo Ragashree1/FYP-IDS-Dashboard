@@ -71,6 +71,9 @@ class SnortAlertsOut(BaseModel):
 
     class Config:
         orm_mode = True
+
+class OrganisationBase(BaseModel):
+    name: str
         
 class AccountBase(BaseModel):
     id: Optional[int] = None  # Changed to make it truly optional
@@ -78,11 +81,11 @@ class AccountBase(BaseModel):
     userFirstName: str
     userLastName: str
     passwd: Optional[str] = None
-    userComName: str
     userEmail: EmailStr  # Changed to use EmailStr for better validation
     userPhoneNum: str
     userRole: Optional[int] = 1  # Set default value
     userSuspend: bool = False
+    organisation: OrganisationBase
 
     @validator('id', pre=True)
     def handle_empty_id(cls, v):
@@ -133,7 +136,7 @@ class AccountBase(BaseModel):
         orm_mode = True
 
 class AccountLogin(BaseModel):
-    userComName : str
+    organisation: OrganisationBase
     userRole: Optional[int] = None
     username : str
     passwd : str
