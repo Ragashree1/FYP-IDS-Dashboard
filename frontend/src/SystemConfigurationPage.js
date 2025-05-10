@@ -185,24 +185,6 @@ const SystemConfiguration = () => {
   };
 
   const handleAddIP = async (newIP) => {
-    // const token = localStorage.getItem("token");
-    // const response = await fetch(`${API_BASE_URL}/login/get_user`, {
-    //   headers: { Authorization: `Bearer ${token}` },
-    // });
-
-    // if (!response.ok) {
-    //   const errorData = await response.json();
-    //   throw new Error(errorData.message || "Failed to fetch user details");
-    // }
-
-    // const data = await response.json();
-    // console.log(data)
-    // const orgId = data.user.organization_id;
-    // if (!orgId) {
-    //   alert("Organization ID is missing. Please register again." + token);
-    //   return;
-    // }
-
     try {
       const response = await fetch(`${API_BASE_URL}/ip-verification/verify-ip`, {
         method: "POST",
@@ -216,9 +198,7 @@ const SystemConfiguration = () => {
       }
 
       alert("IP verified successfully!");
-      fetchVerifiedIPs(getOrgId()); // Refresh the list after adding
-      console.log(fetchVerifiedIPs(userOrgId))
-      // setClients((prevClients) => [...prevClients, { ip: newIP }]); // Add the new IP to the list
+      fetchVerifiedIPs(await getOrgId()); // Refresh the list after adding
     } catch (error) {
       console.error("Error verifying IP:", error.message);
       alert(`Error: ${error.message}`);
@@ -261,30 +241,10 @@ const SystemConfiguration = () => {
 
     }, []);
 
-  // useEffect(() => {
-  //   (async () => {
-  //     if (userOrgId == 0) {
-  //       const fetchedOrgId = await getOrgId();
-  //       setOrgId(fetchedOrgId);
-  //       console.log("printing fetchedOrgId")
-  //       console.log(fetchedOrgId)
-  //       console.log("printing userOrgId")
-  //       console.log(userOrgId)
-  //       if (!fetchedOrgId) {
-  //         alert("Organization ID is missing aaa. Please register again.");
-  //         return;
-  //       }
-
-  //     }
-  //       fetchVerifiedIPs(userOrgId);
-  //   })();
-  // }, [navigate, logType, userOrgId]);
-
   const handleSearch = (e) => {
     setSearchQuery(e.target.value);
   };
 
-  // const filteredClients = clients && clients.filter((client) => client.ip.toLowerCase().includes(searchQuery.toLowerCase()));
   const filteredClients = clients && clients.length > 0
     ? clients.filter((client) => client.ip && client.ip.toLowerCase().includes(searchQuery.toLowerCase()))
     : [];

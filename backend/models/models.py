@@ -495,3 +495,20 @@ class Review(Base):
     
     class Config:
         from_attributes = True
+
+
+class MLModels(Base):
+    __tablename__ = "ml_models"
+
+    id = Column(Integer, primary_key=True, index=True)
+    model_name = Column(String, nullable=False)  # Added field for model name
+    algorithm = Column(String, nullable=False)
+    file_name = Column(String, nullable=False)
+    file_path = Column(String, nullable=False)  # Path to the .pkl file
+    is_active = Column(Boolean, default=False)  # Whether the model is active
+    created_at = Column(TIMESTAMP, server_default=func.now())
+    organization_id = Column(Integer, ForeignKey("Organizations.id"))  
+    organization = relationship("Organization") 
+
+    class Config:
+        from_attributes = True

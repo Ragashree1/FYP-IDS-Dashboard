@@ -26,6 +26,7 @@ from controllers.reviews_controller import router as reviews_router
 from controllers.ip_verification_controller import router as ip_verification_router
 from controllers.suricata_controller import router as suricata_router
 from controllers.zeek_controller import router as zeek_router
+from controllers.ml_model_controller import router as ml_model_router
 from services.alert_service import update_and_fetch_alerts
 from services.suricata_service import update_and_fetch_suricata_alerts
 from services.zeek_service import update_and_fetch_zeek_alerts
@@ -37,6 +38,7 @@ from typing import List, Optional
 import traceback
 from jose import JWTError, jwt
 from init_db import init_database
+
 
 # Set up logging
 logging.basicConfig(level=logging.INFO)
@@ -173,6 +175,7 @@ app.include_router(reviews_router)
 app.include_router(ip_verification_router)
 app.include_router(suricata_router)
 app.include_router(zeek_router)
+app.include_router(ml_model_router)
 
 @app.get("/")
 async def root():

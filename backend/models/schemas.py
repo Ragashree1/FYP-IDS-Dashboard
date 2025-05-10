@@ -537,3 +537,23 @@ class ReviewOut(ReviewBase):
     
     class Config:
         from_attributes = True
+
+class MLModelBase(BaseModel):
+    algorithm: str
+    file_path: str
+    file_name: str  # Added field for file name
+    model_name: str
+    organization_id: int
+
+class MLModelOut(BaseModel):
+    id: int
+    algorithm: str
+    file_path: str
+    file_name: str  # Added field for file name
+    model_name: str
+    is_active: bool
+    created_at: datetime
+    organization_id: int
+
+    class Config:
+        from_attributes = True
