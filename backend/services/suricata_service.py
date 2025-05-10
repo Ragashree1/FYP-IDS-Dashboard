@@ -1,7 +1,5 @@
 import requests
-import subprocess
-import socket
-from datetime import datetime, timezone, timedelta
+from datetime import datetime, timedelta
 import json
 import logging
 from database import SessionLocal
@@ -15,35 +13,6 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-# Set to False to bypass IP verification if needed
-ENABLE_IP_VERIFICATION = True
-
-def get_vm_ip():
-    """Get the IP address of the current VM"""
-    try:
-        # This gets the primary IP address of the machine
-        s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        s.connect(("8.8.8.8", 80))  # Connect to Google's DNS
-        ip = s.getsockname()[0]
-        s.close()
-        logger.info(f"VM IP address: {ip}")
-        return ip
-    except Exception as e:
-        logger.error(f"Error getting VM IP: {str(e)}")
-        return None
-
-def is_service_running(service_name):
-    try:
-        if service_name == 'suricata':
-            result = subprocess.run(["systemctl", "status", "suricata"],
-                                    capture_output=True, text=True)
-            return "active (running)" in result.stdout
-        else:
-            return False
-    except Exception as e:
-        logger.error(f"Error checking {service_name} status: {str(e)}")
-        return False
-
 def get_elasticsearch_alert_count():
     try:
         es_url = "http://localhost:9200/suricata-alerts-*,suricata-logs-*/_count"
@@ -55,7 +24,6 @@ def get_elasticsearch_alert_count():
             if health_check.status_code != 200:
                 logger.error(f"Elasticsearch health check failed: {health_check.status_code}")
                 return 0
-            logger.info("Elasticsearch health check passed")
         except requests.exceptions.RequestException as e:
             logger.error(f"Cannot connect to Elasticsearch: {str(e)}")
             return 0
@@ -63,12 +31,11 @@ def get_elasticsearch_alert_count():
         response = requests.get(es_url, headers=headers, timeout=10)
         
         if response.status_code != 200:
-            logger.error(f"Error from Elasticsearch count: {response.status_code} - {response.text}")
+            logger.error(f"Error from Elasticsearch count: {response.status_code}")
             return 0
         
         result = response.json()
         count = result.get('count', 0)
-        logger.info(f"Total alerts in Elasticsearch: {count}")
         return count
     except Exception as e:
         logger.error(f"Error getting Elasticsearch alert count: {str(e)}")
@@ -80,7 +47,6 @@ def get_elasticsearch_alert_count_by_signature():
         es_url = "http://localhost:9200/suricata-alerts-*/_search"
         headers = {"Content-Type": "application/json"}
         
-        # Use the aggregation query you provided
         query = {
             "size": 0,
             "aggs": {
@@ -96,12 +62,11 @@ def get_elasticsearch_alert_count_by_signature():
         response = requests.get(es_url, json=query, headers=headers, timeout=30)
         
         if response.status_code != 200:
-            logger.error(f"Error from Elasticsearch: {response.status_code} - {response.text}")
+            logger.error(f"Error from Elasticsearch: {response.status_code}")
             return 0
         
         result = response.json()
         total_count = result.get('hits', {}).get('total', {}).get('value', 0)
-        logger.info(f"Total alerts in Elasticsearch: {total_count}")
         return total_count
     except Exception as e:
         logger.error(f"Error getting Elasticsearch alert count: {str(e)}")
@@ -114,7 +79,6 @@ def get_database_alert_count(orgId: int):
                 SuricataAlerts.organization_id == orgId,
                 SuricataAlerts.alert_source == "suricata"
             ).scalar()
-            logger.info(f"Total alerts in database for org {orgId}: {count}")
             return count
     except Exception as e:
         logger.error(f"Error getting database alert count: {str(e)}")
@@ -130,12 +94,10 @@ def fetch_suricata_alerts(orgId: int):
             if health_check.status_code != 200:
                 logger.error(f"Elasticsearch health check failed: {health_check.status_code}")
                 return []
-            logger.info("Elasticsearch health check passed")
         except requests.exceptions.RequestException as e:
             logger.error(f"Cannot connect to Elasticsearch: {str(e)}")
             return []
         
-        # CRITICAL FIX: Use the exact same query that worked in the curl command
         query = {
             "size": 1000,
             "query": {
@@ -147,23 +109,14 @@ def fetch_suricata_alerts(orgId: int):
         }
         
         headers = {"Content-Type": "application/json"}
-        logger.info(f"Fetching Suricata alerts from {es_url} with event_type: alert")
         response = requests.get(es_url, json=query, headers=headers, timeout=30)
         
         if response.status_code != 200:
-            logger.error(f"Error from Elasticsearch: {response.status_code} - {response.text}")
+            logger.error(f"Error from Elasticsearch: {response.status_code}")
             return []
         
         result = response.json()
         alerts = result.get('hits', {}).get('hits', [])
-        logger.info(f"Fetched {len(alerts)} Suricata alerts from Elasticsearch")
-
-        if len(alerts) > 0:
-            logger.info(f"Sample alert: {json.dumps(alerts[0].get('_source', {}), indent=2)}")
-        else:
-            logger.warning("No alerts found in Elasticsearch with event_type: alert")
-            
-        logger.info(f"Returning {len(alerts)} alerts for processing")
         return alerts
     except requests.exceptions.RequestException as e:
         logger.error(f"Error connecting to Elasticsearch: {str(e)}")
@@ -182,7 +135,6 @@ def fetch_suricata_alerts_by_ip(ip_address: str):
             if health_check.status_code != 200:
                 logger.error(f"Elasticsearch health check failed: {health_check.status_code}")
                 return []
-            logger.info("Elasticsearch health check passed")
         except requests.exceptions.RequestException as e:
             logger.error(f"Cannot connect to Elasticsearch: {str(e)}")
             return []
@@ -206,22 +158,14 @@ def fetch_suricata_alerts_by_ip(ip_address: str):
         }
         
         headers = {"Content-Type": "application/json"}
-        logger.info(f"Fetching Suricata alerts from {es_url} for IP: {ip_address}")
         response = requests.get(es_url, json=query, headers=headers, timeout=30)
         
         if response.status_code != 200:
-            logger.error(f"Error from Elasticsearch: {response.status_code} - {response.text}")
+            logger.error(f"Error from Elasticsearch: {response.status_code}")
             return []
         
         result = response.json()
         alerts = result.get('hits', {}).get('hits', [])
-        logger.info(f"Fetched {len(alerts)} Suricata alerts from Elasticsearch for IP: {ip_address}")
-
-        if len(alerts) > 0:
-            logger.info(f"Sample alert: {json.dumps(alerts[0].get('_source', {}), indent=2)}")
-        else:
-            logger.warning(f"No alerts found in Elasticsearch for IP: {ip_address}")
-            
         return alerts
     except requests.exceptions.RequestException as e:
         logger.error(f"Error connecting to Elasticsearch: {str(e)}")
@@ -261,17 +205,14 @@ def fetch_recent_alerts(limit=1000, minutes=5):
             "sort": [{"@timestamp": "desc"}]
         }
         
-        logger.info(f"Fetching alerts from the last {minutes} minutes")
         response = requests.get(es_url, json=query, headers=headers, timeout=30)
         
         if response.status_code != 200:
-            logger.error(f"Error from Elasticsearch: {response.status_code} - {response.text}")
+            logger.error(f"Error from Elasticsearch: {response.status_code}")
             return []
         
         result = response.json()
         alerts = result.get('hits', {}).get('hits', [])
-        logger.info(f"Fetched {len(alerts)} recent alerts from Elasticsearch")
-        
         return alerts
     except Exception as e:
         logger.error(f"Error fetching recent alerts: {str(e)}")
@@ -310,17 +251,14 @@ def fetch_new_alerts(orgId: int, start_time=None):
             })
         
         headers = {"Content-Type": "application/json"}
-        logger.info(f"Fetching new Suricata alerts from {es_url}")
         response = requests.get(es_url, json=query, headers=headers, timeout=30)
         
         if response.status_code != 200:
-            logger.error(f"Error from Elasticsearch: {response.status_code} - {response.text}")
+            logger.error(f"Error from Elasticsearch: {response.status_code}")
             return []
         
         result = response.json()
         alerts = result.get('hits', {}).get('hits', [])
-        logger.info(f"Fetched {len(alerts)} new Suricata alerts from Elasticsearch")
-        
         return alerts
     except Exception as e:
         logger.error(f"Error fetching new alerts: {str(e)}")
@@ -328,16 +266,15 @@ def fetch_new_alerts(orgId: int, start_time=None):
 
 def verify_logs(logs: list, orgId: int):
     verified_logs = []
-    verified_logs_count = 0
-    skipped_logs_count = 0
     
-    # Get the VM's actual IP address
-    vm_ip = get_vm_ip()
-    if not vm_ip:
-        logger.error("Could not determine VM IP address. Skipping verification.")
-        return []  # Return empty list if we can't determine VM IP
+    # Get verified IPs from database
+    with SessionLocal() as db:
+        verified_ips = set(ip[0] for ip in db.query(VerifiedIP.ip)
+            .filter(VerifiedIP.organization_id == orgId, VerifiedIP.is_verified == True).all())
     
-    logger.info(f"Verifying logs against VM IP: {vm_ip}")
+    if not verified_ips:
+        logger.error(f"No verified IPs found for organization {orgId}. Skipping verification.")
+        return []
     
     for hit in logs:
         source = hit.get("_source", {})
@@ -353,19 +290,12 @@ def verify_logs(logs: list, orgId: int):
             dest_ip = dest_ip[0]
         
         if not src_ip and not dest_ip:
-            skipped_logs_count += 1
             continue
         
-        # Check if EITHER the source IP OR destination IP matches the VM's IP
-        if src_ip == vm_ip or dest_ip == vm_ip:
+        # Check if EITHER the source IP OR destination IP is in the verified IPs set
+        if src_ip in verified_ips or dest_ip in verified_ips:
             verified_logs.append(hit)
-            verified_logs_count += 1
-            logger.info(f"VERIFIED: Alert with src_ip={src_ip}, dest_ip={dest_ip} matches VM IP {vm_ip}")
-        else:
-            skipped_logs_count += 1
-            logger.info(f"SKIPPED: Alert with src_ip={src_ip}, dest_ip={dest_ip} does not match VM IP {vm_ip}")
 
-    logger.info(f"Verification results: {verified_logs_count} verified, {skipped_logs_count} skipped")
     return verified_logs
 
 def get_existing_alert_ids(db, orgId: int):
@@ -484,72 +414,41 @@ def save_suricata_alerts(alerts, orgId: int):
                     error_count += 1
 
             db.commit()
-            logger.info(f"Processed {len(alerts)} alerts: {saved_count} saved, {duplicate_count} duplicates, {error_count} errors")
     except Exception as e:
         logger.error(f"Error saving Suricata alerts to database: {str(e)}")
 
 def update_and_fetch_suricata_alerts(orgId: int):
     try:
-        # CRITICAL FIX: Validate organization ID
+        # Validate organization ID
         if not orgId or orgId <= 0:
             logger.error(f"Invalid organization ID: {orgId}")
             return []
-            
-        logger.info(f"Processing alerts for organization ID: {orgId}")
-        
-        is_running = is_service_running('suricata')
-        logger.info(f"Suricata running status: {is_running}")
 
-        # Get the VM's IP for filtering
-        vm_ip = get_vm_ip()
-        if not vm_ip:
-            logger.error("Could not determine VM IP address. Skipping alert processing.")
-            return []
-            
-        logger.info(f"Current VM IP: {vm_ip}")
-        
-        # Check if the VM's IP is in the VerifiedIP table for this organization
+        # Get verified IPs from database
         with SessionLocal() as db:
-            verified_ip = db.query(VerifiedIP).filter_by(
+            verified_ips = db.query(VerifiedIP.ip).filter_by(
                 organization_id=orgId, 
-                ip=vm_ip, 
                 is_verified=True
-            ).first()
+            ).all()
             
-            if ENABLE_IP_VERIFICATION and not verified_ip:
-                logger.warning(f"VM IP {vm_ip} is not in the verified IP list for organization {orgId}. Skipping alert processing.")
+            if not verified_ips:
+                logger.warning(f"No verified IPs found for organization {orgId}.")
                 return []
                 
-        logger.info(f"VM IP {vm_ip} is verified for organization {orgId}. Proceeding with alert processing.")
-        
-        # PERFORMANCE IMPROVEMENT: Only fetch recent alerts (last 5 minutes)
-        # This makes the function much faster and more responsive to new attacks
-        logger.info(f"Fetching recent alerts for organization {orgId}")
+            # Create a set of verified IPs for faster lookups
+            verified_set = {ip[0] for ip in verified_ips}
         
         # Import recent alerts (last 5 minutes)
         force_import_alerts(orgId, limit=1000, minutes=5)
         
         # Now retrieve all alerts for this organization from the database
         with SessionLocal() as db:
-            # CRITICAL FIX: Only return alerts that match the VM's IP
-            if ENABLE_IP_VERIFICATION:
-                logger.info(f"Filtering database alerts by VM IP: {vm_ip}")
-                org_alerts = db.query(SuricataAlerts).filter(
-                    SuricataAlerts.organization_id == orgId,
-                    SuricataAlerts.alert_source == "suricata",
-                    or_(SuricataAlerts.src_ip == vm_ip, SuricataAlerts.dest_ip == vm_ip)
-                ).all()
-            else:
-                org_alerts = db.query(SuricataAlerts).filter(
-                    SuricataAlerts.organization_id == orgId,
-                    SuricataAlerts.alert_source == "suricata"
-                ).all()
-            
-            logger.info(f"Returning {len(org_alerts)} Suricata alerts from DB for org {orgId}")
-            
-            # Add this to debug empty results
-            if not org_alerts:
-                logger.warning(f"No alerts found in database for organization {orgId}")
+            # Only return alerts that match verified IPs
+            org_alerts = db.query(SuricataAlerts).filter(
+                SuricataAlerts.organization_id == orgId,
+                SuricataAlerts.alert_source == "suricata",
+                or_(SuricataAlerts.src_ip.in_(verified_set), SuricataAlerts.dest_ip.in_(verified_set))
+            ).all()
             
             return org_alerts
     except Exception as e:
@@ -566,57 +465,43 @@ def force_import_alerts(orgId: int, limit: int = 1000, minutes: int = 5):
         minutes: Only import alerts from the last X minutes
     """
     try:
-        # Get the VM's IP for filtering
-        vm_ip = get_vm_ip()
-        if not vm_ip and ENABLE_IP_VERIFICATION:
-            logger.error("Could not determine VM IP address. Skipping alert processing.")
-            return False
+        # Get verified IPs from database
+        with SessionLocal() as db:
+            verified_ips = db.query(VerifiedIP.ip).filter_by(
+                organization_id=orgId, 
+                is_verified=True
+            ).all()
             
-        logger.info(f"Current VM IP: {vm_ip}")
-        
-        # Check if the VM's IP is in the VerifiedIP table for this organization
-        if ENABLE_IP_VERIFICATION:
-            with SessionLocal() as db:
-                verified_ip = db.query(VerifiedIP).filter_by(
-                    organization_id=orgId, 
-                    ip=vm_ip, 
-                    is_verified=True
-                ).first()
+            if not verified_ips:
+                logger.warning(f"No verified IPs found for organization {orgId}.")
+                return False
                 
-                if not verified_ip:
-                    logger.warning(f"VM IP {vm_ip} is not in the verified IP list for organization {orgId}. Skipping alert processing.")
-                    return False
-                    
-            logger.info(f"VM IP {vm_ip} is verified for organization {orgId}. Proceeding with alert processing.")
+            # Create a set of verified IPs for faster lookups
+            verified_set = {ip[0] for ip in verified_ips}
         
         # Fetch recent alerts (from the last X minutes)
         alerts = fetch_recent_alerts(limit=limit, minutes=minutes)
         
         if not alerts:
-            logger.warning("No recent alerts found in Elasticsearch")
             return False
-            
-        logger.info(f"Processing {len(alerts)} recent alerts")
         
-        # If IP verification is enabled, filter alerts by VM IP
-        if ENABLE_IP_VERIFICATION:
-            filtered_alerts = []
-            for alert in alerts:
-                source = alert.get("_source", {})
-                
-                src_ip = source.get("src_ip", "")
-                if isinstance(src_ip, list) and len(src_ip) > 0:
-                    src_ip = src_ip[0]
-                    
-                dest_ip = source.get("dest_ip", "")
-                if isinstance(dest_ip, list) and len(dest_ip) > 0:
-                    dest_ip = dest_ip[0]
-                
-                if src_ip == vm_ip or dest_ip == vm_ip:
-                    filtered_alerts.append(alert)
+        # Filter alerts by verified IPs
+        filtered_alerts = []
+        for alert in alerts:
+            source = alert.get("_source", {})
             
-            logger.info(f"After IP filtering: {len(filtered_alerts)} of {len(alerts)} alerts match VM IP {vm_ip}")
-            alerts = filtered_alerts
+            src_ip = source.get("src_ip", "")
+            if isinstance(src_ip, list) and len(src_ip) > 0:
+                src_ip = src_ip[0]
+                
+            dest_ip = source.get("dest_ip", "")
+            if isinstance(dest_ip, list) and len(dest_ip) > 0:
+                dest_ip = dest_ip[0]
+            
+            if src_ip in verified_set or dest_ip in verified_set:
+                filtered_alerts.append(alert)
+        
+        alerts = filtered_alerts
         
         # Check for duplicates in the database
         if alerts:
@@ -688,65 +573,20 @@ def force_import_alerts(orgId: int, limit: int = 1000, minutes: int = 5):
                     if (signature_id, src_ip, dest_ip, timestamp) not in all_existing_alerts:
                         filtered_alerts.append(alert)
                 
-                logger.info(f"After filtering out existing alerts: {len(filtered_alerts)} of {len(alerts)} alerts remaining")
                 alerts = filtered_alerts
         
         if alerts:
             # Use batch processing for saving alerts
             batch_size = 100
-            total_saved = 0
             
             for i in range(0, len(alerts), batch_size):
                 batch = alerts[i:i+batch_size]
                 save_suricata_alerts(batch, orgId)
-                total_saved += len(batch)
-                logger.info(f"Saved batch {i//batch_size + 1}: {len(batch)} alerts")
             
-            logger.info(f"Total imported: {total_saved} alerts to database for organization {orgId}")
-            
-            # Verify alerts were saved
-            with SessionLocal() as db:
-                count = db.query(func.count(SuricataAlerts.id)).filter(
-                    SuricataAlerts.organization_id == orgId,
-                    SuricataAlerts.alert_source == "suricata"
-                ).scalar()
-                
-            logger.info(f"After import: {count} alerts in database for org {orgId}")
             return True
         else:
-            logger.warning("No new alerts found to import")
             return False
             
     except Exception as e:
         logger.error(f"Error importing alerts: {str(e)}")
         return False
-
-# Add this function to help with debugging
-def check_database_alerts(orgId: int):
-    """
-    Utility function to check alerts in the database for a specific organization.
-    """
-    try:
-        with SessionLocal() as db:
-            alerts = db.query(SuricataAlerts).filter(
-                SuricataAlerts.organization_id == orgId,
-                SuricataAlerts.alert_source == "suricata"
-            ).all()
-            
-            logger.info(f"Found {len(alerts)} Suricata alerts in database for org {orgId}")
-            
-            if alerts:
-                logger.info("Sample alert from database:")
-                sample = alerts[0]
-                logger.info(f"ID: {sample.id}")
-                logger.info(f"Timestamp: {sample.timestamp}")
-                logger.info(f"Message: {sample.message}")
-                logger.info(f"Source IP: {sample.src_ip}")
-                logger.info(f"Destination IP: {sample.dest_ip}")
-            else:
-                logger.info("No alerts found in database")
-                
-            return alerts
-    except Exception as e:
-        logger.error(f"Error checking database: {e}")
-        return []
