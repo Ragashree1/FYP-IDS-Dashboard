@@ -2,6 +2,7 @@ from database import SessionLocal
 from models.models import MLModels
 from models.schemas import MLModelBase, MLModelOut
 from typing import Optional, List
+import os
 
 def add_model(model_data: MLModelBase) -> MLModelOut:
     with SessionLocal() as db:
@@ -15,6 +16,12 @@ def remove_model(model_id: int) -> bool:
     with SessionLocal() as db:
         model = db.query(MLModels).filter(MLModels.id == model_id).first()
         if model:
+            # Delete associated files
+            if os.path.exists(model.model_file_path):
+                os.remove(model.model_file_path)
+            if model.preprocessor_file_path and os.path.exists(model.preprocessor_file_path):
+                os.remove(model.preprocessor_file_path)
+            
             db.delete(model)
             db.commit()
             return True

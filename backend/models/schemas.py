@@ -539,21 +539,64 @@ class ReviewOut(ReviewBase):
         from_attributes = True
 
 class MLModelBase(BaseModel):
-    algorithm: str
-    file_path: str
-    file_name: str  # Added field for file name
     model_name: str
+    algorithm: str
+    model_type: str  # 'anomaly' or 'multiclass'
+    model_file_name: str
+    model_file_path: str
+
+    # Move these flags up so they are available for validation
+    use_default_preprocessor: bool = False
+    has_built_in_preprocessor: bool = False
+    use_default_features: bool = False
+
+    preprocessor_file_name: Optional[str] = None
+    preprocessor_file_path: Optional[str] = None
+    label_mapping: Optional[Dict[str, str]] = None
+    features_list: Optional[str] = None
     organization_id: int
+    is_active: Optional[bool] = False
+
+    @validator('model_type')
+    def validate_model_type(cls, v):
+        if v not in ['anomaly', 'multiclass']:
+            raise ValueError('model_type must be either "anomaly" or "multiclass"')
+        return v
+
+    @validator('features_list')
+    def validate_features_list(cls, v, values):
+        # Skip validation if use_default_features is True
+        if values.get('use_default_features', False):
+            return v
+        if not v or not v.strip():
+            raise ValueError('features_list is required when not using default features')
+        return v
+
+    @validator('preprocessor_file_path')
+    def validate_preprocessor(cls, v, values):
+        # Skip validation if using default or built-in preprocessor
+        if values.get('use_default_preprocessor', False) or values.get('has_built_in_preprocessor', False):
+            return v
+        if not v:
+            raise ValueError('preprocessor file is required when not using default or built-in preprocessor')
+        return v
 
 class MLModelOut(BaseModel):
     id: int
-    algorithm: str
-    file_path: str
-    file_name: str  # Added field for file name
     model_name: str
-    is_active: bool
-    created_at: datetime
+    algorithm: str
+    model_type: str  # 'anomaly' or 'multiclass'
+    model_file_name: str
+    model_file_path: str
+    preprocessor_file_name: Optional[str] = None
+    preprocessor_file_path: Optional[str] = None
+    use_default_preprocessor: bool = False
+    has_built_in_preprocessor: bool = False
+    label_mapping: Optional[Dict[str, str]] = None
+    features_list: Optional[str] = None
+    use_default_features: bool = False
     organization_id: int
+    is_active: bool = True
 
     class Config:
         from_attributes = True

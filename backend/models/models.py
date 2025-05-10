@@ -501,14 +501,22 @@ class MLModels(Base):
     __tablename__ = "ml_models"
 
     id = Column(Integer, primary_key=True, index=True)
-    model_name = Column(String, nullable=False)  # Added field for model name
+    model_name = Column(String, nullable=False)
     algorithm = Column(String, nullable=False)
-    file_name = Column(String, nullable=False)
-    file_path = Column(String, nullable=False)  # Path to the .pkl file
-    is_active = Column(Boolean, default=False)  # Whether the model is active
+    model_type = Column(String, nullable=False)  # 'anomaly' or 'multiclass'
+    model_file_name = Column(String, nullable=False)
+    model_file_path = Column(String, nullable=False)
+    preprocessor_file_name = Column(String, nullable=True)
+    preprocessor_file_path = Column(String, nullable=True)
+    use_default_preprocessor = Column(Boolean, default=False)
+    has_built_in_preprocessor = Column(Boolean, default=False)
+    label_mapping = Column(JSON, nullable=True)  # Store the label mapping as JSON
+    features_list = Column(String, nullable=True)  # Comma-separated features
+    use_default_features = Column(Boolean, default=False)
+    is_active = Column(Boolean, default=False)
     created_at = Column(TIMESTAMP, server_default=func.now())
-    organization_id = Column(Integer, ForeignKey("Organizations.id"))  
-    organization = relationship("Organization") 
+    organization_id = Column(Integer, ForeignKey("Organizations.id"))
+    organization = relationship("Organization")
 
     class Config:
         from_attributes = True

@@ -1,7 +1,9 @@
+from datetime import datetime
+import json
 from fastapi import APIRouter, HTTPException, UploadFile, File, Form, Body
 from services import ml_model_service
 from models.schemas import MLModelBase, MLModelOut
-from typing import List
+from typing import List, Optional
 import os
 import shutil
 
@@ -13,22 +15,85 @@ UPLOAD_DIR = "/home/raga/logIntegration/uploads/ml_models"
 def create_model(
     model_name: str = Form(...),
     algorithm: str = Form(...),
+    model_type: str = Form(...),  # 'anomaly' or 'multiclass'
     organization_id: int = Form(...),
-    file: UploadFile = File(...)
+    model_file: UploadFile = File(...),
+    preprocessor_file: Optional[UploadFile] = File(None),
+    use_default_preprocessor: str = Form("false"),  # Accept as string
+    has_built_in_preprocessor: str = Form("false"), # Accept as string
+    label_mapping: Optional[str] = Form(None),
+    features_list: Optional[str] = Form(None),
+    use_default_features: str = Form("false") 
 ):
-    # Save the uploaded file
-    os.makedirs(UPLOAD_DIR, exist_ok=True)
-    file_path = os.path.join(UPLOAD_DIR, file.filename)
-    with open(file_path, "wb") as buffer:
-        shutil.copyfileobj(file.file, buffer)
+    
+    #before
+    print("before")
+    print("has_built_in_preprocessor:", has_built_in_preprocessor, "| type:", type(has_built_in_preprocessor))
+    print("use_default_preprocessor:", use_default_preprocessor, "| type:", type(use_default_preprocessor))
+    print("use_default_features:", use_default_features, "| type:", type(use_default_features))
+    use_default_preprocessor = str(use_default_preprocessor).lower() == 'true'
+    has_built_in_preprocessor = str(has_built_in_preprocessor).lower() == 'true'
+    use_default_features = str(use_default_features).lower() == 'true'
 
-    # Add model to the database
+    # Create organization directory if it doesn't exist
+    org_upload_dir = os.path.join(UPLOAD_DIR, str(organization_id))
+    os.makedirs(org_upload_dir, exist_ok=True)
+    
+    # Generate timestamp for unique filenames
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    
+    # Save model file
+    model_filename = f"{timestamp}_model.pkl"
+    model_path = os.path.join(org_upload_dir, model_filename)
+    with open(model_path, "wb") as buffer:
+        shutil.copyfileobj(model_file.file, buffer)
+
+    # Save preprocessor file if provided
+    preprocessor_filename = None
+    preprocessor_path = None
+    if preprocessor_file and not use_default_preprocessor and not has_built_in_preprocessor:
+        preprocessor_filename = f"{timestamp}_preprocessor.pkl"
+        preprocessor_path = os.path.join(org_upload_dir, preprocessor_filename)
+        with open(preprocessor_path, "wb") as buffer:
+            shutil.copyfileobj(preprocessor_file.file, buffer)
+    print("after")
+    print("has_built_in_preprocessor:", has_built_in_preprocessor, "| type:", type(has_built_in_preprocessor))
+    print("use_default_preprocessor:", use_default_preprocessor, "| type:", type(use_default_preprocessor))
+    print("use_default_features:", use_default_features, "| type:", type(use_default_features))
+
+
+    # Parse label mapping if provided
+    label_mapping_dict = None
+    if label_mapping and model_type == "multiclass":
+        try:
+            label_mapping_dict = json.loads(label_mapping)
+            if not isinstance(label_mapping_dict, dict):
+                raise HTTPException(
+                    status_code=400,
+                    detail="Label mapping must be a valid JSON object"
+                )
+        except json.JSONDecodeError:
+            raise HTTPException(
+                status_code=400,
+                detail="Invalid JSON format for label mapping"
+            )
+
+
+    # Add model to database
     model = ml_model_service.add_model(
         model_data=MLModelBase(
             model_name=model_name,
             algorithm=algorithm,
-            file_path=file_path,
-            file_name=file.filename,  # Pass the file name
+            model_type=model_type,
+            model_file_name=model_filename,
+            model_file_path=model_path,
+            preprocessor_file_name=preprocessor_filename,
+            preprocessor_file_path=preprocessor_path,
+            use_default_preprocessor=use_default_preprocessor,
+            has_built_in_preprocessor=has_built_in_preprocessor,
+            label_mapping=label_mapping_dict,
+            features_list=features_list if not use_default_features else None,
+            use_default_features=use_default_features,
             organization_id=organization_id
         )
     )

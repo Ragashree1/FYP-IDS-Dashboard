@@ -1,7 +1,30 @@
 import React, { useState, useEffect } from "react"
 import axios from "axios"
 import Sidebar from "./Sidebar"
-
+// Add form styles here
+const formStyles = {
+  "form-label": {
+    display: "block",
+    marginBottom: "8px",
+    fontSize: "14px",
+    fontWeight: "500",
+    color: "#374151",
+  },
+  "form-input": {
+    width: "100%",
+    padding: "8px 12px",
+    borderRadius: "4px",
+    border: "1px solid #ddd",
+    backgroundColor: "#f5f5f5",
+    boxSizing: "border-box",
+    fontSize: "14px",
+    transition: "border-color 0.2s",
+    "&:focus": {
+      outline: "none",
+      borderColor: "#3B82F6",
+    }
+  }
+}
 const Switch = ({ isOn, onToggle, disabled = false }) => {
   return (
     <div
@@ -62,6 +85,7 @@ const Button = ({ children, onClick, variant = "default", style = {} }) => {
       color: "white",
     },
   }
+  
 
   return (
     <button style={{ ...styles[variant], ...style }} onClick={onClick}>
@@ -112,7 +136,15 @@ const TrainedModelsPage = () => {
   const [isAddModelOpen, setIsAddModelOpen] = useState(false)
   const [newModelName, setNewModelName] = useState("") // Added state for model name
   const [newAlgorithm, setNewAlgorithm] = useState("")
-  const [selectedFile, setSelectedFile] = useState(null)
+  const [labelMappingText, setLabelMappingText] = useState("")
+  const [modelType, setModelType] = useState("anomaly") // Default to 'anomaly'
+  const [modelFile, setModelFile] = useState(null)
+  const [preprocessorFile, setPreprocessorFile] = useState(null)
+  const [useDefaultPreprocessor, setUseDefaultPreprocessor] = useState(false)
+  const [hasBuiltInPreprocessor, setHasBuiltInPreprocessor] = useState(false)
+  const [labelMappingFile, setLabelMappingFile] = useState(null)
+  const [featuresList, setFeaturesList] = useState("")
+  const [useDefaultFeatures, setUseDefaultFeatures] = useState(false)
   const organizationId = 1 // Example organization ID
   const baseUrl = "http://localhost:8000"
 
@@ -127,21 +159,80 @@ const TrainedModelsPage = () => {
     setModels(response.data)
   }
 
+  const resetForm = () => {
+    setNewModelName("")
+    setNewAlgorithm("")
+    setModelType("anomaly")
+    setModelFile(null)
+    setPreprocessorFile(null)
+    setUseDefaultPreprocessor(false)
+    setHasBuiltInPreprocessor(false)
+    setLabelMappingFile(null)
+    setFeaturesList("")
+    setUseDefaultFeatures(false)
+    setLabelMappingText("")
+  }
+
+  
+
   const handleAddModel = async () => {
-    if (!newModelName.trim() || !newAlgorithm.trim() || !selectedFile) return
+    if (!newModelName.trim() || !newAlgorithm.trim() || !modelFile) return
 
     const formData = new FormData()
-    formData.append("model_name", newModelName) // Include model name
+    formData.append("model_name", newModelName)
     formData.append("algorithm", newAlgorithm)
+    formData.append("model_type", modelType)
     formData.append("organization_id", await getOrgId())
-    formData.append("file", selectedFile)
 
-    await axios.post(baseUrl + "/ml_model", formData)
-    fetchModels()
-    setIsAddModelOpen(false)
-    setNewModelName("") // Reset model name
-    setNewAlgorithm("") // Reset algorithm
-    setSelectedFile(null) // Reset file input
+    if (modelType === "multiclass" && labelMappingText.trim()) {
+      try {
+        const mappingJSON = JSON.parse(labelMappingText)
+        formData.append("label_mapping_file", new Blob([JSON.stringify(mappingJSON)], {
+          type: 'application/json'
+        }))
+      } catch (error) {
+        alert("Invalid JSON format for table mapping")
+        return
+      }
+    }
+
+
+    if (useDefaultPreprocessor) {
+      formData.append("use_default_preprocessor", true)
+    } else if (hasBuiltInPreprocessor) {
+      formData.append("has_built_in_preprocessor", true)
+    } else {
+      if (!preprocessorFile.trim()) {
+        alert("Features list is required when not using default features")
+        return
+      }
+      formData.append("preprocessor_file", preprocessorFile)
+    }
+    
+    if (labelMappingFile) {
+      formData.append("label_mapping_file", labelMappingFile)
+    }
+    
+    if (useDefaultFeatures) {
+      formData.append("use_default_features", true)
+    } else {
+      if (!featuresList.trim()) {
+        alert("Features list is required when not using default features")
+        return
+      }
+      formData.append("features_list", featuresList)
+    }
+
+    formData.append("model_file", modelFile)
+
+    try {
+      await axios.post(baseUrl + "/ml_model", formData)
+      fetchModels()
+      setIsAddModelOpen(false)
+      resetForm()
+    } catch (error) {
+      alert("Error adding model: " + error.response?.data?.detail || error.message)
+    }
   }
 
   const handleDeleteModel = async (modelId) => {
@@ -151,10 +242,11 @@ const TrainedModelsPage = () => {
 
   const handleToggleModelStatus = async (modelId, isActive) => {
     await axios.put(baseUrl + `/ml_model/${modelId}/status`, {
-      organization_id: organizationId,
+      organization_id: await getOrgId(),
       is_active: isActive,
+      model_id: modelId,
     })
-    fetchModels()
+    await fetchModels()
   }
 
   const getOrgId = async () => {
@@ -168,6 +260,8 @@ const TrainedModelsPage = () => {
     const data = await response.json()
     return data.user.organization_id
   }
+
+  
 
   return (
     <div style={{ display: "flex", height: "100vh", background: "#f4f4f4", overflow: "hidden" }}>
@@ -205,18 +299,20 @@ const TrainedModelsPage = () => {
             </tr>
             </thead>
             <tbody>
-            {models.map((model, index) => (
+            {[...models]
+          .sort((a, b) => Number(a.id) - Number(b.id)) // Sort by ID in ascending order
+          .map((model, index) => (
           <tr key={model.id} style={{ backgroundColor: index % 2 === 0 ? "#fff" : "#f9f9f9" }}>
             <td style={{ padding: "16px", borderBottom: "1px solid #eee", verticalAlign: "middle" }}>{index + 1}</td>
-            <td style={{ padding: "16px", borderBottom: "1px solid #eee", verticalAlign: "middle" }}>{model.algorithm}</td>
-            <td style={{ padding: "16px", borderBottom: "1px solid #eee", verticalAlign: "middle" }}>{model.file_name}</td>
+            <td style={{ padding: "16px", borderBottom: "1px solid #eee", verticalAlign: "middle" }}>{model.algorithm} haha {model.is_active}</td>
+            <td style={{ padding: "16px", borderBottom: "1px solid #eee", verticalAlign: "middle" }}>{model.model_file_name}</td>
             <td style={{ padding: "16px", borderBottom: "1px solid #eee", verticalAlign: "middle" }}>
-              <div style={{ display: "flex", justifyContent: "center", alignItems: "center", width: "100%" }}>
-                <Switch
-                  isOn={model.is_active}
-                  onToggle={() => handleToggleModelStatus(model.id, !model.is_active)}
-                />
-              </div>
+            <div style={{ display: "flex", justifyContent: "center", alignItems: "center", width: "100%" }}>
+              <Switch
+                isOn={Boolean(model.is_active)} // Ensure it's a boolean
+                onToggle={() => handleToggleModelStatus(model.id, !model.is_active)}
+              />
+            </div>
             </td>
             <td style={{ padding: "16px", borderBottom: "1px solid #eee", verticalAlign: "middle" }}>
               <div style={{ display: "flex", justifyContent: "center", alignItems: "center", width: "100%" }}>
@@ -234,108 +330,179 @@ const TrainedModelsPage = () => {
       </div>
 
       <Dialog open={isAddModelOpen} onOpenChange={setIsAddModelOpen}>
-        <div style={{ textAlign: "center", marginBottom: "16px" }}>
-          <h2 style={{ margin: 0 }}>Add Model</h2>
+      <div style={{ textAlign: "center", marginBottom: "16px" }}>
+        <h2 style={{ margin: 0 }}>Add Model</h2>
+      </div>
+      <div style={{ marginBottom: "24px" }}>
+        {/* Model Name field */}
+        <div style={{ marginBottom: "16px" }}>
+          <label htmlFor="model-name" style={formStyles["form-label"]}>Model Name</label>
+          <input
+            id="model-name"
+            value={newModelName}
+            onChange={(e) => setNewModelName(e.target.value)}
+            style={formStyles["form-input"]}
+          />
         </div>
-        <div style={{ marginBottom: "24px" }}>
-          <div style={{ marginBottom: "16px" }}>
-            <label
-              htmlFor="model-name"
-              style={{
-                display: "block",
-                marginBottom: "8px",
-                fontSize: "14px",
-                fontWeight: "500",
-              }}
-            >
-              Model Name
-            </label>
-            <input
-              id="model-name"
-              value={newModelName}
-              onChange={(e) => setNewModelName(e.target.value)}
-              style={{
-                width: "100%",
-                padding: "8px 12px",
-                borderRadius: "4px",
-                border: "1px solid #ddd",
-                backgroundColor: "#f5f5f5",
-                boxSizing: "border-box",
-              }}
-            />
-          </div>
 
-          <div style={{ marginBottom: "16px" }}>
-            <label
-              htmlFor="algorithm"
-              style={{
-                display: "block",
-                marginBottom: "8px",
-                fontSize: "14px",
-                fontWeight: "500",
-              }}
-            >
-              Algorithm
-            </label>
-            <input
-              id="algorithm"
-              value={newAlgorithm}
-              onChange={(e) => setNewAlgorithm(e.target.value)}
-              style={{
-                width: "100%",
-                padding: "8px 12px",
-                borderRadius: "4px",
-                border: "1px solid #ddd",
-                backgroundColor: "#f5f5f5",
-                boxSizing: "border-box",
-              }}
-            />
-          </div>
+        {/* Algorithm field */}
+        <div style={{ marginBottom: "16px" }}>
+          <label htmlFor="algorithm" style={formStyles["form-label"]}>Algorithm</label>
+          <input
+            id="algorithm"
+            value={newAlgorithm}
+            onChange={(e) => setNewAlgorithm(e.target.value)}
+            style={formStyles["form-input"]}
+          />
+        </div>
 
+        {/* Model Type Selection */}
+        <div style={{ marginBottom: "16px" }}>
+          <label htmlFor="model-type" style={formStyles["form-label"]}>Model Type</label>
+          <select
+            id="model-type"
+            value={modelType}
+            onChange={(e) => setModelType(e.target.value)}
+            style={formStyles["form-input"]}
+          >
+            <option value="anomaly">Anomaly Detection</option>
+            <option value="multiclass">Multi-class Classification</option>
+          </select>
+        </div>
+
+        {/* Label Mapping File Upload (for multiclass) */}
+        {modelType === "multiclass" && (
+        <div style={{ marginBottom: "16px" }}>
+          <label htmlFor="mapping-text" style={formStyles["form-label"]}>Table Mapping (JSON)</label>
+          <textarea
+            id="mapping-text"
+            value={labelMappingText}
+            onChange={(e) => setLabelMappingText(e.target.value)}
+            placeholder={`Enter JSON mapping, e.g.:
+    {
+      "0": "Normal",
+      "1": "DoS",
+      "2": "Probe"
+    }`}
+            style={{
+              ...formStyles["form-input"],
+              minHeight: "120px",
+              fontFamily: "monospace",
+              whiteSpace: "pre"
+            }}
+          />
+          <div style={{ marginTop: "4px", fontSize: "12px", color: "#666" }}>
+            Enter the mapping between numeric labels and their descriptions in JSON format
+          </div>
+        </div>
+      )}
+
+        {/* Model File Upload */}
+        <div style={{ marginBottom: "16px" }}>
+          <label htmlFor="model-upload" style={formStyles["form-label"]}>Upload Model (.pkl)</label>
+          <input
+            id="model-upload"
+            type="file"
+            accept=".pkl"
+            onChange={(e) => {
+              const file = e.target.files[0]
+              if (file && file.name.endsWith(".pkl")) {
+                setModelFile(file)
+              } else {
+                alert("Please upload a valid .pkl file.")
+                e.target.value = null
+              }
+            }}
+            style={formStyles["form-input"]}
+          />
+        </div>
+
+        {/* Preprocessor Options */}
+        <div style={{ marginBottom: "16px" }}>
+          <label style={formStyles["form-label"]}>Preprocessor Options</label>
+          <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+            <label>
+              <input
+                type="checkbox"
+                checked={useDefaultPreprocessor}
+                onChange={(e) => setUseDefaultPreprocessor(e.target.checked)}
+              />
+              Use Default Preprocessor
+            </label>
+            <label>
+              <input
+                type="checkbox"
+                checked={hasBuiltInPreprocessor}
+                onChange={(e) => setHasBuiltInPreprocessor(e.target.checked)}
+              />
+              Has Built-in Preprocessor
+            </label>
+          </div>
+        </div>
+
+        {/* Preprocessor File Upload (if not using default or built-in) */}
+        {!useDefaultPreprocessor && !hasBuiltInPreprocessor && (
           <div style={{ marginBottom: "16px" }}>
-            <label
-              htmlFor="model-upload"
-              style={{
-                display: "block",
-                marginBottom: "8px",
-                fontSize: "14px",
-                fontWeight: "500",
-              }}
-            >
-              Upload Model
+            <label htmlFor="preprocessor-upload" style={formStyles["form-label"]}>
+              Upload Preprocessor (.pkl)
             </label>
             <input
-              id="model-upload"
+              id="preprocessor-upload"
               type="file"
+              accept=".pkl"
               onChange={(e) => {
                 const file = e.target.files[0]
                 if (file && file.name.endsWith(".pkl")) {
-                  setSelectedFile(file)
+                  setPreprocessorFile(file)
                 } else {
                   alert("Please upload a valid .pkl file.")
-                  e.target.value = null // Reset the file input
+                  e.target.value = null
                 }
               }}
-              style={{
-                width: "100%",
-                padding: "8px 12px",
-                borderRadius: "4px",
-                border: "1px solid #ddd",
-                backgroundColor: "#f5f5f5",
-                boxSizing: "border-box",
-              }}
+              style={formStyles["form-input"]}
             />
           </div>
+        )}
+
+        
+        {/* Features List */}
+        <div style={{ marginBottom: "16px" }}>
+          <label htmlFor="features" style={formStyles["form-label"]}>Features List</label>
+          <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+            <label>
+              <input
+                type="checkbox"
+                checked={useDefaultFeatures}
+                onChange={(e) => setUseDefaultFeatures(e.target.checked)}
+              />
+              Use Default Features
+            </label>
+            {!useDefaultFeatures && (
+              <textarea
+                id="features"
+                value={featuresList}
+                onChange={(e) => setFeaturesList(e.target.value)}
+                placeholder="Enter comma-separated features..."
+                style={{ minHeight: "80px" }}
+              />
+            )}
+          </div>
         </div>
-        <div style={{ display: "flex", justifyContent: "center", gap: "8px" }}>
-          <Button variant="default" onClick={handleAddModel}>
-            Confirm
-          </Button>
-          <Button variant="destructive" onClick={() => setIsAddModelOpen(false)}>
-            Cancel
-          </Button>
-        </div>
-      </Dialog>
+      </div>
+
+      {/* Form Actions */}
+      <div style={{ display: "flex", justifyContent: "center", gap: "8px" }}>
+        <Button variant="default" onClick={handleAddModel}>
+          Confirm
+        </Button>
+        <Button variant="destructive" onClick={() => {
+          setIsAddModelOpen(false)
+          resetForm()
+        }}>
+          Cancel
+        </Button>
+      </div>
+    </Dialog>
     </div>
   )
 }
