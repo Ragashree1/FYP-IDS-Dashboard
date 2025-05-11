@@ -127,3 +127,90 @@ def update_model_status(
     if not updated_model:
         raise HTTPException(status_code=404, detail="Model not found.")
     return updated_model
+
+@router.put("/{model_id}", response_model=MLModelOut)
+async def update_model(
+    model_id: int,
+    model_name: str = Form(...),
+    algorithm: str = Form(...),
+    model_type: str = Form(...),
+    organization_id: int = Form(...),
+    model_file: Optional[UploadFile] = File(None),
+    preprocessor_file: Optional[UploadFile] = File(None),
+    use_default_preprocessor: str = Form("false"),
+    has_built_in_preprocessor: str = Form("false"),
+    label_mapping: Optional[str] = Form(None),
+    features_list: Optional[str] = Form(None),
+    use_default_features: str = Form("false"),
+    normal_class_name: Optional[str] = Form(None)
+):
+    # Get existing model first
+    existing_model = ml_model_service.get_model_by_id(model_id)
+    if not existing_model:
+        raise HTTPException(status_code=404, detail="Model not found")
+
+    # Convert string booleans to actual booleans
+    use_default_preprocessor = str(use_default_preprocessor).lower() == 'true'
+    has_built_in_preprocessor = str(has_built_in_preprocessor).lower() == 'true'
+    use_default_features = str(use_default_features).lower() == 'true'
+
+    # Handle file uploads if provided
+    new_model_path = None
+    new_model_filename = None
+    new_preprocessor_path = None
+    new_preprocessor_filename = None
+
+    if model_file:
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        org_upload_dir = os.path.join(UPLOAD_DIR, str(organization_id))
+        os.makedirs(org_upload_dir, exist_ok=True)
+        
+        new_model_filename = f"{timestamp}_model.pkl"
+        new_model_path = os.path.join(org_upload_dir, new_model_filename)
+        with open(new_model_path, "wb") as buffer:
+            shutil.copyfileobj(model_file.file, buffer)
+
+    if preprocessor_file:
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        org_upload_dir = os.path.join(UPLOAD_DIR, str(organization_id))
+        new_preprocessor_filename = f"{timestamp}_preprocessor.pkl"
+        new_preprocessor_path = os.path.join(org_upload_dir, new_preprocessor_filename)
+        with open(new_preprocessor_path, "wb") as buffer:
+            shutil.copyfileobj(preprocessor_file.file, buffer)
+
+    # Parse label mapping if provided
+    label_mapping_dict = None
+    if label_mapping and model_type == "multiclass":
+        try:
+            label_mapping_dict = json.loads(label_mapping)
+        except json.JSONDecodeError:
+            raise HTTPException(status_code=400, detail="Invalid JSON format for label mapping")
+
+    # Update model
+    updated_model = ml_model_service.update_model(
+        model_id=model_id,
+        model_data=MLModelBase(
+            model_name=model_name,
+            algorithm=algorithm,
+            model_type=model_type,
+            # Keep existing file info if no new files are uploaded
+            model_file_name=new_model_filename or existing_model.model_file_name,
+            model_file_path=new_model_path or existing_model.model_file_path,
+            preprocessor_file_name=new_preprocessor_filename or existing_model.preprocessor_file_name,
+            preprocessor_file_path=new_preprocessor_path or existing_model.preprocessor_file_path,
+            use_default_preprocessor=use_default_preprocessor,
+            has_built_in_preprocessor=has_built_in_preprocessor,
+            label_mapping=label_mapping_dict or existing_model.label_mapping,
+            features_list=features_list if not use_default_features else existing_model.features_list,
+            use_default_features=use_default_features,
+            organization_id=organization_id,
+            normal_class_name=normal_class_name
+        ),
+        new_model_file=new_model_path,
+        new_preprocessor_file=new_preprocessor_path
+    )
+
+    if not updated_model:
+        raise HTTPException(status_code=404, detail="Model not found")
+    
+    return updated_model

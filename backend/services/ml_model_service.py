@@ -48,3 +48,44 @@ def get_models_by_organization(organization_id: int) -> List[MLModelOut]:
     with SessionLocal() as db:
         models = db.query(MLModels).filter(MLModels.organization_id == organization_id).all()
         return [MLModelOut.model_validate(model) for model in models]
+
+def update_model(
+    model_id: int,
+    model_data: MLModelBase,
+    new_model_file: Optional[str] = None,
+    new_preprocessor_file: Optional[str] = None
+) -> Optional[MLModelOut]:
+    with SessionLocal() as db:
+        model = db.query(MLModels).filter(MLModels.id == model_id).first()
+        if not model:
+            return None
+
+        # Update basic fields
+        for field, value in model_data.model_dump(exclude_unset=True).items():
+            setattr(model, field, value)
+
+        # Update files if provided
+        if new_model_file:
+            # Delete old model file
+            if os.path.exists(model.model_file_path):
+                os.remove(model.model_file_path)
+            model.model_file_path = new_model_file
+            model.model_file_name = os.path.basename(new_model_file)
+
+        if new_preprocessor_file:
+            # Delete old preprocessor file
+            if model.preprocessor_file_path and os.path.exists(model.preprocessor_file_path):
+                os.remove(model.preprocessor_file_path)
+            model.preprocessor_file_path = new_preprocessor_file
+            model.preprocessor_file_name = os.path.basename(new_preprocessor_file)
+
+        db.commit()
+        db.refresh(model)
+        return MLModelOut.model_validate(model)
+    
+def get_model_by_id(model_id: int) -> Optional[MLModelOut]:
+    with SessionLocal() as db:
+        model = db.query(MLModels).filter(MLModels.id == model_id).first()
+        if model:
+            return MLModelOut.model_validate(model)
+        return None

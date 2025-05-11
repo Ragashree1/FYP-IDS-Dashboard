@@ -84,6 +84,11 @@ const Button = ({ children, onClick, variant = "default", style = {} }) => {
       backgroundColor: "#f44336",
       color: "white",
     },
+    editing: {
+      ...baseStyle,
+      backgroundColor: "#008000",
+      color: "white",
+    },
   }
   
 
@@ -133,7 +138,7 @@ const Dialog = ({ open, onOpenChange, children }) => {
 
 const TrainedModelsPage = () => {
   const [models, setModels] = useState([])
-  const [isAddModelOpen, setIsAddModelOpen] = useState(false)
+  // const [isModelDialogOpen, setIsModelDialogOpen] = useState(false)
   const [newModelName, setNewModelName] = useState("") // Added state for model name
   const [newAlgorithm, setNewAlgorithm] = useState("")
   const [labelMappingText, setLabelMappingText] = useState("")
@@ -145,7 +150,11 @@ const TrainedModelsPage = () => {
   const [labelMappingFile, setLabelMappingFile] = useState(null)
   const [featuresList, setFeaturesList] = useState("")
   const [useDefaultFeatures, setUseDefaultFeatures] = useState(false)
-  const organizationId = 1 // Example organization ID
+  const [editingModel, setEditingModel] = useState(null);
+  const [normalClassName, setNormalClassName] = useState("");
+  
+  // Modify dialog open state to handle both add and edit
+  const [isModelDialogOpen, setIsModelDialogOpen] = useState(false);
   const baseUrl = "http://localhost:8000"
 
   useEffect(() => {
@@ -158,6 +167,20 @@ const TrainedModelsPage = () => {
     })
     setModels(response.data)
   }
+
+  const handleEditClick = (model) => {
+    setEditingModel(model);
+    setNewModelName(model.model_name);
+    setNewAlgorithm(model.algorithm);
+    setModelType(model.model_type);
+    setLabelMappingText(model.label_mapping ? JSON.stringify(model.label_mapping, null, 2) : "");
+    setUseDefaultPreprocessor(model.use_default_preprocessor);
+    setHasBuiltInPreprocessor(model.has_built_in_preprocessor);
+    setFeaturesList(model.features_list || "");
+    setUseDefaultFeatures(model.use_default_features);
+    setNormalClassName(model.normal_class_name || "");
+    setIsModelDialogOpen(true);
+  };
 
   const resetForm = () => {
     setNewModelName("")
@@ -173,7 +196,65 @@ const TrainedModelsPage = () => {
     setLabelMappingText("")
   }
 
-  
+  const handleSubmitModel = async () => {
+    if (!newModelName.trim() || !newAlgorithm.trim() || !modelFile) return
+    const formData = new FormData()
+    formData.append("model_name", newModelName)
+    formData.append("algorithm", newAlgorithm)
+    formData.append("model_type", modelType)
+    formData.append("organization_id", await getOrgId())
+
+    if (modelType === "multiclass" ) {
+      formData.append("normal_class_name", normalClassName)
+      if (labelMappingText.trim()) {
+        try {
+          const mappingJSON = JSON.parse(labelMappingText)
+          formData.append("label_mapping", JSON.stringify(mappingJSON))
+        } catch (error) {
+          alert("Invalid JSON format for table mapping")
+          return
+        }
+      }
+    }
+    if (useDefaultPreprocessor) {
+      formData.append("use_default_preprocessor", true)
+    } else if (hasBuiltInPreprocessor) {
+      formData.append("has_built_in_preprocessor", true)
+    } else {
+      if (!preprocessorFile.trim()) {
+        alert("Features list is required when not using default features")
+        return
+      }
+      formData.append("preprocessor_file", preprocessorFile)
+    }
+
+    if (useDefaultFeatures) {
+      formData.append("use_default_features", true)
+    } else {
+      if (!featuresList.trim()) {
+        alert("Features list is required when not using default features")
+        return
+      }
+      formData.append("features_list", featuresList)
+    }
+
+    formData.append("model_file", modelFile)
+
+    try {
+      if (editingModel) {
+        await axios.put(baseUrl + `/ml_model/${editingModel.id}`, formData);
+      } else {
+        await axios.post(baseUrl + "/ml_model", formData);
+      }
+      fetchModels();
+      setIsModelDialogOpen(false);
+      resetForm();
+    } catch (error) {
+      alert("Error " + (editingModel ? "updating" : "adding") + " model: " + 
+        error.response?.data?.detail || error.message);
+    }
+  };
+    
 
   const handleAddModel = async () => {
     if (!newModelName.trim() || !newAlgorithm.trim() || !modelFile) return
@@ -186,10 +267,14 @@ const TrainedModelsPage = () => {
 
     if (modelType === "multiclass" && labelMappingText.trim()) {
       try {
+        formData.append("normal_class_name", normalClassName)
         const mappingJSON = JSON.parse(labelMappingText)
-        formData.append("label_mapping_file", new Blob([JSON.stringify(mappingJSON)], {
-          type: 'application/json'
-        }))
+          // Change this part - send as string instead of Blob
+        formData.append("label_mapping", JSON.stringify(mappingJSON))
+        // const mappingJSON = JSON.parse(labelMappingText)
+        // formData.append("label_mapping_file", new Blob([JSON.stringify(mappingJSON)], {
+        //   type: 'application/json'
+        // }))
       } catch (error) {
         alert("Invalid JSON format for table mapping")
         return
@@ -228,7 +313,7 @@ const TrainedModelsPage = () => {
     try {
       await axios.post(baseUrl + "/ml_model", formData)
       fetchModels()
-      setIsAddModelOpen(false)
+      setIsModelDialogOpen(false)
       resetForm()
     } catch (error) {
       alert("Error adding model: " + error.response?.data?.detail || error.message)
@@ -271,7 +356,7 @@ const TrainedModelsPage = () => {
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "24px" }}>
           <h1 style={{ margin: 0, fontSize: "28px", fontWeight: "bold" }}>Trained Models</h1>
           <Button
-            onClick={() => setIsAddModelOpen(true)}
+            onClick={() => setIsModelDialogOpen(true)}
             style={{
               backgroundColor: "#3B82F6",
               padding: "10px 16px",
@@ -315,12 +400,15 @@ const TrainedModelsPage = () => {
             </div>
             </td>
             <td style={{ padding: "16px", borderBottom: "1px solid #eee", verticalAlign: "middle" }}>
-              <div style={{ display: "flex", justifyContent: "center", alignItems: "center", width: "100%" }}>
-                <Button variant="destructive" onClick={() => handleDeleteModel(model.id)}>
-                  Delete
-                </Button>
-              </div>
-                  </td>
+            <div style={{ display: "flex", justifyContent: "center", alignItems: "center", gap: "8px", width: "100%" }}>
+              <Button variant="destructive" onClick={() => handleDeleteModel(model.id)}>
+                Delete
+              </Button>
+              <Button variant="editing" onClick={() => handleEditClick(model)}>
+                Edit
+              </Button>
+            </div>
+          </td>
                 </tr>
               ))}
             </tbody>
@@ -329,7 +417,7 @@ const TrainedModelsPage = () => {
         </div>
       </div>
 
-      <Dialog open={isAddModelOpen} onOpenChange={setIsAddModelOpen}>
+      <Dialog open={isModelDialogOpen} onOpenChange={setIsModelDialogOpen}>
       <div style={{ textAlign: "center", marginBottom: "16px" }}>
         <h2 style={{ margin: 0 }}>Add Model</h2>
       </div>
@@ -372,7 +460,23 @@ const TrainedModelsPage = () => {
 
         {/* Label Mapping File Upload (for multiclass) */}
         {modelType === "multiclass" && (
+          
         <div style={{ marginBottom: "16px" }}>
+
+      <label htmlFor="normal-class" style={formStyles["form-label"]}>
+        Normal Traffic Class Name
+      </label>
+      <input
+        id="normal-class"
+        value={normalClassName}
+        onChange={(e) => setNormalClassName(e.target.value)}
+        placeholder="e.g., Normal, Benign, etc."
+        style={formStyles["form-input"]}
+      />
+      <div style={{ marginTop: "4px", fontSize: "12px", color: "#666" }}>
+        Specify the class name used for normal traffic in your model
+        </div>
+
           <label htmlFor="mapping-text" style={formStyles["form-label"]}>Table Mapping (JSON)</label>
           <textarea
             id="mapping-text"
@@ -492,11 +596,11 @@ const TrainedModelsPage = () => {
 
       {/* Form Actions */}
       <div style={{ display: "flex", justifyContent: "center", gap: "8px" }}>
-        <Button variant="default" onClick={handleAddModel}>
+        <Button variant="default" onClick={handleSubmitModel}>
           Confirm
         </Button>
         <Button variant="destructive" onClick={() => {
-          setIsAddModelOpen(false)
+          setIsModelDialogOpen(false)
           resetForm()
         }}>
           Cancel

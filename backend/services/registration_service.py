@@ -1,7 +1,7 @@
 from database import SessionLocal
 from models.models import Account, Role, Organization
 from models.schemas import AccountBase
-from typing import List, Optional, Annotated
+from typing import List, Optional  # Removed Annotated
 from passlib.context import CryptContext
 from datetime import timedelta, timezone, datetime
 from jose import jwt, JWTError
@@ -99,7 +99,7 @@ def create_access_token(username: str, user_id: str, userRole: str, userComName:
     return jwt.encode(payload, SECRET_KEY, algorithm=ALGORITHM)
 
 
-async def get_current_user(token: Annotated[str,Depends(oauth2_bearer)]):
+async def get_current_user(token: Depends(oauth2_bearer)): # type: ignore
    try:
        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
        username: str = payload.get('sub','')

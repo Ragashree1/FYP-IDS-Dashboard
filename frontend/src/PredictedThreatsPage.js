@@ -9,21 +9,46 @@ const PredictedThreatsPage = () => {
 
   const userRole = "2";
 
-  useEffect(() => {
-    setLoading(true);
-    axios
-      .get("http://localhost:8000/threat/predictions")
-      .then((response) => {
-        setPredictions(response.data);
-      })
-      .catch((error) => {
-        console.error("Error fetching predictions:", error);
-        setError("Failed to fetch predictions");
-      })
-      .finally(() => {
-        setLoading(false);
-      });
-  }, []);
+  const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+
+  const getOrgId = async () => {
+    const token = localStorage.getItem("token");
+    console.log("printing token ")
+    console.log(token)
+    const response = await fetch(`${API_BASE_URL}/login/get_user`, {
+      headers : { Authorization: `Bearer ${token}` },
+    });
+    if (!response.ok) { 
+      return null;
+    }
+    const data = await response.json();
+    console.log("printing data")
+    console.log(data)
+    return data.user.organization_id;}
+  
+    const getPredictions = async () => {
+      const orgId = await getOrgId();
+      if (!orgId) {
+      setError("Failed to fetch organization ID");
+      return;
+      }
+      try {
+      const response = await axios.get(`http://localhost:8000/threat/predictions/organization/${orgId}`);
+      setPredictions(response.data);
+      }
+      catch (error) {
+      console.error("Error fetching predictions:", error);
+      setError("Failed to fetch predictions");
+      }
+      finally {
+      setLoading(false);
+      }
+    };
+
+    useEffect(() => {
+      setLoading(true);
+      getPredictions();
+    }, []);
 
   if (loading) {
     return <div>Loading...</div>;
@@ -54,7 +79,6 @@ const PredictedThreatsPage = () => {
               <tr>
                 <th style={{ padding: "12px", textAlign: "left", borderBottom: "1px solid #eee" }}>Log ID</th>
                 <th style={{ padding: "12px", textAlign: "left", borderBottom: "1px solid #eee" }}>Prediction</th>
-                <th style={{ padding: "12px", textAlign: "left", borderBottom: "1px solid #eee" }}>Confidence</th>
                 <th style={{ padding: "12px", textAlign: "left", borderBottom: "1px solid #eee" }}>Created At</th>
                 <th style={{ padding: "12px", textAlign: "left", borderBottom: "1px solid #eee" }}>Destination Port</th>
                 <th style={{ padding: "12px", textAlign: "left", borderBottom: "1px solid #eee" }}>Flow Duration</th>
@@ -67,9 +91,7 @@ const PredictedThreatsPage = () => {
                 <tr key={index} style={{ backgroundColor: index % 2 === 0 ? "#fff" : "#f9f9f9" }}>
                   <td style={{ padding: "12px", borderBottom: "1px solid #eee" }}>{prediction.log_id}</td>
                   <td style={{ padding: "12px", borderBottom: "1px solid #eee" }}>{prediction.prediction}</td>
-                  <td style={{ padding: "12px", borderBottom: "1px solid #eee" }}>
-                    {prediction.confidence ? `${(prediction.confidence * 100).toFixed(2)}%` : "N/A"}
-                  </td>
+                  
                   <td style={{ padding: "12px", borderBottom: "1px solid #eee" }}>
                     {new Date(prediction.created_at).toLocaleString()}
                   </td>

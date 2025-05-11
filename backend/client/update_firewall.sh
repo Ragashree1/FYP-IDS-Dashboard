@@ -1,7 +1,8 @@
 #!/bin/bash
 
-# API URL where blocked IPs are fetched from
-API_URL="http://localhost:8000/ip-blocking/blocked-ips-list/"
+# NOTE: Change 'codenova' to your actual organization name as needed.
+ORG_NAME="codenova"
+API_URL="http://localhost:8000/ip-blocking/blocked-ips/${ORG_NAME}"
 
 # Path to the firewall log (optional)
 LOG_FILE="/var/log/ids-firewall-update.log"

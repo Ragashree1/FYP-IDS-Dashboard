@@ -341,7 +341,7 @@ class VerifyIPRequest(BaseModel):
 
 class PlaybookBase(BaseModel):
     name: str
-    description: str | None = None
+    description: Optional[str] = None
     conditions: list
     actions: dict
     is_active: bool = True
@@ -545,10 +545,10 @@ class MLModelBase(BaseModel):
     model_file_name: str
     model_file_path: str
 
-    # Move these flags up so they are available for validation
     use_default_preprocessor: bool = False
     has_built_in_preprocessor: bool = False
     use_default_features: bool = False
+    normal_class_name: Optional[str] = None
 
     preprocessor_file_name: Optional[str] = None
     preprocessor_file_path: Optional[str] = None
@@ -591,7 +591,9 @@ class MLModelOut(BaseModel):
     preprocessor_file_name: Optional[str] = None
     preprocessor_file_path: Optional[str] = None
     use_default_preprocessor: bool = False
+    use_default_preprocessor: bool = False
     has_built_in_preprocessor: bool = False
+    normal_class_name: Optional[str] = None
     label_mapping: Optional[Dict[str, str]] = None
     features_list: Optional[str] = None
     use_default_features: bool = False

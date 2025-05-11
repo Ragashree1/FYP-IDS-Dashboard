@@ -38,7 +38,7 @@ from typing import List, Optional
 import traceback
 from jose import JWTError, jwt
 from init_db import init_database
-
+from services.threat_detector_service import predict_recent_logs
 
 # Set up logging
 logging.basicConfig(level=logging.INFO)
@@ -63,6 +63,16 @@ def check_job_health():
     for job in logs_scheduler.get_jobs():
         if hasattr(job, 'next_run_time') and job.next_run_time is not None:
             logger.info(f"Job {job.id} next run: {job.next_run_time}")
+
+def predict_recent_logs_job():
+    """Periodically predict threats for recent logs."""
+    logger.info("Running threat prediction for recent logs...")
+    try:
+        results = predict_recent_logs()
+        logger.info(f"Predicted threats for {len(results)} recent logs.")
+    except Exception as e:
+        logger.error(f"Error in predict_recent_logs_job: {str(e)}")
+        logger.error(f"Traceback: {traceback.format_exc()}")
 
 # Define periodic jobs
 def fetch_alerts_job():
@@ -89,16 +99,16 @@ async def startup_event():
     logger.info("Starting logs scheduler for IP verification...")
 
     # Schedule periodic jobs
-    # logs_scheduler.add_job(fetch_logs_job, "interval", seconds=30)  # Fetch logs every 30 seconds
-    # logs_scheduler.add_job(fetch_alerts_job, "interval", minutes=5)  # Fetch alerts every 5 minutes
-    # logs_scheduler.add_job(execute_playbook_rules_job, "interval", minutes=1)  # Execute playbook rules every 1 minute
-    # logs_scheduler.add_job(
-    #     check_job_health,
-    #     "interval",
-    #     seconds=60,
-    #     id="scheduler_health_check",
-    #     replace_existing=True
-    # )
+    logs_scheduler.add_job(fetch_logs_job, "interval", seconds=30)  # Fetch logs every 30 seconds
+    logs_scheduler.add_job(fetch_alerts_job, "interval", minutes=5)  # Fetch alerts every 5 minutes
+    logs_scheduler.add_job(execute_playbook_rules_job, "interval", minutes=1)  # Execute playbook rules every 1 minute
+    logs_scheduler.add_job(
+        predict_recent_logs_job,
+        "interval",
+        minutes=5,
+        id="predict_recent_logs_job",
+        replace_existing=True
+    )
 
     logs_scheduler.start()
 

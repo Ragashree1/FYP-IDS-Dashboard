@@ -6,17 +6,26 @@ import Sidebar from "./Sidebar" // Import the Sidebar component
 const userRole = "2"
 
 const API_URL = "http://localhost:8000/ip-blocking"; // backend API base URL
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+
+const getOrgId = async () => {
+  const token = localStorage.getItem("token");
+  if (!token) return null;
+  const response = await fetch(`${API_BASE_URL}/login/get_user`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  if (!response.ok) {
+    return null;
+  }
+  const data = await response.json();
+  return data.user.organization_id;
+};
 
 const fetchBlockedIPs = async (setBlocklist, navigate) => {
-  const orgId = localStorage.getItem("orgId");
-  const clientEmail = localStorage.getItem("clientEmail");
   const token = localStorage.getItem("token");
+  const orgId = await getOrgId();
 
-  console.log("DEBUG orgId:", orgId);
-  console.log("DEBUG clientEmail:", clientEmail);
-  console.log("DEBUG token:", token);
-
-  if (!orgId || orgId === "null" || !clientEmail || !token) {
+  if (!orgId || !token) {
     alert("Missing authentication info. Please log in again.");
     localStorage.clear();
     navigate("/login");
@@ -43,32 +52,20 @@ const fetchBlockedIPs = async (setBlocklist, navigate) => {
     const data = await response.json();
     console.log("Fetched Blocked IPs:", data);  // Debugging log
 
-    // Ensure data.blocked_ips is an array of objects before mapping
-    if (!Array.isArray(data)) {
+    console.log("API Response:", data); // Log the API response
+    console.log("Data Type:", typeof data); // Log the type of data
+
+    if (!Array.isArray(data.blocked_ips)) {
       throw new Error("Invalid API response: expected an array of objects");
     }
 
-    // Fix: Extract both IP and reason correctly
-    setBlocklist(data.map(({ ip, reason }) => ({
+    setBlocklist(data.blocked_ips.map(({ ip, reason }) => ({
       ip,
       reason: reason || "No reason provided"
     })));
   } catch (error) {
     console.error("Error fetching blocked IPs:", error);
     alert("Could not connect to the server: " + error.message);
-  }
-};
-
-// Check if the current user's IP is blocked
-const checkUserIP = async (navigate) => {
-  try {
-    const response = await fetch(`${API_URL}/check-my-ip/`);
-    if (response.status === 403 || response.status === 400) {
-      alert("Your IP is blocked.");
-      navigate("/access-denied");
-    }
-  } catch (error) {
-    console.error("Error checking user IP:", error);
   }
 };
 
@@ -263,28 +260,30 @@ const BlocklistManagementPage = () => {
   const [showRemoveModal, setShowRemoveModal] = useState(false)
   const [selectedIP, setSelectedIP] = useState(null)
   const [blocklist, setBlocklist] = useState([])
+  const [userOrgId, setUserOrgId] = useState(null);
+
   const handleSearch = (e) => {
     setSearchQuery(e.target.value);
   };  
 
   useEffect(() => {
-    const clientEmail = localStorage.getItem("clientEmail");
-    const orgId = localStorage.getItem("orgId");
-  
-    if (!clientEmail || !orgId) {
-      alert("Missing authentication info. Please log in again.");
-      navigate("/login");
-      return;
-    }
-  
-    fetchBlockedIPs(setBlocklist, navigate);
-    checkUserIP(navigate);
+    const fetchOrgAndBlocklist = async () => {
+      const orgId = await getOrgId();
+      if (!orgId) {
+        alert("Missing authentication info. Please log in again.");
+        navigate("/login");
+        return;
+      }
+      setUserOrgId(orgId);
+      fetchBlockedIPs(setBlocklist, navigate);
+    };
+    fetchOrgAndBlocklist();
   }, [navigate]);  
 
   const handleRemoveIP = async (ip) => {
     try {
       const token = localStorage.getItem("token");
-      const orgId = localStorage.getItem("orgId");
+      const orgId = userOrgId;
       const response = await fetch(`${API_URL}/unblock-ip/${ip}?org_id=${orgId}`, {
         method: "DELETE",
         headers: {
@@ -296,7 +295,7 @@ const BlocklistManagementPage = () => {
         const data = await response.json();
         alert(data.detail || "Failed to remove IP");
         console.error("Failed to remove IP:", data.detail || "Failed to remove IP");
-        return; // Add return to prevent UI update on error
+        return;
       }
     
       setBlocklist((prevBlocklist) => prevBlocklist.filter((item) => item.ip !== ip)); 
@@ -308,30 +307,34 @@ const BlocklistManagementPage = () => {
 
   const handleAddIP = async (ip, reason) => {
     try {
-      console.log("Sending orgId:", localStorage.getItem("orgId"));
+      const orgId = userOrgId;
+      if (!orgId) {
+        alert("Organization ID not loaded.");
+        return;
+      }
       const response = await fetch(`${API_URL}/block-ip/`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           ip: ip.trim(),
           reason: reason.trim(),
-          organization_id: parseInt(localStorage.getItem("orgId"))
+          organization_id: orgId
         }),
       });
   
       const data = await response.json();
   
       if (!response.ok) {
-        console.error("Backend error:", data);  // ✅ Print full error
-        alert("Failed to block IP: " + (data.detail || JSON.stringify(data)));  // ✅ Show proper message
+        console.error("Backend error:", data);
+        alert("Failed to block IP: " + (data.detail || JSON.stringify(data)));
         return;
       }
   
       alert("IP blocked successfully");
-      // reload IP list
+      fetchBlockedIPs(setBlocklist, navigate);
     } catch (error) {
-      console.error("Frontend error:", error);  // ✅ Print actual error
-      alert("Network error: " + error.message);  // ✅ Show readable alert
+      console.error("Frontend error:", error);
+      alert("Network error: " + error.message);
     }
   };
   
@@ -348,23 +351,21 @@ const BlocklistManagementPage = () => {
         display: "flex",
         height: "100vh",
         background: "#f4f4f4",
-        overflow: "hidden", // Added to prevent horizontal scrolling
+        overflow: "hidden",
       }}
     >
       <Sidebar userRole={userRole} />
 
-      {/* Main Content */}
       <div
         style={{
           flex: 1,
           padding: "20px",
-          overflowY: "auto", // Allow vertical scrolling
-          overflowX: "hidden", // Prevent horizontal scrolling
+          overflowY: "auto",
+          overflowX: "hidden",
         }}
       >
         <h1>Blocklist Management</h1>
 
-        {/* Search Bar */}
         <div
           style={{
             position: "relative",
@@ -399,7 +400,6 @@ const BlocklistManagementPage = () => {
           </span>
         </div>
 
-        {/* Blocklist Table */}
         <div>
           <div
             style={{
@@ -516,7 +516,6 @@ const BlocklistManagementPage = () => {
           </div>
         </div>
 
-        {/* Add IP Modal */}
         {showAddModal && <AddBlocklistModal onClose={() => setShowAddModal(false)} onAdd={handleAddIP} />}
         {showRemoveModal && (
           <RemoveIPModal ipToRemove={selectedIP} onClose={() => setShowRemoveModal(false)} onRemove={handleRemoveIP} />

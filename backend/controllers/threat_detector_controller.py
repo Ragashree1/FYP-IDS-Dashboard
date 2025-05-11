@@ -7,39 +7,53 @@ router = APIRouter()
 @router.post("/threat/predict/batch")
 def predict_threat_batch(payload: dict = Body(...)):
     """
-    Predict if multiple network logs are threats based on their IDs.
+    Predict threats for multiple logs within an organization.
     """
     log_ids = payload.get("log_ids", [])
+    organization_id = payload.get("organization_id")
+    
+    if not organization_id:
+        raise HTTPException(
+            status_code=400,
+            detail="organization_id is required"
+        )
+    
     if not isinstance(log_ids, list) or not all(isinstance(id, int) for id in log_ids):
         raise HTTPException(
-            status_code=400, 
-            detail="Invalid input: 'log_ids' must be a list of integers."
+            status_code=400,
+            detail="Invalid input: 'log_ids' must be a list of integers"
         )
+    
     results = []
     for log_id in log_ids:
-        print('before predict_threat_endpoint')
-        result = predict_threat(log_id)
+        result = predict_threat(log_id, organization_id)
         if "error" in result:
-            print('error in predict_threat_endpoint')
-            print(f"Error: {result['error']}")
             raise HTTPException(
-                status_code=403, 
+                status_code=404,
                 detail=f"Log ID {log_id} failed with error: {result['error']}"
             )
         results.append(result)
     return results
-
-#TODO remove this endpoint after grouping by organisation id is dont
-@router.get("/threat/predictions")
-def get_all_predictions():
+#TODO remove this endpoint after grouping by organisation id is done
+@router.get("/threat/predictions/organization/{organization_id}")
+def get_organization_predictions(organization_id: int):
     """
-    Fetch all predictions from the LogPredictions table.
+    Fetch all predictions for a specific organization.
     """
-    print('yay')
-    predictions = fetch_predictions()
+    predictions = fetch_predictions(organization_id=organization_id)
     if isinstance(predictions, dict) and "error" in predictions:
         raise HTTPException(status_code=404, detail=predictions["error"])
     return predictions
+
+@router.get("/threat/predictions/organization/{organization_id}/log/{log_id}")
+def get_prediction_by_log_id(organization_id: int, log_id: int):
+    """
+    Fetch a specific prediction by log ID and organization ID.
+    """
+    prediction = fetch_predictions(organization_id=organization_id, log_id=log_id)
+    if isinstance(prediction, dict) and "error" in prediction:
+        raise HTTPException(status_code=404, detail=prediction["error"])
+    return prediction
 
 #TODO change logid to organisation id
 

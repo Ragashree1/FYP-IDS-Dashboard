@@ -1,7 +1,7 @@
 from database import SessionLocal
 from models.models import Role, Permission, role_permission_association
 from models.schemas import RoleBase,RoleIn,RoleOut,PermissionBase
-from typing import List, Optional, Annotated
+from typing import List, Optional
 from passlib.context import CryptContext
 from datetime import timedelta, timezone, datetime
 from jose import jwt, JWTError

@@ -433,10 +433,12 @@ class LogPredictions(Base):
     __tablename__ = "logPredictions"
 
     id = Column(Integer, primary_key=True, index=True)
-    log_id = Column(Integer, ForeignKey("NetworkLogs.id", ondelete="CASCADE"), nullable=False)  # Foreign key to Logs table
-    prediction = Column(String, nullable=False)  # Store the prediction result
-    confidence = Column(Float, nullable=True)  # Optional: Confidence score of the prediction
-    created_at = Column(TIMESTAMP, server_default=func.now())  # Timestamp of prediction creation
+    log_id = Column(Integer, ForeignKey("NetworkLogs.id", ondelete="CASCADE"), nullable=False) 
+    prediction = Column(String, nullable=False) 
+    organization_id = Column(Integer, ForeignKey("Organizations.id"))
+    organization = relationship("Organization")
+    confidence = Column(Float, nullable=True) 
+    created_at = Column(TIMESTAMP, server_default=func.now())  
 
     # Relationship to Logs table
     log = relationship("NetworkLogs", backref="predictions")
@@ -496,7 +498,6 @@ class Review(Base):
     class Config:
         from_attributes = True
 
-
 class MLModels(Base):
     __tablename__ = "ml_models"
 
@@ -513,6 +514,7 @@ class MLModels(Base):
     label_mapping = Column(JSON, nullable=True)  # Store the label mapping as JSON
     features_list = Column(String, nullable=True)  # Comma-separated features
     use_default_features = Column(Boolean, default=False)
+    normal_class_name = Column(String, nullable=True)  # For multiclass models
     is_active = Column(Boolean, default=False)
     created_at = Column(TIMESTAMP, server_default=func.now())
     organization_id = Column(Integer, ForeignKey("Organizations.id"))

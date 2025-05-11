@@ -12,13 +12,14 @@ const EventLogPage = () => {
   const [logs, setLogs] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [logType, setLogType] = useState("apache"); // New state for log type
+  const [logType, setLogType] = useState("network"); // New state for log type
   const [currentPage, setCurrentPage] = useState(1); // New state for pagination
   const [totalPages, setTotalPages] = useState(1); // New state for total pages
   const fileInputRef = useRef(null);
   const [selectedLogs, setSelectedLogs] = useState([]); // New state for selected logs
 
   const userRole = "2"
+  const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
   // Fetch logs based on log type and page
   useEffect(() => {
@@ -119,6 +120,21 @@ const EventLogPage = () => {
     );
   };
 
+  const getOrgId = async () => {
+    const token = localStorage.getItem("token");
+    console.log("printing token ")
+    console.log(token)
+    const response = await fetch(`${API_BASE_URL}/login/get_user`, {
+      headers : { Authorization: `Bearer ${token}` },
+    });
+    if (!response.ok) { 
+      return null;
+    }
+    const data = await response.json();
+    console.log("printing data")
+    console.log(data)
+    return data.user.organization_id;}
+
   const handlePredict = async () => {
     if (selectedLogs.length === 0) {
       alert("Please select at least one log to predict.");
@@ -128,6 +144,7 @@ const EventLogPage = () => {
     try {
       const response = await axios.post('http://localhost:8000/threat/predict/batch', {
         log_ids: selectedLogs.map((id) => parseInt(id, 0)),
+        organization_id: await getOrgId(),
       });
       const results = response.data;
       const success = results.filter((r) => !r.error);
@@ -176,8 +193,8 @@ const EventLogPage = () => {
             }}
             style={{ padding: "8px 12px", borderRadius: "4px", border: "1px solid #ddd" }}
           >
-            <option value="apache">Apache Logs</option>
             <option value="network">Network Logs</option>
+            <option value="apache">Apache Logs</option>
           </select>
         </div>
 
