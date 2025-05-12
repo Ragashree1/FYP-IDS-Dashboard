@@ -4,7 +4,7 @@ from sqlalchemy.orm import Session
 from fastapi import Response
 from fastapi.responses import StreamingResponse
 from io import BytesIO
-from models.models import VerifiedIP
+from models.models import VerifiedIP, NetworkLogs
 import time
 
 FIELD_MAPPING = {
@@ -98,69 +98,147 @@ CICFLOW_FIELDS = list(FIELD_MAPPING.keys())
 
 ES_URL = "http://localhost:9200/cicflow-*/_search"
 
-def fetch_cicflow_logs_from_es(size=500, from_time=None, orgId=None, db: Session = None):
+def fetch_cicflow_logs_from_es(orgId: int, db: Session, size: int = 1000, from_time=None):
+    print("Fetching CICFlow logs from Elasticsearch and storing in DB...")
 
-    print("Fetching cicflow logs from Elasticsearch...")
-
+    # 1. Build ES query
     query = {
         "size": size,
-        "query": {
-            "bool": {
-                "must": [{"match_all": {}}]
-            }
-        },
+        "query": {"match_all": {}},
         "sort": [{"@timestamp": "desc"}]
     }
-    
-    # Add time filter if specified
+
     if from_time:
-        query["query"]["bool"]["filter"] = [
-            {"range": {"@timestamp": {"gte": from_time}}}
-        ]
+        query["query"]["bool"] = {"filter": [{"range": {"@timestamp": {"gte": from_time}}}]}
 
-    verified_ips = []
-    if orgId and db:
-        verified_ips = db.query(VerifiedIP.ip).filter(
-            VerifiedIP.organization_id == orgId,
-            VerifiedIP.is_verified == True
-        ).all()
-        verified_ips = [ip for (ip,) in verified_ips]
+    # 2. Get verified IPs for filtering
+    verified_ips = {
+        row.ip for row in db.query(VerifiedIP.ip)
+        .filter_by(organization_id=orgId, is_verified=True)
+        .all()
+    }
+    if not verified_ips:
+        print("No verified IPs found for orgId", orgId)
+        return []
 
+    # 3. Fetch from ES
     headers = {"Content-Type": "application/json"}
-
     try:
         response = requests.get(ES_URL, json=query, headers=headers)
         response.raise_for_status()
-        hits = response.json().get("hits", {}).get("hits", [])
-
-        verified_ips = {
-            row.ip for row in db.query(VerifiedIP.ip)
-            .filter_by(organization_id=orgId, is_verified=True)
-            .all()
-        }
-
-        if not verified_ips:
-            return []
-
-        logs = []
-
-        for hit in hits:
-            source = hit.get("_source", {})
-            if source.get("src_ip") not in verified_ips:
-                continue
-
-            log_entry = {
-                display_name: source.get(es_field, None)
-                for display_name, es_field in FIELD_MAPPING.items()
-            }
-            
-            # Add timestamp for sorting and filtering
-            log_entry["@timestamp"] = source.get("@timestamp", "")
-            logs.append(log_entry)
-
-        return logs
     except Exception as e:
-        return {"error": str(e)}
+        print("Error querying Elasticsearch:", str(e))
+        return []
+
+    hits = response.json().get("hits", {}).get("hits", [])
+    stored_logs = []
+
+    for hit in hits:
+        source = hit.get("_source", {})
+        src_ip = source.get("src_ip")
+
+        if src_ip not in verified_ips:
+            continue
+
+        excluded_fields = {"src_ip", "dst_ip", "src_port", "dst_port", "protocol", "timestamp", "src_mac", "dst_mac"}
+
+        # Build database entry
+        db_entry = NetworkLogs(
+            src_ip=source.get("src_ip"),
+            dst_ip=source.get("dst_ip"),
+            src_port=source.get("src_port"),
+            dst_port=source.get("dst_port"),
+            protocol=source.get("protocol"),
+            timestamp=source.get("timestamp"),
+            src_mac=source.get("src_mac"),
+            dst_mac=source.get("dst_mac"),
+            **{
+                field_mapping_val: source.get(field_mapping_val)
+                for field_mapping_val in FIELD_MAPPING.values()
+                if field_mapping_val not in excluded_fields and hasattr(NetworkLogs, field_mapping_val)
+            }
+        )
+
+        # Prevent duplicates (optional)
+        exists = db.query(NetworkLogs).filter_by(
+            timestamp=source.get("timestamp"),
+            src_ip=source.get("src_ip"),
+            dst_ip=source.get("dst_ip")
+        ).first()
+        if exists:
+            continue
+
+        db.add(db_entry)
+        stored_logs.append(db_entry)
+
+    db.commit()
+    print(f"Stored {len(stored_logs)} logs for org {orgId}")
+    return stored_logs
+
+
+# def fetch_cicflow_logs_from_es(size=500, from_time=None, orgId=None, db: Session = None):
+
+#     print("Fetching cicflow logs from Elasticsearch...")
+
+#     query = {
+#         "size": size,
+#         "query": {
+#             "bool": {
+#                 "must": [{"match_all": {}}]
+#             }
+#         },
+#         "sort": [{"@timestamp": "desc"}]
+#     }
+    
+#     # Add time filter if specified
+#     if from_time:
+#         query["query"]["bool"]["filter"] = [
+#             {"range": {"@timestamp": {"gte": from_time}}}
+#         ]
+
+#     verified_ips = []
+#     if orgId and db:
+#         verified_ips = db.query(VerifiedIP.ip).filter(
+#             VerifiedIP.organization_id == orgId,
+#             VerifiedIP.is_verified == True
+#         ).all()
+#         verified_ips = [ip for (ip,) in verified_ips]
+
+#     headers = {"Content-Type": "application/json"}
+
+#     try:
+#         response = requests.get(ES_URL, json=query, headers=headers)
+#         response.raise_for_status()
+#         hits = response.json().get("hits", {}).get("hits", [])
+
+#         verified_ips = {
+#             row.ip for row in db.query(VerifiedIP.ip)
+#             .filter_by(organization_id=orgId, is_verified=True)
+#             .all()
+#         }
+
+#         if not verified_ips:
+#             return []
+
+#         logs = []
+
+#         for hit in hits:
+#             source = hit.get("_source", {})
+#             if source.get("src_ip") not in verified_ips:
+#                 continue
+
+#             log_entry = {
+#                 display_name: source.get(es_field, None)
+#                 for display_name, es_field in FIELD_MAPPING.items()
+#             }
+            
+#             # Add timestamp for sorting and filtering
+#             log_entry["@timestamp"] = source.get("@timestamp", "")
+#             logs.append(log_entry)
+
+#         return logs
+#     except Exception as e:
+#         return {"error": str(e)}
 
 def export_cicflow_logs_to_pkl(orgId=None, db: Session = None):
     """Export CICFlow logs to a pickle file for download"""
@@ -192,3 +270,25 @@ def export_cicflow_logs_to_pkl(orgId=None, db: Session = None):
         media_type="application/octet-stream",
         headers={"Content-Disposition": f"attachment; filename=cicflow_logs_{time.strftime('%Y%m%d_%H%M%S')}.pkl"}
     )
+
+def get_logs_from_db(orgId: int, db: Session):
+    verified_ips = {
+        ip for (ip,) in db.query(VerifiedIP.ip)
+        .filter(VerifiedIP.organization_id == orgId, VerifiedIP.is_verified == True)
+        .all()
+    }
+
+    if not verified_ips:
+        return []
+
+    logs = db.query(NetworkLogs).filter(NetworkLogs.src_ip.in_(verified_ips)).order_by(NetworkLogs.timestamp.desc()).limit(500).all()
+
+    results = []
+    for row in logs:
+        results.append({
+            display_name: getattr(row, es_field, None)
+            for display_name, es_field in FIELD_MAPPING.items()
+        })
+        results[-1]["@timestamp"] = row.timestamp
+
+    return results

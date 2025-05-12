@@ -3,10 +3,11 @@ import uvicorn
 from fastapi import FastAPI, Request, HTTPException, Depends
 from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi_utils.tasks import repeat_every
 from sqlalchemy.orm import Session
 from dotenv import load_dotenv
 from database import get_db, SessionLocal, engine, Base
-from models.models import BlockedIP  # Ensure correct import
+from models.models import BlockedIP, VerifiedIP  # Ensure correct import
 from starlette.responses import JSONResponse
 from controllers.journal_controller import router as journal_router
 from controllers.meeting_minutes_controller import router as meeting_minutes_router
@@ -23,7 +24,6 @@ from controllers.ip_verification_controller import router as ip_verification_rou
 from controllers.events_controller import router as event_router
 from apscheduler.schedulers.background import BackgroundScheduler
 from services.alert_service import update_and_fetch_alerts
-from database import engine, Base
 import models 
 from init_db import init_database
 from fastapi.security import OAuth2PasswordBearer
@@ -31,6 +31,7 @@ from jose import JWTError, jwt
 from services.ip_blocking_service import evaluate_and_block_ips
 import time
 from services.log_service import scheduled_log_update
+from services.event_service import fetch_cicflow_logs_from_es
 
 load_dotenv()
 
@@ -91,6 +92,34 @@ async def get_token(token: str = Depends(oauth2_scheme)):
    except JWTError as e:
        print(f"Token validation error: {e}")  
        raise HTTPException(status_code=403, detail="Invalid or expired token")
+   
+# @app.on_event("startup")
+# @repeat_every(seconds=60)  # every 60 seconds
+# def ingest_logs_periodically() -> None:
+#     db: Session = SessionLocal()
+#     try:
+#         print("[Background Task] Ingesting CICFlowMeter logs...")
+#         # You can call for all orgs, or loop through known org IDs
+#         for org_id in [1, 2, 3]:  # Replace with your actual org IDs or query dynamically
+#             fetch_cicflow_logs_from_es(size=200, orgId=org_id, db=db)
+#     except Exception as e:
+#         print(f"[Background Task Error] {str(e)}")
+#     finally:
+#         db.close()
+
+@app.on_event("startup")
+def start_ingestion():
+    import threading, time
+
+    def poll():
+        db = next(get_db())
+        while True:
+            org_ids = db.query(VerifiedIP.organization_id).distinct().all()
+            for (org_id,) in org_ids:
+                fetch_cicflow_logs_from_es(orgId=org_id, db=db)
+            time.sleep(10)
+
+    threading.Thread(target=poll, daemon=True).start()
 
 # Include the routers
 app.include_router(journal_router)
