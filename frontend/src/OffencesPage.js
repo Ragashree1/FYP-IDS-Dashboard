@@ -726,6 +726,7 @@ const Offences = () => {
   const [hideUncategorized, setHideUncategorized] = useState(false);
   const [filterCriteria, setFilterCriteria] = useState({});
   const [isFilterModalOpen, setIsFilterModalOpen] = useState(false);
+  const [logSource, setLogSource] = useState("snort");
   const navigate = useNavigate()
   const location = useLocation()
   const [logs, setLogs] = useState([]);
@@ -733,6 +734,11 @@ const Offences = () => {
   const [error, setError] = useState(null);
   const [offences, setOffences] = useState([]);
   const [userOrgId, setOrgId] = useState(0);
+
+  // Add separate states for different log sources
+  const [snortLogs, setSnortLogs] = useState([]);
+  const [suricataLogs, setSuricataLogs] = useState([]);
+  const [zeekLogs, setZeekLogs] = useState([]);
 
   function convertToKeyValuePair(data) {
     return data.reduce((acc, item) => {
@@ -768,24 +774,53 @@ const Offences = () => {
         return;
       }
       setOrgId(fetchedOrgId);
-      // Fetch alerts for this org
+      
       try {
-        const response = await fetch(`${API_BASE_URL}/alerts/org/${fetchedOrgId}`);
-        if (!response.ok) {
-          throw new Error("Failed to fetch alerts");
+        setLoading(true);
+        let endpoint;
+        switch(logSource) {
+          case "suricata":
+            endpoint = `${API_BASE_URL}/suricata/alerts?orgId=${fetchedOrgId}`;
+            const suricataResponse = await fetch(endpoint);
+            if (!suricataResponse.ok) {
+              throw new Error("Failed to fetch Suricata alerts");
+            }
+            const suricataData = await suricataResponse.json();
+            setSuricataLogs(suricataData);
+            setOffences(suricataData); // Update current view
+            break;
+
+          case "zeek":
+            endpoint = `${API_BASE_URL}/zeek/alerts?orgId=${fetchedOrgId}`;
+            const zeekResponse = await fetch(endpoint);
+            if (!zeekResponse.ok) {
+              throw new Error("Failed to fetch Zeek alerts");
+            }
+            const zeekData = await zeekResponse.json();
+            setZeekLogs(zeekData);
+            setOffences(zeekData); // Update current view
+            break;
+
+          default: // snort
+            endpoint = `${API_BASE_URL}/alerts/org/${fetchedOrgId}`;
+            const snortResponse = await fetch(endpoint);
+            if (!snortResponse.ok) {
+              throw new Error("Failed to fetch Snort alerts");
+            }
+            const snortData = await snortResponse.json();
+            setSnortLogs(snortData);
+            setOffences(snortData); // Update current view
+            break;
         }
-        const data = await response.json();
-        setLogs(data);
-        setOffences(data);
       } catch (error) {
-        setError('Failed to fetch logs');
+        setError(`Failed to fetch ${logSource} logs: ${error.message}`);
       } finally {
         setLoading(false);
       }
     };
     fetchOrgAndAlerts();
-  }, []);
-  
+  }, [logSource]); // Dependency on logSource
+
   // Updated filter logic to filter rows based on both filter type and search query
   const filteredOffences = useMemo(() => {
     let filtered = offences.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
@@ -997,6 +1032,27 @@ const Offences = () => {
     setIsFilterModalOpen(false);
   };
 
+  // Update the log source change handler
+  const handleLogSourceChange = (e) => {
+    const newSource = e.target.value;
+    setLogSource(newSource);
+    setLoading(true);
+    resetFilters();
+    
+    // Set the appropriate logs based on the selected source
+    switch(newSource) {
+      case "suricata":
+        setOffences(suricataLogs);
+        break;
+      case "zeek":
+        setOffences(zeekLogs);
+        break;
+      default:
+        setOffences(snortLogs);
+        break;
+    }
+  };
+
   return (
     <div style={{ display: "flex", height: "100vh", background: "#f4f4f4" }}>
       {/* Use the Sidebar component */}
@@ -1005,6 +1061,28 @@ const Offences = () => {
       {/* Main Content */}
       <div style={{ flex: 1, padding: "20px" }}>
         <h1>Offences (Alert) Interface:</h1>
+
+        {/* Add Log Source Selector */}
+        <div style={{ marginBottom: "20px" }}>
+          <select
+            value={logSource}
+            onChange={handleLogSourceChange}
+            style={{
+              padding: "10px",
+              border: "1px solid #ccc",
+              borderRadius: "4px",
+              minWidth: "200px",
+              marginBottom: "10px",
+              backgroundColor: "#fff"
+            }}
+          >
+            <option value="snort">Snort Logs</option>
+            <option value="suricata">Suricata Logs</option>
+            <option value="zeek">Zeek Logs</option>
+          </select>
+          {loading && <span style={{ marginLeft: "10px" }}>Loading...</span>}
+          {error && <span style={{ marginLeft: "10px", color: "red" }}>{error}</span>}
+        </div>
 
         {/* Statistics */}
          <div style={{ display: "flex", gap: "10px", marginBottom: "20px" }}>

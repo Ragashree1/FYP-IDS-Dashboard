@@ -38,27 +38,27 @@ def force_import_zeek_alerts(orgId: int, limit: int = 100):
         raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
 
 # Add this new endpoint to match what your dashboard is expecting
-# @router.get("/alerts")
-# def get_alerts(orgId: int = None):
-#     """
-#     Get alerts for a specific organization (for dashboard compatibility)
-#     """
-#     if not orgId:
-#         raise HTTPException(status_code=400, detail="Organization ID is required")
+@router.get("zeek/alerts")
+def get_alerts(orgId: int = None):
+    """
+    Get alerts for a specific organization (for dashboard compatibility)
+    """
+    if not orgId:
+        raise HTTPException(status_code=400, detail="Organization ID is required")
     
-#     try:
-#         # Use your existing function to get alerts
-#         alerts = update_and_fetch_zeek_alerts(orgId)
+    try:
+        # Use your existing function to get alerts
+        alerts = update_and_fetch_zeek_alerts(orgId)
         
-#         # If alerts is None or empty, return an empty list
-#         if not alerts:
-#             return []
+        # If alerts is None or empty, return an empty list
+        if not alerts:
+            return []
         
-#         logger.info(f"Returning {len(alerts)} alerts for organization {orgId}")
-#         return alerts
-#     except Exception as e:
-#         logger.error(f"Error in get_alerts: {str(e)}")
-#         raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
+        logger.info(f"Returning {len(alerts)} alerts for organization {orgId}")
+        return alerts
+    except Exception as e:
+        logger.error(f"Error in get_alerts: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
 
 @router.get("/zeek_alert_stats")
 def get_zeek_alert_statistics():
