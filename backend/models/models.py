@@ -73,6 +73,8 @@ class SnortAlerts(Base):
     message = Column(String)
     signature_id = Column(String)
     host = Column(String)
+    organization_id = Column(Integer, ForeignKey("Organizations.id"), nullable=True)
+    organization = relationship("Organization")
     # alert_source = Column(String, default="snort")
     # organization_id = Column(Integer)
 

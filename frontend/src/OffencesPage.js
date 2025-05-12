@@ -5,6 +5,7 @@ import Sidebar from "./Sidebar" // Import the Sidebar component
 import defaultClassifications from "./defaultClassifications" // Import default classifications
 
 const userRole = "2"
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
 const FilterModal = ({ onClose, onSubmit , initialValues}) => {
 
@@ -731,7 +732,8 @@ const Offences = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [offences, setOffences] = useState([]);
-  
+  const [userOrgId, setOrgId] = useState(0);
+
   function convertToKeyValuePair(data) {
     return data.reduce((acc, item) => {
       acc[item.text.toLowerCase()] = { name: item.name, priority: item.priority };
@@ -746,20 +748,42 @@ const Offences = () => {
     return classifications[name] ? classifications[name].priority : 'Unknown'
   }
 
+  const getOrgId = async () => {
+    const token = localStorage.getItem("token");
+    const response = await fetch(`${API_BASE_URL}/login/get_user`, {
+      headers : { Authorization: `Bearer ${token}` },
+    });
+    if (!response.ok) { 
+      return null;
+    }
+    const data = await response.json();
+    return data.user.organization_id;
+  };
+
   useEffect(() => {
-    axios.get('http://localhost:8000/alerts')
-      .then(response => {
-        setLogs(response.data);
-        setOffences(response.data);
-        console.log(response.data);
-      })
-      .catch(error => {
-        console.error('Error fetching logs:', error);
+    const fetchOrgAndAlerts = async () => {
+      const fetchedOrgId = await getOrgId();
+      if (!fetchedOrgId) {
+        alert("Organization ID is missing. Please register again.");
+        return;
+      }
+      setOrgId(fetchedOrgId);
+      // Fetch alerts for this org
+      try {
+        const response = await fetch(`${API_BASE_URL}/alerts/org/${fetchedOrgId}`);
+        if (!response.ok) {
+          throw new Error("Failed to fetch alerts");
+        }
+        const data = await response.json();
+        setLogs(data);
+        setOffences(data);
+      } catch (error) {
         setError('Failed to fetch logs');
-      })
-      .finally(() => {
+      } finally {
         setLoading(false);
-      });
+      }
+    };
+    fetchOrgAndAlerts();
   }, []);
   
   // Updated filter logic to filter rows based on both filter type and search query

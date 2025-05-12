@@ -100,7 +100,7 @@ async def startup_event():
 
     # Schedule periodic jobs
     logs_scheduler.add_job(fetch_logs_job, "interval", seconds=30)  # Fetch logs every 30 seconds
-    logs_scheduler.add_job(fetch_alerts_job, "interval", minutes=5)  # Fetch alerts every 5 minutes
+    logs_scheduler.add_job(fetch_alerts_job, "interval", minutes=3)  # Fetch alerts every 5 minutes
     logs_scheduler.add_job(execute_playbook_rules_job, "interval", minutes=1)  # Execute playbook rules every 1 minute
     logs_scheduler.add_job(
         predict_recent_logs_job,

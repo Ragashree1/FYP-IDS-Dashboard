@@ -1,8 +1,17 @@
 import requests
 from datetime import datetime
 from database import SessionLocal
-from models.models import SnortAlerts
+from models.models import SnortAlerts, VerifiedIP
 from apscheduler.schedulers.background import BackgroundScheduler
+
+def fetch_verified_ips():
+    """
+    Fetch all verified IPs and their organization_id from the database.
+    Returns a dict: {ip: organization_id}
+    """
+    with SessionLocal() as db:
+        verified = db.query(VerifiedIP).filter(VerifiedIP.is_verified == True).all()
+        return {v.ip: v.organization_id for v in verified}
 
 def parse_timestamp(timestamp_str):
     """
@@ -21,7 +30,6 @@ def parse_timestamp(timestamp_str):
         except ValueError:
             continue
     raise ValueError(f"Timestamp '{timestamp_str}' does not match any supported formats.")
-
 
 def fetch_alerts():
     es_url = "http://localhost:9200/snort-logs-*/_search"
@@ -69,13 +77,31 @@ def preprocess_alert(alert):
         print(f"Skipping alert due to error: {e}")
         return None
 
+def get_client_ip_and_org(preprocessed_alert, verified_ip_map):
+    """
+    If either src_ip or dest_ip is in verified_ip_map, return (ip, organization_id).
+    Returns (None, None) if neither is verified.
+    """
+    src_ip = preprocessed_alert.get("src_ip")
+    dest_ip = preprocessed_alert.get("dest_ip")
+    if src_ip in verified_ip_map:
+        return src_ip, verified_ip_map[src_ip]
+    if dest_ip in verified_ip_map:
+        return dest_ip, verified_ip_map[dest_ip]
+    return None, None
+
 def save_alerts(alerts):
+    verified_ip_map = fetch_verified_ips()
     with SessionLocal() as db:
-        for alerts in alerts:
-            preprocessed_alert = preprocess_alert(alerts)
+        for alert in alerts:
+            preprocessed_alert = preprocess_alert(alert)
             if preprocessed_alert:
-                db_alert = SnortAlerts(**preprocessed_alert)
-                db.add(db_alert)
+                client_ip, org_id = get_client_ip_and_org(preprocessed_alert, verified_ip_map)
+                if org_id:
+                    preprocessed_alert["organization_id"] = org_id
+                    db_alert = SnortAlerts(**preprocessed_alert)
+                    db.add(db_alert)
+                # If not verified, skip saving
         db.commit()
 
 def update_and_fetch_alerts():
@@ -94,3 +120,10 @@ def update_and_fetch_alerts():
     
     with SessionLocal() as db:
         return db.query(SnortAlerts).all()
+
+def fetch_alerts_by_org(organization_id: int):
+    """
+    Fetch alerts from SnortAlerts table for a specific organization.
+    """
+    with SessionLocal() as db:
+        return db.query(SnortAlerts).filter(SnortAlerts.organization_id == organization_id).all()
