@@ -1,9 +1,11 @@
 import joblib
 import numpy as np
 import os
+import time
 from database import SessionLocal
 from models.models import NetworkLogs, LogPredictions, MLModels
 from datetime import datetime, timedelta
+from sqlalchemy.sql import func
 
 # Load the model
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -12,37 +14,6 @@ SCALER_PATH = os.path.join(BASE_DIR, "../machineLearningModels/scaler.pkl")
 model = joblib.load(MODEL_PATH)
 scaler = joblib.load(SCALER_PATH)
 
-# #TODO change log id to organisation id
-# def fetch_predictions(log_id: int = None):
-#     """
-#     Fetch predictions from the LogPredictions table.
-#     If log_id is provided, fetch predictions for that specific log.
-#     """
-#     with SessionLocal() as db:
-#         if log_id:
-#             # Fetch predictions for a specific log ID
-#             prediction = db.query(LogPredictions).filter(LogPredictions.log_id == log_id).first()
-#             if not prediction:
-#                 return {"error": f"No prediction found for log ID {log_id}"}
-#             return {
-#                 "log_id": prediction.log_id,
-#                 "prediction": prediction.prediction,
-#                 "confidence": prediction.confidence,
-#                 "created_at": prediction.created_at
-#             }
-#         else:
-#             # Fetch all predictions
-#             predictions = db.query(LogPredictions).all()
-#             return [
-#                 {
-#                     "log_id": pred.log_id,
-#                     "prediction": pred.prediction,
-#                     "confidence": pred.confidence,
-#                     "created_at": pred.created_at
-#                 }
-#                 for pred in predictions
-#             ]
-        
 def predict_threat(log_id: int, organization_id: int):
     """
     Fetch a network log by ID and predict if it's a threat using organization-specific ML models.
@@ -187,138 +158,61 @@ def use_default_model(log, log_id, organization_id, db):
         "organization_id": organization_id
     }
 
-# def fetch_predictions(organization_id: int, log_id: int = None):
-#     """
-#     Fetch predictions filtered by organization_id.
-#     Optionally filter by specific log_id as well.
-#     """
-#     with SessionLocal() as db:
-#         query = db.query(LogPredictions).filter(
-#             LogPredictions.organization_id == organization_id
-#         )
-        
-#         if log_id:
-#             prediction = query.filter(LogPredictions.log_id == log_id).first()
-#             if not prediction:
-#                 return {"error": f"No prediction found for log ID {log_id} in organization {organization_id}"}
-            
-#             log = db.query(NetworkLogs).filter(NetworkLogs.id == prediction.log_id).first()
-#             return {
-#                 "log_id": prediction.log_id,
-#                 "prediction": prediction.prediction,
-#                 "confidence": prediction.confidence,
-#                 "created_at": prediction.created_at,
-#                 "organization_id": prediction.organization_id,
-#                 "log_details": {
-#                     "dst_port": log.dst_port,
-#                     "flow_duration": log.flow_duration,
-#                     "total_fwd_packets": log.total_fwd_packets,
-#                     "total_bwd_packets": log.total_bwd_packets,
-#                     "total_length_fwd_packets": log.total_length_fwd_packets,
-#                     "total_length_bwd_packets": log.total_length_bwd_packets,
-#                     "fwd_packet_length_mean": log.fwd_packet_length_mean,
-#                     "bwd_packet_length_mean": log.bwd_packet_length_mean,
-#                     "flow_bytes_per_s": log.flow_bytes_per_s,
-#                     "flow_packets_per_s": log.flow_packets_per_s,
-#                 }
-#             }
-        
-#         # Fetch all predictions for the organization
-#         predictions = query.all()
-#         results = []
-#         for pred in predictions:
-#             log = db.query(NetworkLogs).filter(NetworkLogs.id == pred.log_id).first()
-#             results.append({
-#                 "log_id": pred.log_id,
-#                 "prediction": pred.prediction,
-#                 "confidence": pred.confidence,
-#                 "created_at": pred.created_at,
-#                 "organization_id": pred.organization_id,
-#                 "log_details": {
-#                     "dst_port": log.dst_port,
-#                     "flow_duration": log.flow_duration,
-#                     "total_fwd_packets": log.total_fwd_packets,
-#                     "total_bwd_packets": log.total_bwd_packets,
-#                     "total_length_fwd_packets": log.total_length_fwd_packets,
-#                     "total_length_bwd_packets": log.total_length_bwd_packets,
-#                     "fwd_packet_length_mean": log.fwd_packet_length_mean,
-#                     "bwd_packet_length_mean": log.bwd_packet_length_mean,
-#                     "flow_bytes_per_s": log.flow_bytes_per_s,
-#                     "flow_packets_per_s": log.flow_packets_per_s,
-#                 }
-#             })
-#         return results
-    
-
-def clean_float_for_json(value):
-    """Helper function to clean float values for JSON serialization"""
-    if isinstance(value, float):
-        if value in (float('inf'), float('-inf')) or value != value:  # Check for inf and NaN
-            return None
-    return value
-
-def fetch_predictions(organization_id: int, log_id: int = None):
+def fetch_predictions(organization_id: int, page: int = 1, limit: int = 20, log_id: int = None):
     """
-    Fetch predictions filtered by organization_id with clean float values.
+    Further optimized fetch predictions function.
     """
     with SessionLocal() as db:
-        query = db.query(LogPredictions).filter(
-            LogPredictions.organization_id == organization_id
-        )
+        start_time = time.time()
+        base_query = db.query(LogPredictions).filter(LogPredictions.organization_id == organization_id)
         
         if log_id:
-            prediction = query.filter(LogPredictions.log_id == log_id).first()
+            prediction = base_query.filter(LogPredictions.log_id == log_id)\
+                .with_entities(
+                    LogPredictions.log_id,
+                    LogPredictions.prediction,
+                    LogPredictions.created_at
+                ).first()
             if not prediction:
                 return {"error": f"No prediction found for log ID {log_id} in organization {organization_id}"}
-            
-            log = db.query(NetworkLogs).filter(NetworkLogs.id == prediction.log_id).first()
             return {
                 "log_id": prediction.log_id,
                 "prediction": prediction.prediction,
-                "confidence": clean_float_for_json(prediction.confidence),
-                "created_at": prediction.created_at,
-                "organization_id": prediction.organization_id,
-                "log_details": {
-                    "dst_port": log.dst_port,
-                    "flow_duration": clean_float_for_json(log.flow_duration),
-                    "total_fwd_packets": log.total_fwd_packets,
-                    "total_bwd_packets": log.total_bwd_packets,
-                    "total_length_fwd_packets": clean_float_for_json(log.total_length_fwd_packets),
-                    "total_length_bwd_packets": clean_float_for_json(log.total_length_bwd_packets),
-                    "fwd_packet_length_mean": clean_float_for_json(log.fwd_packet_length_mean),
-                    "bwd_packet_length_mean": clean_float_for_json(log.bwd_packet_length_mean),
-                    "flow_bytes_per_s": clean_float_for_json(log.flow_bytes_per_s),
-                    "flow_packets_per_s": clean_float_for_json(log.flow_packets_per_s)
-                }
+                "created_at": prediction.created_at
             }
         
-        # Fetch all predictions for the organization
-        predictions = query.all()
-        results = []
-        for pred in predictions:
-            log = db.query(NetworkLogs).filter(NetworkLogs.id == pred.log_id).first()
-            if log:  # Only include if log exists
-                results.append({
-                    "log_id": pred.log_id,
-                    "prediction": pred.prediction,
-                    "confidence": clean_float_for_json(pred.confidence),
-                    "created_at": pred.created_at,
-                    "organization_id": pred.organization_id,
-                    "log_details": {
-                        "dst_port": log.dst_port,
-                        "flow_duration": clean_float_for_json(log.flow_duration),
-                        "total_fwd_packets": log.total_fwd_packets,
-                        "total_bwd_packets": log.total_bwd_packets,
-                        "total_length_fwd_packets": clean_float_for_json(log.total_length_fwd_packets),
-                        "total_length_bwd_packets": clean_float_for_json(log.total_length_bwd_packets),
-                        "fwd_packet_length_mean": clean_float_for_json(log.fwd_packet_length_mean),
-                        "bwd_packet_length_mean": clean_float_for_json(log.bwd_packet_length_mean),
-                        "flow_bytes_per_s": clean_float_for_json(log.flow_bytes_per_s),
-                        "flow_packets_per_s": clean_float_for_json(log.flow_packets_per_s)
-                    }
-                })
-        return results
-    
+        total_count = base_query.count()
+        if total_count == 0:
+            print(f"fetch_predictions: Query time (empty): {time.time() - start_time:.4f}s")
+            return {
+                "items": [],
+                "total": 0,
+                "page": page,
+                "has_more": False
+            }
+        
+        results = base_query\
+            .order_by(LogPredictions.created_at.desc())\
+            .offset((page - 1) * limit)\
+            .limit(limit)\
+            .with_entities(
+                LogPredictions.log_id,
+                LogPredictions.prediction,
+                LogPredictions.created_at
+            ).all()
+        
+        print(f"fetch_predictions: Query time: {time.time() - start_time:.4f}s")
+        return {
+            "items": [{
+                "log_id": result.log_id,
+                "prediction": result.prediction,
+                "created_at": result.created_at
+            } for result in results],
+            "total": total_count,
+            "page": page,
+            "has_more": (page - 1) * limit + len(results) < total_count
+        }
+
 def predict_recent_logs():
     """
     Predict threats for all logs from the last 5 minutes for all organizations.

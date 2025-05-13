@@ -2,7 +2,7 @@ import uuid
 from sqlalchemy.dialects.postgresql import UUID 
 from sqlalchemy import (
     Column, ForeignKey, Integer, Float, String, ARRAY, TIMESTAMP, JSON, DateTime,
-    func, Boolean, Table, UniqueConstraint, Text
+    func, Boolean, Table, UniqueConstraint, Text, Index
 )
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import validates, relationship
@@ -75,8 +75,6 @@ class SnortAlerts(Base):
     host = Column(String)
     organization_id = Column(Integer, ForeignKey("Organizations.id"), nullable=True)
     organization = relationship("Organization")
-    # alert_source = Column(String, default="snort")
-    # organization_id = Column(Integer)
 
     class Config:
         from_attributes = True  # Updated from orm_mode = True
@@ -441,6 +439,9 @@ class NetworkLogs(Base):
 
 class LogPredictions(Base):
     __tablename__ = "logPredictions"
+    __table_args__ = (
+        Index('idx_org_created', 'organization_id', 'created_at'),
+    )
 
     id = Column(Integer, primary_key=True, index=True)
     log_id = Column(Integer, ForeignKey("NetworkLogs.id", ondelete="CASCADE"), nullable=False) 

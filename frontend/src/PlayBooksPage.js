@@ -13,6 +13,7 @@ const PlaybookModal = ({ playbook, onClose, onSave }) => {
   const [sendEmailAlert, setSendEmailAlert] = useState(playbook?.actions?.sendEmailAlert ?? false);
   const [emailRecipients, setEmailRecipients] = useState(playbook?.actions?.emailRecipients || "");
   const [conditions, setConditions] = useState([]);
+  
 
   const conditionFieldOptions = {
     threshold: [{ value: "source_ip_alert_count", label: "Source IP + alert count" }],
@@ -661,9 +662,56 @@ const PlaybooksPage = () => {
   // Sample data
   const [playbooks, setPlaybooks] = useState([])
 
-  // Fetch playbooks on component mount
+  const [totalBlockedIps, setTotalBlockedIPs] = useState(0);
+  const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+
+  const getOrgId = async () => {
+    const token = localStorage.getItem("token");
+    const response = await fetch(`${API_BASE_URL}/login/get_user`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    if (!response.ok) {
+      return null;
+    }
+    const data = await response.json();
+    return data.user.organization_id;
+  };
+
+  const fetchBlockedIPs = async (orgId) => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/ip-blocking/${orgId}/blocked-ips`);
+      if (!response.ok) {
+        throw new Error("Failed to fetch blocked IPs");
+      }
+      const data = await response.json();
+      setTotalBlockedIPs(data.blocked_ips.length);
+    } catch (error) {
+      console.error("Error fetching blocked IPs:", error);
+    }
+  };
+
   useEffect(() => {
-    fetchPlaybooks();
+    const initializePage = async () => {
+      setLoading(true);
+      try {
+        const orgId = await getOrgId();
+        if (!orgId) {
+          setError("Failed to fetch organization ID");
+          return;
+        }
+        await Promise.all([
+          fetchPlaybooks(),
+          fetchBlockedIPs(orgId)
+        ]);
+      } catch (error) {
+        console.error("Error initializing page:", error);
+        setError("Failed to load data");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    initializePage();
   }, []);
 
   const fetchPlaybooks = async () => {
@@ -1020,8 +1068,8 @@ const PlaybooksPage = () => {
               textAlign: "center",
             }}
           >
-            <div style={{ color: "#666", marginBottom: "8px" }}>IP Blocks (24h)</div>
-            <div style={{ fontSize: "32px", fontWeight: "bold" }}>37</div>
+            <div style={{ color: "#666", marginBottom: "8px" }}>IP Blocks</div>
+            <div style={{ fontSize: "32px", fontWeight: "bold" }}>{totalBlockedIps}</div>
           </div>
 
           
