@@ -1037,6 +1037,7 @@ const Offences = () => {
     const newSource = e.target.value;
     setLogSource(newSource);
     setLoading(true);
+    setError(null);
     resetFilters();
     
     // Set the appropriate logs based on the selected source
@@ -1079,9 +1080,37 @@ const Offences = () => {
             <option value="snort">Snort Logs</option>
             <option value="suricata">Suricata Logs</option>
             <option value="zeek">Zeek Logs</option>
-          </select>
+            </select>
           {loading && <span style={{ marginLeft: "10px" }}>Loading...</span>}
-          {error && <span style={{ marginLeft: "10px", color: "red" }}>{error}</span>}
+          {error && (
+            <div style={{ 
+              marginLeft: "10px", 
+              color: "red", 
+              display: "flex", 
+              alignItems: "center", 
+              justifyContent: "space-between",
+              backgroundColor: "#ffebee",
+              padding: "4px 12px",
+              borderRadius: "4px",
+              minWidth: "200px"
+            }}>
+              <span style={{ flex: 1 }}>{error}</span>
+              <button 
+                onClick={() => setError(null)} 
+                style={{
+                  border: "none",
+                  background: "none",
+                  cursor: "pointer",
+                  fontSize: "16px",
+                  color: "#666",
+                  padding: "0 4px",
+                  marginLeft: "16px"
+                }}
+              >
+                ×
+              </button>
+            </div>
+          )}
         </div>
 
         {/* Statistics */}
@@ -1223,7 +1252,7 @@ const Offences = () => {
             >
               Advanced Filter
             </button>
-            <button
+            {/* <button
               onClick={handleOpenReportForm}
               style={{
                 background: "green",
@@ -1249,7 +1278,7 @@ const Offences = () => {
             >
               Generate Report
             </button>
-            
+             */}
           </div>
         </div>
 

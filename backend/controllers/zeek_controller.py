@@ -38,7 +38,7 @@ def force_import_zeek_alerts(orgId: int, limit: int = 100):
         raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
 
 # Add this new endpoint to match what your dashboard is expecting
-@router.get("zeek/alerts")
+@router.get("/zeek/alerts")
 def get_alerts(orgId: int = None):
     """
     Get alerts for a specific organization (for dashboard compatibility)

@@ -42,6 +42,7 @@ const Dashboard = () => {
   const [topSourcesLimit, setTopSourcesLimit] = useState(10);
   const [sourceMetric, setSourceMetric] = useState('src_ip');
   const [selectedSource, setSelectedSource] = useState('src_ip');
+  const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
   //const [attackData, setAttackData] = useState([]);
   
   function convertToKeyValuePair(data) {
@@ -53,27 +54,47 @@ const Dashboard = () => {
   
   const classifications = convertToKeyValuePair(defaultClassifications);
 
+  const getOrgId = async () => {
+    const token = localStorage.getItem("token");
+    const response = await fetch(`${API_BASE_URL}/login/get_user`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    if (!response.ok) {
+      return null;
+    }
+    const data = await response.json();
+    return data.user.organization_id;
+  };
   
 
   useEffect(() => {
-    axios.get(`http://localhost:8000/alerts?orgId=${localStorage.getItem('orgId')}`)
-      .then(response => {
+    const fetchData = async () => {
+      try {
+        const fetchedOrgId = await getOrgId();
+        if (!fetchedOrgId) {
+          alert("Organization ID is missing. Please register again.");
+          return;
+        }
+  
+        setLoading(true);
+        const response = await axios.get(`${API_BASE_URL}/alerts?orgId=${fetchedOrgId}`);
         if (response.data) {
           setLogs(response.data);
           setOffences(response.data);
-          console.log(response.data)
+          console.log(response.data);
         } else {
           setLogs([]);
           setError('Unexpected data format from server');
         }
-      })
-      .catch(error => {
+      } catch (error) {
         console.error('Error fetching logs:', error);
         setError('Failed to fetch logs');
-      })
-      .finally(() => {
+      } finally {
         setLoading(false);
-      });
+      }
+    };
+  
+    fetchData();
   }, []);
 
   // Network traffic data

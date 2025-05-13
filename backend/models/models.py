@@ -111,7 +111,7 @@ class ZeekAlerts(Base):
     id = Column(Integer, primary_key=True, index=True)
     timestamp = Column(String)
     priority = Column(Integer)
-    priority_name = Column(String)  # Add this line
+    priority_name = Column(String)  
     protocol = Column(String)
     raw = Column(String)
     length = Column(Integer, default=0)
@@ -349,7 +349,7 @@ class NetworkLogs(Base):
     __tablename__ = "NetworkLogs"
     
     id = Column(Integer, primary_key=True, index=True)
-    # timestamp = Column(TIMESTAMP, default=datetime.utcnow)
+    timestamp = Column(TIMESTAMP, default=datetime.utcnow)
     dstport = Column(Integer, nullable=True)
     flow_duration = Column(Integer, nullable=True)
     total_fwd_packets = Column(Integer, nullable=True)
