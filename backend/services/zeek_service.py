@@ -256,3 +256,61 @@ def update_and_fetch_zeek_alerts(orgId: int):
         ).all()
         logger.info(f"Returning {len(alerts)} filtered Zeek alerts.")
         return alerts
+
+
+def import_zeek_alerts_for_all_orgs(limit=1000, minutes=5):
+    try:
+        # Fetch alerts from Elasticsearch
+        alerts = fetch_recent_alerts(limit=limit, minutes=minutes)
+        if not alerts:
+            logger.info("No recent alerts found.")
+            return False
+
+        # Get all verified IPs and their organization IDs
+        with SessionLocal() as db:
+            verified_ips = db.query(VerifiedIP.ip, VerifiedIP.organization_id).filter(
+                VerifiedIP.is_verified == True
+            ).all()
+
+        if not verified_ips:
+            logger.info("No verified IPs found in any organization.")
+            return False
+
+        # Create a mapping of IP to organization ID
+        ip_org_map = {ip: org_id for ip, org_id in verified_ips}
+        
+        # Group alerts by organization
+        org_alerts = {}
+        
+        for alert in alerts:
+            source = alert.get("_source", {})
+            src_ip = source.get("src_ip", "")
+            dest_ip = source.get("dest_ip", "")
+            
+            # Handle IP lists
+            if isinstance(src_ip, list):
+                src_ip = src_ip[0] if src_ip else ""
+            if isinstance(dest_ip, list):
+                dest_ip = dest_ip[0] if dest_ip else ""
+            
+            # Check if either IP belongs to a verified organization
+            org_id = None
+            if src_ip in ip_org_map:
+                org_id = ip_org_map[src_ip]
+            elif dest_ip in ip_org_map:
+                org_id = ip_org_map[dest_ip]
+            
+            if org_id:
+                if org_id not in org_alerts:
+                    org_alerts[org_id] = []
+                org_alerts[org_id].append(alert)
+        
+        # Save alerts for each organization
+        for org_id, alerts in org_alerts.items():
+            save_zeek_alerts(alerts, org_id)
+            logger.info(f"Processed {len(alerts)} alerts for organization {org_id}")
+        
+        return True
+    except Exception as e:
+        logger.error(f"Error processing alerts for all organizations: {str(e)}")
+        return False

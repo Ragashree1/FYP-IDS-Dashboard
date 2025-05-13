@@ -590,3 +590,57 @@ def force_import_alerts(orgId: int, limit: int = 1000, minutes: int = 5):
     except Exception as e:
         logger.error(f"Error importing alerts: {str(e)}")
         return False
+
+def import_suricata_alerts_for_all_orgs(limit: int = 1000, minutes: int = 5):
+    """
+    Fetch recent Suricata alerts from Elasticsearch and assign them to organizations
+    based on the verified IPs table. No orgId is passed; the mapping is done automatically.
+    """
+    try:
+        # Step 1: Build a mapping of verified IP -> organization_id
+        with SessionLocal() as db:
+            verified_ip_org_map = dict(
+                db.query(VerifiedIP.ip, VerifiedIP.organization_id)
+                .filter(VerifiedIP.is_verified == True, VerifiedIP.organization_id != None)
+                .all()
+            )
+            if not verified_ip_org_map:
+                logger.warning("No verified IPs found in any organization.")
+                return False
+
+        # Step 2: Fetch recent alerts from Elasticsearch
+        alerts = fetch_recent_alerts(limit=limit, minutes=minutes)
+        if not alerts:
+            logger.info("No recent alerts fetched from Elasticsearch.")
+            return False
+
+        # Step 3: For each alert, check if src_ip or dest_ip is in verified_ip_org_map
+        org_alerts_map = {}  # org_id -> list of alerts
+        for alert in alerts:
+            source = alert.get("_source", {})
+            src_ip = source.get("src_ip", "")
+            if isinstance(src_ip, list) and len(src_ip) > 0:
+                src_ip = src_ip[0]
+            dest_ip = source.get("dest_ip", "")
+            if isinstance(dest_ip, list) and len(dest_ip) > 0:
+                dest_ip = dest_ip[0]
+
+            org_ids = set()
+            if src_ip in verified_ip_org_map:
+                org_ids.add(verified_ip_org_map[src_ip])
+            if dest_ip in verified_ip_org_map:
+                org_ids.add(verified_ip_org_map[dest_ip])
+
+            for org_id in org_ids:
+                if org_id is not None:
+                    org_alerts_map.setdefault(org_id, []).append(alert)
+
+        # Step 4: Save alerts for each organization
+        for org_id, org_alerts in org_alerts_map.items():
+            save_suricata_alerts(org_alerts, org_id)
+
+        logger.info(f"Imported alerts for {len(org_alerts_map)} organizations.")
+        return True
+    except Exception as e:
+        logger.error(f"Error in import_alerts_for_all_orgs: {str(e)}")
+        return False

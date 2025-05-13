@@ -28,8 +28,8 @@ from controllers.suricata_controller import router as suricata_router
 from controllers.zeek_controller import router as zeek_router
 from controllers.ml_model_controller import router as ml_model_router
 from services.alert_service import update_and_fetch_alerts
-from services.suricata_service import update_and_fetch_suricata_alerts
-from services.zeek_service import update_and_fetch_zeek_alerts
+from services.suricata_service import import_suricata_alerts_for_all_orgs
+from services.zeek_service import import_zeek_alerts_for_all_orgs
 from services.ip_blocking_service import evaluate_and_block_ips
 from services.playbook_service import execute_playbook_rules
 from apscheduler.schedulers.background import BackgroundScheduler
@@ -78,8 +78,8 @@ def predict_recent_logs_job():
 def fetch_alerts_job():
     try:
         update_and_fetch_alerts()
-        update_and_fetch_suricata_alerts()  # Add Suricata alerts fetching
-        update_and_fetch_zeek_alerts()  # Add Zeek alerts fetching
+        import_suricata_alerts_for_all_orgs()  # Add Suricata alerts fetching
+        import_zeek_alerts_for_all_orgs()  # Add Zeek alerts fetching
     except Exception as e:
         logger.error(f"Error in fetch_alerts_job: {str(e)}")
         logger.error(f"Traceback: {traceback.format_exc()}")
