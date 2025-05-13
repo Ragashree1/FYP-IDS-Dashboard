@@ -96,7 +96,7 @@ const PredictedThreatsPage = () => {
                     {new Date(prediction.created_at).toLocaleString()}
                   </td>
                   <td style={{ padding: "12px", borderBottom: "1px solid #eee" }}>
-                    {prediction.log_details.dstport || "N/A"}
+                    {prediction.log_details.dst_port || "N/A"}
                   </td>
                   <td style={{ padding: "12px", borderBottom: "1px solid #eee" }}>
                     {prediction.log_details.flow_duration || "N/A"}

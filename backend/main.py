@@ -28,6 +28,7 @@ from controllers.suricata_controller import router as suricata_router
 from controllers.zeek_controller import router as zeek_router
 from controllers.ml_model_controller import router as ml_model_router
 from services.alert_service import update_and_fetch_alerts
+from services.log_service import fetch_cicflow_logs_for_all_orgs
 from services.suricata_service import import_suricata_alerts_for_all_orgs
 from services.zeek_service import import_zeek_alerts_for_all_orgs
 from services.ip_blocking_service import evaluate_and_block_ips
@@ -80,12 +81,18 @@ def fetch_alerts_job():
         update_and_fetch_alerts()
         import_suricata_alerts_for_all_orgs()  # Add Suricata alerts fetching
         import_zeek_alerts_for_all_orgs()  # Add Zeek alerts fetching
+        fetch_cicflow_logs_for_all_orgs()
     except Exception as e:
         logger.error(f"Error in fetch_alerts_job: {str(e)}")
         logger.error(f"Traceback: {traceback.format_exc()}")
 
 def fetch_logs_job():
-    fetch_logs()
+    try:
+        fetch_logs()
+        fetch_cicflow_logs_for_all_orgs()
+    except Exception as e:
+        logger.error(f"Error in fetch logs job: {str(e)}")
+        logger.error(f"Traceback: {traceback.format_exc()}")
 
 def execute_playbook_rules_job():
     """Periodically execute playbook rules."""
@@ -99,16 +106,16 @@ async def startup_event():
     logger.info("Starting logs scheduler for IP verification...")
 
     # Schedule periodic jobs
-    logs_scheduler.add_job(fetch_logs_job, "interval", seconds=30)  # Fetch logs every 30 seconds
-    logs_scheduler.add_job(fetch_alerts_job, "interval", minutes=3)  # Fetch alerts every 5 minutes
-    logs_scheduler.add_job(execute_playbook_rules_job, "interval", minutes=1)  # Execute playbook rules every 1 minute
-    logs_scheduler.add_job(
-        predict_recent_logs_job,
-        "interval",
-        minutes=5,
-        id="predict_recent_logs_job",
-        replace_existing=True
-    )
+    # logs_scheduler.add_job(fetch_logs_job, "interval", seconds=30)  # Fetch logs every 30 seconds
+    # logs_scheduler.add_job(fetch_alerts_job, "interval", minutes=3)  # Fetch alerts every 5 minutes
+    # logs_scheduler.add_job(execute_playbook_rules_job, "interval", minutes=1)  # Execute playbook rules every 1 minute
+    # logs_scheduler.add_job(
+    #     predict_recent_logs_job,
+    #     "interval",
+    #     minutes=5,
+    #     id="predict_recent_logs_job",
+    #     replace_existing=True
+    # )
 
     logs_scheduler.start()
 

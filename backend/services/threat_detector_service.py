@@ -187,10 +187,79 @@ def use_default_model(log, log_id, organization_id, db):
         "organization_id": organization_id
     }
 
+# def fetch_predictions(organization_id: int, log_id: int = None):
+#     """
+#     Fetch predictions filtered by organization_id.
+#     Optionally filter by specific log_id as well.
+#     """
+#     with SessionLocal() as db:
+#         query = db.query(LogPredictions).filter(
+#             LogPredictions.organization_id == organization_id
+#         )
+        
+#         if log_id:
+#             prediction = query.filter(LogPredictions.log_id == log_id).first()
+#             if not prediction:
+#                 return {"error": f"No prediction found for log ID {log_id} in organization {organization_id}"}
+            
+#             log = db.query(NetworkLogs).filter(NetworkLogs.id == prediction.log_id).first()
+#             return {
+#                 "log_id": prediction.log_id,
+#                 "prediction": prediction.prediction,
+#                 "confidence": prediction.confidence,
+#                 "created_at": prediction.created_at,
+#                 "organization_id": prediction.organization_id,
+#                 "log_details": {
+#                     "dst_port": log.dst_port,
+#                     "flow_duration": log.flow_duration,
+#                     "total_fwd_packets": log.total_fwd_packets,
+#                     "total_bwd_packets": log.total_bwd_packets,
+#                     "total_length_fwd_packets": log.total_length_fwd_packets,
+#                     "total_length_bwd_packets": log.total_length_bwd_packets,
+#                     "fwd_packet_length_mean": log.fwd_packet_length_mean,
+#                     "bwd_packet_length_mean": log.bwd_packet_length_mean,
+#                     "flow_bytes_per_s": log.flow_bytes_per_s,
+#                     "flow_packets_per_s": log.flow_packets_per_s,
+#                 }
+#             }
+        
+#         # Fetch all predictions for the organization
+#         predictions = query.all()
+#         results = []
+#         for pred in predictions:
+#             log = db.query(NetworkLogs).filter(NetworkLogs.id == pred.log_id).first()
+#             results.append({
+#                 "log_id": pred.log_id,
+#                 "prediction": pred.prediction,
+#                 "confidence": pred.confidence,
+#                 "created_at": pred.created_at,
+#                 "organization_id": pred.organization_id,
+#                 "log_details": {
+#                     "dst_port": log.dst_port,
+#                     "flow_duration": log.flow_duration,
+#                     "total_fwd_packets": log.total_fwd_packets,
+#                     "total_bwd_packets": log.total_bwd_packets,
+#                     "total_length_fwd_packets": log.total_length_fwd_packets,
+#                     "total_length_bwd_packets": log.total_length_bwd_packets,
+#                     "fwd_packet_length_mean": log.fwd_packet_length_mean,
+#                     "bwd_packet_length_mean": log.bwd_packet_length_mean,
+#                     "flow_bytes_per_s": log.flow_bytes_per_s,
+#                     "flow_packets_per_s": log.flow_packets_per_s,
+#                 }
+#             })
+#         return results
+    
+
+def clean_float_for_json(value):
+    """Helper function to clean float values for JSON serialization"""
+    if isinstance(value, float):
+        if value in (float('inf'), float('-inf')) or value != value:  # Check for inf and NaN
+            return None
+    return value
+
 def fetch_predictions(organization_id: int, log_id: int = None):
     """
-    Fetch predictions filtered by organization_id.
-    Optionally filter by specific log_id as well.
+    Fetch predictions filtered by organization_id with clean float values.
     """
     with SessionLocal() as db:
         query = db.query(LogPredictions).filter(
@@ -206,20 +275,20 @@ def fetch_predictions(organization_id: int, log_id: int = None):
             return {
                 "log_id": prediction.log_id,
                 "prediction": prediction.prediction,
-                "confidence": prediction.confidence,
+                "confidence": clean_float_for_json(prediction.confidence),
                 "created_at": prediction.created_at,
                 "organization_id": prediction.organization_id,
                 "log_details": {
-                    "dstport": log.dstport,
-                    "flow_duration": log.flow_duration,
+                    "dst_port": log.dst_port,
+                    "flow_duration": clean_float_for_json(log.flow_duration),
                     "total_fwd_packets": log.total_fwd_packets,
                     "total_bwd_packets": log.total_bwd_packets,
-                    "total_length_fwd_packets": log.total_length_fwd_packets,
-                    "total_length_bwd_packets": log.total_length_bwd_packets,
-                    "fwd_packet_length_mean": log.fwd_packet_length_mean,
-                    "bwd_packet_length_mean": log.bwd_packet_length_mean,
-                    "flow_bytes_per_s": log.flow_bytes_per_s,
-                    "flow_packets_per_s": log.flow_packets_per_s,
+                    "total_length_fwd_packets": clean_float_for_json(log.total_length_fwd_packets),
+                    "total_length_bwd_packets": clean_float_for_json(log.total_length_bwd_packets),
+                    "fwd_packet_length_mean": clean_float_for_json(log.fwd_packet_length_mean),
+                    "bwd_packet_length_mean": clean_float_for_json(log.bwd_packet_length_mean),
+                    "flow_bytes_per_s": clean_float_for_json(log.flow_bytes_per_s),
+                    "flow_packets_per_s": clean_float_for_json(log.flow_packets_per_s)
                 }
             }
         
@@ -228,25 +297,26 @@ def fetch_predictions(organization_id: int, log_id: int = None):
         results = []
         for pred in predictions:
             log = db.query(NetworkLogs).filter(NetworkLogs.id == pred.log_id).first()
-            results.append({
-                "log_id": pred.log_id,
-                "prediction": pred.prediction,
-                "confidence": pred.confidence,
-                "created_at": pred.created_at,
-                "organization_id": pred.organization_id,
-                "log_details": {
-                    "dstport": log.dstport,
-                    "flow_duration": log.flow_duration,
-                    "total_fwd_packets": log.total_fwd_packets,
-                    "total_bwd_packets": log.total_bwd_packets,
-                    "total_length_fwd_packets": log.total_length_fwd_packets,
-                    "total_length_bwd_packets": log.total_length_bwd_packets,
-                    "fwd_packet_length_mean": log.fwd_packet_length_mean,
-                    "bwd_packet_length_mean": log.bwd_packet_length_mean,
-                    "flow_bytes_per_s": log.flow_bytes_per_s,
-                    "flow_packets_per_s": log.flow_packets_per_s,
-                }
-            })
+            if log:  # Only include if log exists
+                results.append({
+                    "log_id": pred.log_id,
+                    "prediction": pred.prediction,
+                    "confidence": clean_float_for_json(pred.confidence),
+                    "created_at": pred.created_at,
+                    "organization_id": pred.organization_id,
+                    "log_details": {
+                        "dst_port": log.dst_port,
+                        "flow_duration": clean_float_for_json(log.flow_duration),
+                        "total_fwd_packets": log.total_fwd_packets,
+                        "total_bwd_packets": log.total_bwd_packets,
+                        "total_length_fwd_packets": clean_float_for_json(log.total_length_fwd_packets),
+                        "total_length_bwd_packets": clean_float_for_json(log.total_length_bwd_packets),
+                        "fwd_packet_length_mean": clean_float_for_json(log.fwd_packet_length_mean),
+                        "bwd_packet_length_mean": clean_float_for_json(log.bwd_packet_length_mean),
+                        "flow_bytes_per_s": clean_float_for_json(log.flow_bytes_per_s),
+                        "flow_packets_per_s": clean_float_for_json(log.flow_packets_per_s)
+                    }
+                })
         return results
     
 def predict_recent_logs():
@@ -256,9 +326,10 @@ def predict_recent_logs():
     """
     with SessionLocal() as db:
         now = datetime.utcnow()
-        five_minutes_ago = now - timedelta(minutes=5)
+        five_minutes_ago = now - timedelta(minutes=500)
         # Fetch logs from the last 5 minutes
         recent_logs = db.query(NetworkLogs).filter(NetworkLogs.timestamp >= five_minutes_ago).all()
+        recent_logs = db.query(NetworkLogs).all()
         results = []
         for log in recent_logs:
             # Try to get organization_id from log if available, else default to 1 or skip

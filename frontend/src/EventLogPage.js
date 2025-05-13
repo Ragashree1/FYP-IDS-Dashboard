@@ -356,6 +356,8 @@ const EventLogPage = () => {
                   </>
                 ) : (
                   <>
+                    <th style={{ padding: "12px", textAlign: "left", borderBottom: "1px solid #eee" }}>Source IP</th>
+                    <th style={{ padding: "12px", textAlign: "left", borderBottom: "1px solid #eee" }}>Destination IP</th>
                     <th style={{ padding: "12px", textAlign: "left", borderBottom: "1px solid #eee" }}>Destination Port</th>
                     <th style={{ padding: "12px", textAlign: "left", borderBottom: "1px solid #eee" }}>Flow Duration</th>
                     <th style={{ padding: "12px", textAlign: "left", borderBottom: "1px solid #eee" }}>Total Fwd Packets</th>
@@ -396,8 +398,9 @@ const EventLogPage = () => {
                     </>
                   ) : (
                     <>
-                      {/* <td style={{ padding: "12px", borderBottom: "1px solid #eee" }}>{log.desip}</td> */}
-                      <td style={{ padding: "12px", borderBottom: "1px solid #eee" }}>{log.dstport}</td>
+                      <td style={{ padding: "12px", borderBottom: "1px solid #eee" }}>{log.src_ip}</td>
+                      <td style={{ padding: "12px", borderBottom: "1px solid #eee" }}>{log.dst_ip}</td>
+                      <td style={{ padding: "12px", borderBottom: "1px solid #eee" }}>{log.dst_port}</td>
                       <td style={{ padding: "12px", borderBottom: "1px solid #eee" }}>{log.flow_duration}</td>
                       <td style={{ padding: "12px", borderBottom: "1px solid #eee" }}>{log.total_fwd_packets}</td>
                       <td style={{ padding: "12px", borderBottom: "1px solid #eee" }}>{log.total_bwd_packets}</td>

@@ -347,11 +347,17 @@ class Playbook(Base):
 
 class NetworkLogs(Base):
     __tablename__ = "NetworkLogs"
-    
+
     id = Column(Integer, primary_key=True, index=True)
-    timestamp = Column(TIMESTAMP, default=datetime.utcnow)
-    dstport = Column(Integer, nullable=True)
-    flow_duration = Column(Integer, nullable=True)
+    src_ip = Column(String, nullable=True)
+    dst_ip = Column(String, nullable=True)
+    src_port = Column(Integer, nullable=True)
+    dst_port = Column(Integer, nullable=True)
+    src_mac = Column(String, nullable=True)
+    dst_mac = Column(String, nullable=True)
+    protocol = Column(Integer, nullable=True)
+    timestamp = Column(DateTime, nullable=True)
+    flow_duration = Column(Float, nullable=True)
     total_fwd_packets = Column(Integer, nullable=True)
     total_bwd_packets = Column(Integer, nullable=True)
     total_length_fwd_packets = Column(Float, nullable=True)
@@ -427,6 +433,8 @@ class NetworkLogs(Base):
     idle_std = Column(Float, nullable=True)
     idle_max = Column(Float, nullable=True)
     idle_min = Column(Float, nullable=True)
+    organization_id = Column(Integer, ForeignKey("Organizations.id"))
+    organization = relationship("Organization")
 
     class Config:
         orm_mode = True

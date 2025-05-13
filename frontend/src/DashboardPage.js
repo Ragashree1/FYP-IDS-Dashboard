@@ -75,17 +75,37 @@ const Dashboard = () => {
           alert("Organization ID is missing. Please register again.");
           return;
         }
-  
+    
         setLoading(true);
-        const response = await axios.get(`${API_BASE_URL}/alerts?orgId=${fetchedOrgId}`);
-        if (response.data) {
-          setLogs(response.data);
-          setOffences(response.data);
-          console.log(response.data);
-        } else {
-          setLogs([]);
-          setError('Unexpected data format from server');
-        }
+        // Fetch data from all sources in parallel
+        const [alertsResponse, zeekResponse, suricataResponse] = await Promise.all([
+          axios.get(`${API_BASE_URL}/alerts?orgId=${fetchedOrgId}`),
+          axios.get(`${API_BASE_URL}/zeek/alerts?orgId=${fetchedOrgId}`),
+          axios.get(`${API_BASE_URL}/suricata/alerts?orgId=${fetchedOrgId}`)
+        ]);
+  
+        // Combine and process all alerts
+        const allAlerts = [
+          ...(alertsResponse.data || []).map(alert => ({
+            ...alert,
+            source: 'snort',
+            priority: getPriority(alert.classification.toLowerCase().trim())
+          })),
+          ...(zeekResponse.data || []).map(alert => ({
+            ...alert,
+            source: 'zeek',
+            // Zeek already has priority field
+          })),
+          ...(suricataResponse.data || []).map(alert => ({
+            ...alert,
+            source: 'suricata',
+            // Suricata already has priority field
+          }))
+        ];
+  
+        setLogs(allAlerts);
+        setOffences(allAlerts);
+        console.log('Combined alerts:', allAlerts);
       } catch (error) {
         console.error('Error fetching logs:', error);
         setError('Failed to fetch logs');
@@ -193,91 +213,120 @@ const Dashboard = () => {
     return `#${Math.floor(Math.random() * 16777215).toString(16).padStart(6, '0')}`;
   } 
   // Add these new memoized calculations for different time granularities
-  const alertsData = useMemo(() => {
-    const data = {};
+  // Modify the alertsData useMemo
+const alertsData = useMemo(() => {
+  const data = {};
+  
+  filteredOffences.forEach(offence => {
+    const date = new Date(offence.timestamp);
+    let key;
     
-    filteredOffences.forEach(offence => {
-      const date = new Date(offence.timestamp);
-      let key;
-      
-      // Determine the key based on selected granularity
-      switch (plotTimeGranularity) {
-        case 'daily':
-          key = formatDate(date);
-          break;
-        case 'monthly':
-          key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
-          break;
-        case 'yearly':
-          key = date.getFullYear().toString();
-          break;
-        default:
-          key = formatDate(date);
+    // Determine the key based on selected granularity
+    switch (plotTimeGranularity) {
+      case 'daily':
+        key = formatDate(date);
+        break;
+      case 'monthly':
+        key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+        break;
+      case 'yearly':
+        key = date.getFullYear().toString();
+        break;
+      default:
+        key = formatDate(date);
+    }
+
+    // Initialize the data structure if needed
+    if (!data[key]) {
+      data[key] = {
+        period: key,
+        critical: 0,
+        high: 0,
+        medium: 0,
+        low: 0
+      };
+    }
+
+    // Increment the appropriate counter based on priority
+    // For Snort alerts, use getPriority function
+    // For Zeek and Suricata, use the priority field directly
+    let priority;
+    if (offence.source === 'snort') {
+      priority = getPriority(offence.classification.toLowerCase().trim());
+    } else {
+      // Convert Zeek/Suricata priority to our scale (assuming their priority is reversed)
+      // Typically, in Zeek/Suricata: 1 = high, 2 = medium, 3 = low
+      switch (offence.priority) {
+        case 1: priority = 1; break; // Critical
+        case 2: priority = 2; break; // High
+        case 3: priority = 3; break; // Medium
+        default: priority = 4; // Low
       }
+    }
 
-      // Initialize the data structure if needed
-      if (!data[key]) {
-        data[key] = {
-          period: key,
-          critical: 0,
-          high: 0,
-          medium: 0,
-          low: 0
-        };
-      }
+    if (priority === 1) data[key].critical += 1;
+    else if (priority === 2) data[key].high += 1;
+    else if (priority === 3) data[key].medium += 1;
+    else if (priority === 4) data[key].low += 1;
+  });
 
-      // Increment the appropriate counter based on priority
-      const priority = getPriority(offence.classification.toLowerCase().trim());
-      if (priority === 1) data[key].critical += 1;
-      else if (priority === 2) data[key].high += 1;
-      else if (priority === 3) data[key].medium += 1;
-      else if (priority === 4) data[key].low += 1;
-    });
-
-    // Convert to array and sort by period
-    return Object.values(data).sort((a, b) => a.period.localeCompare(b.period));
-  }, [filteredOffences, plotTimeGranularity]);
+  // Convert to array and sort by period
+  return Object.values(data).sort((a, b) => a.period.localeCompare(b.period));
+}, [filteredOffences, plotTimeGranularity]);
 
   // Add this new memoized calculation for alerts over time
-  const alertsOverTime = useMemo(() => {
-    const timeData = {};
+  // Modify the alertsOverTime useMemo
+const alertsOverTime = useMemo(() => {
+  const timeData = {};
+  
+  // Group alerts by hour
+  filteredOffences.forEach(offence => {
+    const date = new Date(offence.timestamp);
+    // Format to YYYY-MM-DD HH:00 to group by hour
+    const timeKey = new Date(date.setMinutes(0, 0, 0)).toISOString();
     
-    // Group alerts by hour
-    filteredOffences.forEach(offence => {
-      const date = new Date(offence.timestamp);
-      // Format to YYYY-MM-DD HH:00 to group by hour
-      const timeKey = new Date(date.setMinutes(0, 0, 0)).toISOString();
-      
-      if (!timeData[timeKey]) {
-        timeData[timeKey] = {
-          time: timeKey,
-          total: 0,
-          critical: 0,
-          high: 0,
-          medium: 0,
-          low: 0
-        };
+    if (!timeData[timeKey]) {
+      timeData[timeKey] = {
+        time: timeKey,
+        total: 0,
+        critical: 0,
+        high: 0,
+        medium: 0,
+        low: 0
+      };
+    }
+    
+    // Increment total count
+    timeData[timeKey].total += 1;
+    
+    // Determine priority based on source
+    let priority;
+    if (offence.source === 'snort') {
+      priority = getPriority(offence.classification.toLowerCase().trim());
+    } else {
+      // Convert Zeek/Suricata priority
+      switch (offence.priority) {
+        case 1: priority = 1; break; // Critical
+        case 2: priority = 2; break; // High
+        case 3: priority = 3; break; // Medium
+        default: priority = 4; // Low
       }
-      
-      // Increment total count
-      timeData[timeKey].total += 1;
-      
-      // Categorize by priority
-      const priority = getPriority(offence.classification.toLowerCase().trim());
-      if (priority === 1) timeData[timeKey].critical += 1;
-      else if (priority === 2) timeData[timeKey].high += 1;
-      else if (priority === 3) timeData[timeKey].medium += 1;
-      else if (priority === 4) timeData[timeKey].low += 1;
-    });
+    }
+    
+    if (priority === 1) timeData[timeKey].critical += 1;
+    else if (priority === 2) timeData[timeKey].high += 1;
+    else if (priority === 3) timeData[timeKey].medium += 1;
+    else if (priority === 4) timeData[timeKey].low += 1;
+  });
 
-    // Convert to array and sort by time
-    return Object.values(timeData)
-      .sort((a, b) => new Date(a.time) - new Date(b.time))
-      .map(item => ({
-        ...item,
-        time: new Date(item.time).toLocaleTimeString(), // Format time for display
-      }));
-  }, [filteredOffences]);
+  // Convert to array and sort by time
+  return Object.values(timeData)
+    .sort((a, b) => new Date(a.time) - new Date(b.time))
+    .map(item => ({
+      ...item,
+      time: new Date(item.time).toLocaleTimeString(), // Format time for display
+    }));
+}, [filteredOffences]);
 
   // Add memoized calculation for top attack sources
   const topAttackSources = useMemo(() => {

@@ -1,5 +1,5 @@
 from database import SessionLocal
-from models.models import Playbook
+from models.models import Playbook, VerifiedIP
 from models.schemas import PlaybookBase, PlaybookOut
 from models.schemas import IPAddressSchema
 from typing import List, Optional
@@ -77,41 +77,90 @@ def get_active_playbooks() -> List[PlaybookOut]:
     with SessionLocal() as db:
         playbooks = db.query(Playbook).filter(Playbook.is_active == True).all()
         return [PlaybookOut.model_validate(playbook) for playbook in playbooks]
-    
-def check_ip_alerts(threshold: int, interval_minutes: int):
+        
+# def check_ip_alerts_by_organization(threshold: int, interval_minutes: int, organization_id: int):
+#     with SessionLocal() as db:
+#         query = text(f"""
+#         WITH time_windows AS (
+#             SELECT 
+#                 generate_series(
+#                     (SELECT MIN(timestamp)::timestamp FROM "SnortAlerts" WHERE organization_id = :organization_id),  
+#                     (SELECT MAX(timestamp)::timestamp FROM "SnortAlerts" WHERE organization_id = :organization_id),  
+#                     INTERVAL '1 minute' * {interval_minutes}  
+#                 ) AS window_start
+#         )
+#         SELECT 
+#             s.src_ip,
+#             t.window_start,
+#             COUNT(*) AS alert_count
+#         FROM "SnortAlerts" s
+#         JOIN time_windows t
+#             ON s.timestamp BETWEEN t.window_start AND t.window_start + INTERVAL '{interval_minutes} minutes'
+#         WHERE s.organization_id = :organization_id
+#         GROUP BY s.src_ip, t.window_start
+#         HAVING COUNT(*) >= {threshold}
+#         ORDER BY t.window_start DESC;
+#         """)
+#         result = db.execute(query, {"organization_id": organization_id}).fetchall()
+#         return result
+
+def check_ip_alerts_by_organization(threshold: int, interval_minutes: int, organization_id: int):
     with SessionLocal() as db:
         query = text(f"""
         WITH time_windows AS (
             SELECT 
                 generate_series(
-                    (SELECT MIN(timestamp)::timestamp FROM "SnortAlerts"),  
-                    (SELECT MAX(timestamp)::timestamp FROM "SnortAlerts"),  
-                    INTERVAL '1 minute' * {interval_minutes}  
+                    (
+                        SELECT MIN(timestamp)::timestamp 
+                        FROM (
+                            SELECT timestamp FROM "SnortAlerts" WHERE organization_id = :organization_id
+                            UNION ALL
+                            SELECT timestamp::timestamp FROM "ZeekAlerts" WHERE organization_id = :organization_id
+                            UNION ALL
+                            SELECT timestamp::timestamp FROM "SuricataAlerts" WHERE organization_id = :organization_id
+                        ) AS combined_timestamps
+                    ),
+                    (
+                        SELECT MAX(timestamp)::timestamp 
+                        FROM (
+                            SELECT timestamp FROM "SnortAlerts" WHERE organization_id = :organization_id
+                            UNION ALL
+                            SELECT timestamp::timestamp FROM "ZeekAlerts" WHERE organization_id = :organization_id
+                            UNION ALL
+                            SELECT timestamp::timestamp FROM "SuricataAlerts" WHERE organization_id = :organization_id
+                        ) AS combined_timestamps
+                    ),
+                    INTERVAL '1 minute' * {interval_minutes}
                 ) AS window_start
+        ),
+        combined_alerts AS (
+            SELECT src_ip, timestamp::timestamp, 'snort' as source
+            FROM "SnortAlerts"
+            WHERE organization_id = :organization_id
+            UNION ALL
+            SELECT src_ip, timestamp::timestamp, 'zeek' as source
+            FROM "ZeekAlerts"
+            WHERE organization_id = :organization_id
+            UNION ALL
+            SELECT src_ip, timestamp::timestamp, 'suricata' as source
+            FROM "SuricataAlerts"
+            WHERE organization_id = :organization_id
         )
         SELECT 
-            s.src_ip,
+            a.src_ip,
             t.window_start,
-            COUNT(*) AS alert_count
-        FROM "SnortAlerts" s
+            COUNT(*) AS alert_count,
+            array_agg(DISTINCT a.source) as alert_sources
+        FROM combined_alerts a
         JOIN time_windows t
-            ON s.timestamp BETWEEN t.window_start AND t.window_start + INTERVAL '{interval_minutes} minutes'
-        GROUP BY s.src_ip, t.window_start
+            ON a.timestamp BETWEEN t.window_start AND t.window_start + INTERVAL '{interval_minutes} minutes'
+        GROUP BY a.src_ip, t.window_start
         HAVING COUNT(*) >= {threshold}
         ORDER BY t.window_start DESC;
         """)
-        result = db.execute(query).fetchall()
+        result = db.execute(query, {"organization_id": organization_id}).fetchall()
         return result
 
-def check_and_block_ips(threshold: int, interval_minutes: int):
-    alerts = check_ip_alerts(threshold, interval_minutes)
-    if alerts:
-        for alert in alerts:
-            ip = alert[0]
-            reason = f"Detected {alert[2]} alerts in {interval_minutes} minutes"
-            ip_data = IPAddressSchema(ip=ip, reason=reason)
-            block_ip(ip_data)
-    return alerts
 
 def check_international_blacklist() -> List[str]:
     """
@@ -137,10 +186,76 @@ def check_internations_blacklist_and_block_ips():
 
     return ips_to_block
 
-def check_exceed_severity_level(severity: str) -> List[str]:
+    
+# def check_exceed_severity_level_by_organization(severity: str, organization_id: int) -> List[str]:
+#     """
+#     Returns all source IP addresses of threats that exceed the specified severity level for a given organization.
+#     Severity levels: "low", "medium", "high", "critical".
+#     Args:
+#         severity (str): The severity level to check ("low", "medium", "high", "critical")
+#         organization_id (int): The ID of the organization to filter alerts
+#     Returns:
+#         List[str]: List of source IP addresses that exceed the severity level
+#     """
+#     severity_mapping = {
+#         "low": 1,
+#         "medium": 2,
+#         "high": 3,
+#         "critical": 4
+#     }
+
+#     if severity not in severity_mapping:
+#         print('severity '+ severity)
+#         raise ValueError("Invalid severity level. Choose from 'low', 'medium', 'high', or 'critical'.")
+
+#     min_priority = severity_mapping[severity.lower()]
+
+#     with SessionLocal() as db:
+#         query = text("""
+#         SELECT DISTINCT s.src_ip
+#         FROM "SnortAlerts" s
+#         JOIN priority_classification p
+#         ON s.classification = p.classification
+#         WHERE p.priority >= :min_priority
+#         AND s.organization_id = :organization_id;
+#         """)
+#         result = db.execute(query, {
+#             "min_priority": min_priority,
+#             "organization_id": organization_id
+#         }).fetchall()
+#         return [row[0] for row in result]
+
+# def check_classtype_by_organization(classType: str, organization_id: int) -> List[str]:
+#     """
+#     Returns all source IP addresses of threats that match the specified classtype for a given organization.
+#     Args:
+#         classType (str): The classification type to check
+#         organization_id (int): The ID of the organization to filter alerts
+#     Returns:
+#         List[str]: List of source IP addresses that match the classtype
+#     """
+#     with SessionLocal() as db:
+#         query = text("""
+#         SELECT DISTINCT s.src_ip
+#         FROM "SnortAlerts" s
+#         WHERE s.classification = :classtype
+#         AND s.organization_id = :organization_id;
+#         """)
+#         result = db.execute(query, {
+#             "classtype": classType,
+#             "organization_id": organization_id
+#         }).fetchall()
+#         return [row[0] for row in result]
+
+def check_exceed_severity_level_by_organization(severity: str, organization_id: int) -> List[str]:
     """
-    Returns all source IP addresses of threats that exceed the specified severity level.
-    Severity levels: "low", "medium", "high", "critical".
+    Returns all source IP addresses of threats that exceed the specified severity level for a given organization
+    across Snort, Zeek, and Suricata alerts.
+    Args:
+        severity (str): The severity level to check ("low", "medium", "high", "critical")
+        organization_id (int): The ID of the organization to filter alerts
+    Returns:
+        List[str]: List of source IP addresses that exceed the severity level
     """
     severity_mapping = {
         "low": 1,
@@ -157,44 +272,65 @@ def check_exceed_severity_level(severity: str) -> List[str]:
 
     with SessionLocal() as db:
         query = text("""
-        SELECT DISTINCT s.src_ip
-        FROM "SnortAlerts" s
+        WITH combined_alerts AS (
+            SELECT src_ip, classification, 'snort' as source
+            FROM "SnortAlerts"
+            WHERE organization_id = :organization_id
+            UNION ALL
+            SELECT src_ip, classification, 'zeek' as source
+            FROM "ZeekAlerts"
+            WHERE organization_id = :organization_id
+            UNION ALL
+            SELECT src_ip, classification, 'suricata' as source
+            FROM "SuricataAlerts"
+            WHERE organization_id = :organization_id
+        )
+        SELECT DISTINCT a.src_ip
+        FROM combined_alerts a
         JOIN priority_classification p
-        ON s.classification = p.classification
+        ON a.classification = p.classification
         WHERE p.priority >= :min_priority;
         """)
-        result = db.execute(query, {"min_priority": min_priority}).fetchall()
+        result = db.execute(query, {
+            "min_priority": min_priority,
+            "organization_id": organization_id
+        }).fetchall()
         return [row[0] for row in result]
-def check_exceed_severity_level_and_block_ip(severity: str):
-    ips_to_block = check_exceed_severity_level(severity)
-    if ips_to_block:
-        for ip in ips_to_block:
-            ip_data = IPAddressSchema(ip=ip, reason=f"Exceeded severity level: {severity}")
-            block_ip(ip_data)
 
-    return ips_to_block
-
-def check_classtype(classType: str) -> List[str]:
+def check_classtype_by_organization(classType: str, organization_id: int) -> List[str]:
     """
-    Returns all source IP addresses of threats that match the specified classtype.
+    Returns all source IP addresses of threats that match the specified classtype for a given organization
+    across Snort, Zeek, and Suricata alerts.
+    Args:
+        classType (str): The classification type to check
+        organization_id (int): The ID of the organization to filter alerts
+    Returns:
+        List[str]: List of source IP addresses that match the classtype
     """
     with SessionLocal() as db:
         query = text("""
-        SELECT DISTINCT s.src_ip
-        FROM "SnortAlerts" s
-        WHERE s.classification = :classtype;
+        WITH combined_alerts AS (
+            SELECT src_ip, classification, 'snort' as source
+            FROM "SnortAlerts"
+            WHERE organization_id = :organization_id
+            UNION ALL
+            SELECT src_ip, classification, 'zeek' as source
+            FROM "ZeekAlerts"
+            WHERE organization_id = :organization_id
+            UNION ALL
+            SELECT src_ip, classification, 'suricata' as source
+            FROM "SuricataAlerts"
+            WHERE organization_id = :organization_id
+        )
+        SELECT DISTINCT src_ip
+        FROM combined_alerts
+        WHERE classification = :classtype;
         """)
-        result = db.execute(query, {"classtype": classType}).fetchall()
+        result = db.execute(query, {
+            "classtype": classType,
+            "organization_id": organization_id
+        }).fetchall()
         return [row[0] for row in result]
-
-def check_classtype_and_block_ip(classType: str):
-    ips_to_block = check_classtype(classType)
-    if ips_to_block:
-        for ip in ips_to_block:
-            ip_data = IPAddressSchema(ip=ip, reason=f"Matched classtype: {classType}")
-            block_ip(ip_data)
-    return ips_to_block 
-
 
 def execute_playbook_rules():
     print("executing")
@@ -209,6 +345,7 @@ def execute_playbook_rules():
             for playbook in active_playbooks:
                 conditions = playbook.conditions
                 actions = playbook.actions
+                organization_id = playbook.organization_id
 
                 # Parse conditions and actions
                 if not conditions:
@@ -226,19 +363,19 @@ def execute_playbook_rules():
                     if condition_type == "threshold" and field == "source_ip_alert_count":
                         threshold = int(value)
                         interval_minutes = int(window_period) if window_period else 1
-                        alerts = check_ip_alerts(threshold, interval_minutes)
+                        alerts = check_ip_alerts_by_organization(threshold, interval_minutes)
                         ips_to_block.update(alert[0] for alert in alerts)
 
                     elif condition_type == "severity" and field == "severity":
                         print("i am printing it now ...." + value)
                         print("conditions " + str(condition))
                         severity = value
-                        ips = check_exceed_severity_level(severity)
+                        ips = check_exceed_severity_level_by_organization(severity, organization_id)
                         ips_to_block.update(ips)
 
                     elif condition_type == "class_type" and field == "class_type":
                         class_type = value
-                        ips = check_classtype(class_type)
+                        ips = check_classtype_by_organization(class_type, organization_id)
                         ips_to_block.update(ips)
 
                     elif condition_type == "ip_reputation" and field == "source_ip" and operator == "exists":
@@ -257,16 +394,16 @@ def execute_playbook_rules():
                         if condition_type == "threshold" and field == "source_ip_alert_count":
                             threshold = int(value)
                             interval_minutes = int(window_period) if window_period else 1
-                            alerts = check_ip_alerts(threshold, interval_minutes)
+                            alerts = check_ip_alerts_by_organization(threshold, interval_minutes, organization_id)
                             condition_ips = set(alert[0] for alert in alerts)
 
                         elif condition_type == "severity" and field == "severity":
                             severity = value
-                            condition_ips = set(check_exceed_severity_level(severity))
+                            condition_ips = set(check_exceed_severity_level_by_organization(severity, organization_id))
 
                         elif condition_type == "class_type" and field == "class_type":
                             class_type = value
-                            condition_ips = set(check_classtype(class_type))
+                            condition_ips = set(check_classtype_by_organization(class_type, organization_id))
 
                         elif condition_type == "ip_reputation" and field == "source_ip" and operator == "exists":
                             condition_ips = set(check_international_blacklist())
@@ -274,7 +411,16 @@ def execute_playbook_rules():
                         # Intersect with existing IPs to ensure all conditions are met
                         ips_to_block.intersection_update(condition_ips)
 
-                # Consolidate IPs for email alert
+                # Filter out verified IPs
+                verified_ips = db.query(VerifiedIP).filter(
+                    VerifiedIP.organization_id == organization_id,
+                    VerifiedIP.is_verified == True,
+                    VerifiedIP.ip.in_(ips_to_block)
+                ).with_entities(VerifiedIP.ip).all()
+                verified_ips_set = {ip[0] for ip in verified_ips}
+                ips_to_block = ips_to_block - verified_ips_set
+
+                # Consolidate IPs for email alert (only non-verified IPs)
                 if actions.get("sendEmailAlert"):
                     recipients = actions.get("emailRecipients", "")
                     if recipients and ips_to_block:
@@ -284,11 +430,11 @@ def execute_playbook_rules():
                         subject = f"Alert from Playbook: {playbook.name}"
                         send_email(recipient_list, message, subject)
 
-                # Execute blockIP action for each IP
+                # Execute blockIP action for each non-verified IP
                 if actions.get("blockIP") and ips_to_block:
                     for ip in ips_to_block:
                         print("ip is getting blocked")
-                        ip_data = IPAddressSchema(ip=ip, reason=f"Blocked by playbook: {playbook.name}")
+                        ip_data = IPAddressSchema(ip=ip, reason=f"Blocked by playbook: {playbook.name}, organization_id: {organization_id}")
                         block_ip(ip_data)
         return True
     except Exception as e:

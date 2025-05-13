@@ -1,6 +1,6 @@
 from database import SessionLocal
 from sqlalchemy.orm import Session
-from models.models import BlockedIP, Playbook, SnortAlerts, Organization
+from models.models import BlockedIP, Playbook, SnortAlerts, Organization, VerifiedIP
 from fastapi import HTTPException, Request
 import re
 from datetime import datetime, timedelta
@@ -58,25 +58,63 @@ def validate_ip(ip: str):
 
 
 def block_ip(ip: str, reason: str, organization_id: int):
-    """Blocks an IP and stores it in the database"""
+    """
+    Blocks an IP and stores it in the database.
+    Checks if IP is verified before blocking.
+    """
     ip = ip.strip().lower()
     validate_ip(ip)
+    
     with SessionLocal() as db:
-        existing_ip = db.query(BlockedIP).filter_by(ip=ip, organization_id=organization_id).first()
-        if existing_ip:
-            return {"message": "IP is already blocked", "ip": existing_ip.ip, "reason": existing_ip.reason}
+        # Check if IP is verified for this organization
+        verified_ip = db.query(VerifiedIP).filter(
+            VerifiedIP.ip == ip,
+            VerifiedIP.organization_id == organization_id,
+            VerifiedIP.is_verified == True
+        ).first()
+        
+        if verified_ip:
+            return {
+                "message": "IP not blocked - verified IP address", 
+                "ip": ip, 
+                "reason": "IP is in verified list"
+            }
 
-        new_ip = BlockedIP(ip=ip, reason=reason, organization_id=organization_id)
+        # Check if IP is already blocked
+        existing_ip = db.query(BlockedIP).filter_by(
+            ip=ip, 
+            organization_id=organization_id
+        ).first()
+        
+        if existing_ip:
+            return {
+                "message": "IP is already blocked", 
+                "ip": existing_ip.ip, 
+                "reason": existing_ip.reason
+            }
+
+        # Block the IP if not verified and not already blocked
+        new_ip = BlockedIP(
+            ip=ip, 
+            reason=reason, 
+            organization_id=organization_id
+        )
         db.add(new_ip)
 
         try:
             db.commit()
             db.refresh(new_ip)
-            return {"message": "IP Blocked Successfully", "ip": new_ip.ip, "reason": new_ip.reason}
+            return {
+                "message": "IP Blocked Successfully", 
+                "ip": new_ip.ip, 
+                "reason": new_ip.reason
+            }
         except Exception as e:
             db.rollback()
-            raise HTTPException(status_code=500, detail=f"Failed to block IP: {str(e)}")
-
+            raise HTTPException(
+                status_code=500, 
+                detail=f"Failed to block IP: {str(e)}"
+            )
 
 def unblock_ip(ip: str, orgId: int):
     """Removes an IP from the blocklist."""
