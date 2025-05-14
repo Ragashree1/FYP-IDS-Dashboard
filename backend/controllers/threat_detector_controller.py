@@ -1,9 +1,18 @@
 from fastapi import APIRouter, HTTPException, Body, Query
 from typing import List
-from services.threat_detector_service import predict_threat, fetch_predictions
+from services.threat_detector_service import predict_threat, fetch_predictions,delete_prediction
 
 router = APIRouter()
 
+@router.delete("/threat/prediction/{prediction_id}")
+def delete_prediction_by_id(prediction_id: int):
+    """
+    Delete a prediction by its prediction ID.
+    """
+    deleted = delete_prediction(prediction_id)
+    if not deleted:
+        raise HTTPException(status_code=404, detail="Prediction not found")
+    return {"message": "Prediction deleted"}
 @router.post("/threat/predict/batch")
 def predict_threat_batch(payload: dict = Body(...)):
     """

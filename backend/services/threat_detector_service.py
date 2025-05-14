@@ -14,6 +14,18 @@ SCALER_PATH = os.path.join(BASE_DIR, "../machineLearningModels/scaler.pkl")
 model = joblib.load(MODEL_PATH)
 scaler = joblib.load(SCALER_PATH)
 
+def delete_prediction(prediction_id: int):
+    """
+    Delete a prediction by its prediction ID.
+    """
+    with SessionLocal() as db:
+        prediction = db.query(LogPredictions).filter(LogPredictions.id == prediction_id).first()
+        if not prediction:
+            return False
+        db.delete(prediction)
+        db.commit()
+        return True
+
 def predict_threat(log_id: int, organization_id: int):
     """
     Fetch a network log by ID and predict if it's a threat using organization-specific ML models.
@@ -196,6 +208,7 @@ def fetch_predictions(organization_id: int, page: int = 1, limit: int = 20, log_
             .offset((page - 1) * limit)\
             .limit(limit)\
             .with_entities(
+                LogPredictions.id,
                 LogPredictions.log_id,
                 LogPredictions.prediction,
                 LogPredictions.created_at
@@ -204,6 +217,7 @@ def fetch_predictions(organization_id: int, page: int = 1, limit: int = 20, log_
         print(f"fetch_predictions: Query time: {time.time() - start_time:.4f}s")
         return {
             "items": [{
+                "id": result.id,
                 "log_id": result.log_id,
                 "prediction": result.prediction,
                 "created_at": result.created_at

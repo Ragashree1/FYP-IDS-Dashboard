@@ -17,55 +17,7 @@ const EventLogPage = () => {
   const [totalPages, setTotalPages] = useState(1); // New state for total pages
   const fileInputRef = useRef(null);
   const [selectedLogs, setSelectedLogs] = useState([]); // New state for selected logs
-
-  const userRole = "2"
-  const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
-
-  // Fetch logs based on log type and page
-  useEffect(() => {
-    setLoading(true);
-    const endpoint = logType === "apache"
-      ? 'http://localhost:8000/logs'
-      : `http://localhost:8000/logs/networkLogs?page=${currentPage}&page_size=10`; // Add page_size parameter
-    axios.get(endpoint)
-      .then(response => {
-        const data = response.data;
-        if (logType === "apache") {
-          setLogs(Array.isArray(data) ? data : []); // Ensure logs is an array
-        } else {
-          setLogs(Array.isArray(data.logs) ? data.logs : []); // Ensure logs is an array
-          setTotalPages(data.totalPages || 1); // Set total pages for network logs
-        }
-      })
-      .catch(error => {
-        console.error('Error fetching logs:', error);
-        setError('Failed to fetch logs');
-        setLogs([]); // Reset logs to an empty array on error
-      })
-      .finally(() => {
-        setLoading(false);
-      });
-  }, [logType, currentPage]);
-
-  const handleFileUpload = async (event) => {
-    const file = event.target.files[0];
-    if (!file) return;
-
-    const formData = new FormData();
-    formData.append("file", file);
-
-    try {
-      const response = await axios.post('http://localhost:8000/logs/upload', formData, {
-        headers: {
-          "Content-Type": "multipart/form-data",
-        },
-      });
-      alert("File uploaded successfully!");
-    } catch (error) {
-      console.error("Error uploading file:", error);
-      alert("Failed to upload file.");
-    }
-  };
+  const [totalCount, setTotalCount] = useState(0);
 
   const filteredLogs = useMemo(() => {
     if (!Array.isArray(logs)) return []; // Ensure logs is an array
@@ -113,6 +65,116 @@ const EventLogPage = () => {
       }
     })
   }, [logs, filterType, searchQuery])
+
+  const currentPageLogIds = useMemo(() => filteredLogs.map(log => log.id), [filteredLogs]);
+  const userRole = "2"
+  const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+
+  const isAllSelected = currentPageLogIds.length > 0 && currentPageLogIds.every(id => selectedLogs.includes(id));
+  const handleSelectAll = () => {
+    if (isAllSelected) {
+      setSelectedLogs(prev => prev.filter(id => !currentPageLogIds.includes(id)));
+    } else {
+      setSelectedLogs(prev => Array.from(new Set([...prev, ...currentPageLogIds])));
+    }
+  };
+
+  const handleDeleteSelected = async () => {
+    if (selectedLogs.length === 0) {
+      alert("Please select at least one log to delete.");
+      return;
+    }
+    if (!window.confirm("Are you sure you want to delete the selected logs? This action cannot be undone.")) {
+      return;
+    }
+    try {
+      await axios.delete(`${API_BASE_URL}/logs/networkLogs/batch`, {
+        data: { log_ids: selectedLogs }
+      });
+      setLogs(prev => prev.filter(log => !selectedLogs.includes(log.id)));
+      setSelectedLogs([]);
+      alert("Selected logs deleted successfully.");
+    } catch (error) {
+      console.error("Error deleting logs:", error);
+      alert("Failed to delete selected logs.");
+    }
+  };
+
+  // Delete a single log
+  const handleDeleteSingle = async (logId) => {
+    if (!window.confirm("Are you sure you want to delete this log?")) {
+      return;
+    }
+    try {
+      await axios.delete(`${API_BASE_URL}/logs/networkLogs/${logId}`);
+      setLogs(prev => prev.filter(log => log.id !== logId));
+      setSelectedLogs(prev => prev.filter(id => id !== logId));
+      alert("Log deleted successfully.");
+    } catch (error) {
+      console.error("Error deleting log:", error);
+      alert("Failed to delete log.");
+    }
+  };
+
+  // Fetch logs based on log type and page
+  useEffect(() => {
+    setLoading(true);
+    const endpoint = logType === "apache"
+      ? 'http://localhost:8000/logs'
+      : `http://localhost:8000/logs/networkLogs?page=${currentPage}&page_size=10`; // Add page_size parameter
+    axios.get(endpoint)
+      .then(response => {
+        const data = response.data;
+        if (logType === "apache") {
+          setLogs(Array.isArray(data) ? data : []); // Ensure logs is an array
+          setTotalCount(Array.isArray(data) ? data.length : 0);
+        } else {
+          setLogs(Array.isArray(data.logs) ? data.logs : []); // Ensure logs is an array
+          setTotalPages(data.totalPages || 1); // Set total pages for network logs
+          setTotalCount(data.total_count || 0);
+        }
+      })
+      .catch(error => {
+        console.error('Error fetching logs:', error);
+        setError('Failed to fetch logs');
+        setLogs([]); // Reset logs to an empty array on error
+      })
+      .finally(() => {
+        setLoading(false);
+      });
+  }, [logType, currentPage]);
+
+  const handleFileUpload = async (event) => {
+    const file = event.target.files[0];
+    if (!file) return;
+  
+    const formData = new FormData();
+    formData.append("file", file);
+  
+    try {
+      // Get orgId from backend (reuse your getOrgId function)
+      const orgId = await getOrgId();
+      if (!orgId) {
+        alert("Could not determine organization ID.");
+        return;
+      }
+      const response = await axios.post(
+        `http://localhost:8000/logs/upload?orgId=${orgId}`,
+        formData,
+        {
+          headers: {
+            "Content-Type": "multipart/form-data",
+          },
+        }
+      );
+      alert("File uploaded successfully!");
+    } catch (error) {
+      console.error("Error uploading file:", error);
+      alert("Failed to upload file.");
+    }
+  };
+
+  
 
   const handleLogSelection = (logId) => {
     setSelectedLogs((prev) =>
@@ -208,7 +270,7 @@ const EventLogPage = () => {
           marginBottom: "20px",
         }}>
           <p style={{ margin: 0 }}>Total Logs:</p>
-          <p style={{ margin: 0, fontSize: "24px", fontWeight: "bold" }}>{filteredLogs.length}</p>
+          <p style={{ margin: 0, fontSize: "24px", fontWeight: "bold" }}>{logType === "network" ? totalCount : filteredLogs.length}</p>
         </div>
 
 
@@ -269,35 +331,50 @@ const EventLogPage = () => {
     }}
   >
     {/* Left side: Clear + Predict */}
-    <div>
-      <button
-        onClick={clearSelection}
-        style={{
-          padding: "10px 20px",
-          background: "#dc3545",
-          color: "white",
-          border: "none",
-          borderRadius: "4px",
-          cursor: "pointer",
-          marginRight: "10px",
-        }}
-      >
-        Clear Selection
-      </button>
-      <button
-        onClick={handlePredict}
-        style={{
-          padding: "10px 20px",
-          background: "#28a745",
-          color: "white",
-          border: "none",
-          borderRadius: "4px",
-          cursor: "pointer",
-        }}
-      >
-        Predict Selected Logs
-      </button>
-    </div>
+   {/* Left side: Clear + Predict + Delete */}
+   <div>
+              <button
+                onClick={clearSelection}
+                style={{
+                  padding: "10px 20px",
+                  background: "#dc3545",
+                  color: "white",
+                  border: "none",
+                  borderRadius: "4px",
+                  cursor: "pointer",
+                  marginRight: "10px",
+                }}
+              >
+                Clear Selection
+              </button>
+              <button
+                onClick={handlePredict}
+                style={{
+                  padding: "10px 20px",
+                  background: "#28a745",
+                  color: "white",
+                  border: "none",
+                  borderRadius: "4px",
+                  cursor: "pointer",
+                  marginRight: "10px",
+                }}
+              >
+                Predict Selected Logs
+              </button>
+              {/* <button
+                onClick={handleDeleteSelected}
+                style={{
+                  padding: "10px 20px",
+                  background: "#ff5722",
+                  color: "white",
+                  border: "none",
+                  borderRadius: "4px",
+                  cursor: "pointer",
+                }}
+              >
+                Delete Selected Logs
+              </button> */}
+            </div>
 
     {/* Right side: Upload CSV */}
     <div>
@@ -340,9 +417,14 @@ const EventLogPage = () => {
             <thead>
               <tr>
                 {logType === "network" && (
-                  <th style={{ padding: "12px", textAlign: "left", borderBottom: "1px solid #eee" }}>
-                    Select
-                  </th>
+                 <th style={{ padding: "12px", textAlign: "left", borderBottom: "1px solid #eee" }}>
+                 <input
+                   type="checkbox"
+                   checked={isAllSelected}
+                   onChange={handleSelectAll}
+                   aria-label="Select all logs on this page"
+                 /> Select
+               </th>
                 )}
                 {logType === "apache" ? (
                   <>
@@ -368,6 +450,7 @@ const EventLogPage = () => {
                     <th style={{ padding: "12px", textAlign: "left", borderBottom: "1px solid #eee" }}>Bwd Packet Length Mean</th>
                     <th style={{ padding: "12px", textAlign: "left", borderBottom: "1px solid #eee" }}>Flow Bytes/s</th>
                     <th style={{ padding: "12px", textAlign: "left", borderBottom: "1px solid #eee" }}>Flow Packets/s</th>
+                    <th style={{ padding: "12px", textAlign: "left", borderBottom: "1px solid #eee" }}>Actions</th>
                   </>
                 )}
               </tr>
@@ -410,6 +493,21 @@ const EventLogPage = () => {
                       <td style={{ padding: "12px", borderBottom: "1px solid #eee" }}>{log.bwd_packet_length_mean}</td>
                       <td style={{ padding: "12px", borderBottom: "1px solid #eee" }}>{log.flow_bytes_per_s}</td>
                       <td style={{ padding: "12px", borderBottom: "1px solid #eee" }}>{log.flow_packets_per_s}</td>
+                      <td style={{ padding: "12px", borderBottom: "1px solid #eee" }}>
+                    <button
+                      onClick={() => handleDeleteSingle(log.id)}
+                      style={{
+                        padding: "6px 12px",
+                        background: "#ff5722",
+                        color: "white",
+                        border: "none",
+                        borderRadius: "4px",
+                        cursor: "pointer",
+                      }}
+                    >
+                      Delete
+                    </button>
+                  </td>
                     </>
                   )}
                 </tr>
@@ -450,6 +548,40 @@ const EventLogPage = () => {
             >
               Next
             </button>
+            <form
+      onSubmit={e => {
+        e.preventDefault();
+        const page = Number(e.target.elements.gotoPage.value);
+        if (page >= 1 && page <= totalPages) {
+          setCurrentPage(page);
+        }
+      }}
+      style={{ display: "flex", alignItems: "center", gap: "5px" }}
+    >
+      <label htmlFor="gotoPage" style={{ marginLeft: "10px" }}>Go to page:</label>
+      <input
+        id="gotoPage"
+        name="gotoPage"
+        type="number"
+        min={1}
+        max={totalPages}
+        defaultValue={currentPage}
+        style={{ width: "60px", padding: "5px", borderRadius: "4px", border: "1px solid #ccc" }}
+      />
+      <button
+        type="submit"
+        style={{
+          padding: "5px 12px",
+          background: "#28a745",
+          color: "white",
+          border: "none",
+          borderRadius: "4px",
+          cursor: "pointer",
+        }}
+      >
+        Go
+      </button>
+    </form>
           </div>
         )}
       </div>

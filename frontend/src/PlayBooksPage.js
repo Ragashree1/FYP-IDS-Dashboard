@@ -405,6 +405,7 @@ const PlaybookModal = ({ playbook, onClose, onSave }) => {
                   <div style={{ marginBottom: "16px", width: "100%" }}>
                     <label style={{ display: "block", marginBottom: "8px" }}>Value</label>
                     {condition.condition_type === "threshold" ? (
+                      <>
                       <input
                         type="number"
                         value={condition.value}
@@ -418,9 +419,31 @@ const PlaybookModal = ({ playbook, onClose, onSave }) => {
                           border: "1px solid #ddd",
                           borderRadius: "4px",
                           boxSizing: "border-box",
+                          marginBottom: "16px",
                         }}
                         required
                       />
+                      <label style={{ display: "block", marginBottom: "8px" }}>
+                        Window Period (minutes)
+                      </label>
+                      <input
+                        type="number"
+                        value={condition.window_period}
+                        onChange={(e) =>
+                          handleConditionChange(condition.id, "window_period", e.target.value)
+                        }
+                        placeholder="Enter window period in minutes"
+                        style={{
+                          width: "100%",
+                          padding: "10px",
+                          border: "1px solid #ddd",
+                          borderRadius: "4px",
+                          boxSizing: "border-box",
+                        }}
+                        min="1" // Optional: ensure positive integer, default is 0 in backend if empty
+                        required // Make it required if it should always have a value for threshold type
+                      />
+                      </>
                     ) : condition.condition_type === "severity" ||
                       condition.condition_type === "ip_reputation" ? (
                       <select

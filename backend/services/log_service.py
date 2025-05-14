@@ -98,15 +98,12 @@ def update_and_fetch_logs():
     with SessionLocal() as db:
         return db.query(Logs).all() or []  # Ensure a list is returned
 
-def process_csv_file(file):
+def process_csv_file(file, orgId):
     with SessionLocal() as db:
         try:
             content = file.file.read().decode("utf-8")
             csv_reader = csv.DictReader(StringIO(content))
-            
-            # Strip spaces from column names
             csv_reader.fieldnames = [name.strip() for name in csv_reader.fieldnames]
-            
             for row in csv_reader:
                 network_log = NetworkLogs(
                     dst_port=int(row.get("Destination Port", 0)),
@@ -185,7 +182,8 @@ def process_csv_file(file):
                     idle_mean=float(row.get("Idle Mean", 0)),
                     idle_std=float(row.get("Idle Std", 0)),
                     idle_max=float(row.get("Idle Max", 0)),
-                    idle_min=float(row.get("Idle Min", 0))
+                    idle_min=float(row.get("Idle Min", 0)),
+                    organization_id=orgId  # <-- Set the organization ID here
                 )
                 db.add(network_log)
             db.commit()
@@ -202,100 +200,16 @@ def get_network_logs():
     """
     with SessionLocal() as db:
         return db.query(NetworkLogs).all()
-
-# def serialize_network_log(log):
-#     """
-#     Serialize a NetworkLogs object into a dictionary.
-#     """
-#     return {
-#         "id": log.id,
-#         "src_ip": log.src_ip,
-#         "dst_ip": log.dst_ip,
-#         "src_port": log.src_port,
-#         "dst_port": log.dst_port,
-#         "protocol": log.protocol,
-#         "timestamp": log.timestamp,
-#         "src_mac": log.src_mac,
-#         "dst_mac": log.dst_mac,
-#         "organization_id": log.organization_id,
-#         "dst_port": log.dst_port,
-#         "flow_duration": log.flow_duration,
-#         "total_fwd_packets": log.total_fwd_packets,
-#         "total_bwd_packets": log.total_bwd_packets,
-#         "total_length_fwd_packets": log.total_length_fwd_packets,
-#         "total_length_bwd_packets": log.total_length_bwd_packets,
-#         "fwd_packet_length_max": log.fwd_packet_length_max,
-#         "fwd_packet_length_min": log.fwd_packet_length_min,
-#         "fwd_packet_length_mean": log.fwd_packet_length_mean,
-#         "fwd_packet_length_std": log.fwd_packet_length_std,
-#         "bwd_packet_length_max": log.bwd_packet_length_max,
-#         "bwd_packet_length_min": log.bwd_packet_length_min,
-#         "bwd_packet_length_mean": log.bwd_packet_length_mean,
-#         "bwd_packet_length_std": log.bwd_packet_length_std,
-#         "flow_bytes_per_s": log.flow_bytes_per_s,
-#         "flow_packets_per_s": log.flow_packets_per_s,
-#         "flow_iat_mean": log.flow_iat_mean,
-#         "flow_iat_std": log.flow_iat_std,
-#         "flow_iat_max": log.flow_iat_max,
-#         "flow_iat_min": log.flow_iat_min,
-#         "fwd_iat_total": log.fwd_iat_total,
-#         "fwd_iat_mean": log.fwd_iat_mean,
-#         "fwd_iat_std": log.fwd_iat_std,
-#         "fwd_iat_max": log.fwd_iat_max,
-#         "fwd_iat_min": log.fwd_iat_min,
-#         "bwd_iat_total": log.bwd_iat_total,
-#         "bwd_iat_mean": log.bwd_iat_mean,
-#         "bwd_iat_std": log.bwd_iat_std,
-#         "bwd_iat_max": log.bwd_iat_max,
-#         "bwd_iat_min": log.bwd_iat_min,
-#         "fwd_psh_flags": log.fwd_psh_flags,
-#         "bwd_psh_flags": log.bwd_psh_flags,
-#         "fwd_urg_flags": log.fwd_urg_flags,
-#         "bwd_urg_flags": log.bwd_urg_flags,
-#         "fwd_header_length": log.fwd_header_length,
-#         "bwd_header_length": log.bwd_header_length,
-#         "fwd_packets_per_s": log.fwd_packets_per_s,
-#         "bwd_packets_per_s": log.bwd_packets_per_s,
-#         "min_packet_length": log.min_packet_length,
-#         "max_packet_length": log.max_packet_length,
-#         "packet_length_mean": log.packet_length_mean,
-#         "packet_length_std": log.packet_length_std,
-#         "packet_length_variance": log.packet_length_variance,
-#         "fin_flag_count": log.fin_flag_count,
-#         "syn_flag_count": log.syn_flag_count,
-#         "rst_flag_count": log.rst_flag_count,
-#         "psh_flag_count": log.psh_flag_count,
-#         "ack_flag_count": log.ack_flag_count,
-#         "urg_flag_count": log.urg_flag_count,
-#         "cwe_flag_count": log.cwe_flag_count,
-#         "ece_flag_count": log.ece_flag_count,
-#         "down_up_ratio": log.down_up_ratio,
-#         "average_packet_size": log.average_packet_size,
-#         "avg_fwd_segment_size": log.avg_fwd_segment_size,
-#         "avg_bwd_segment_size": log.avg_bwd_segment_size,
-#         "fwd_avg_bytes_bulk": log.fwd_avg_bytes_bulk,
-#         "fwd_avg_packets_bulk": log.fwd_avg_packets_bulk,
-#         "fwd_avg_bulk_rate": log.fwd_avg_bulk_rate,
-#         "bwd_avg_bytes_bulk": log.bwd_avg_bytes_bulk,
-#         "bwd_avg_packets_bulk": log.bwd_avg_packets_bulk,
-#         "bwd_avg_bulk_rate": log.bwd_avg_bulk_rate,
-#         "subflow_fwd_packets": log.subflow_fwd_packets,
-#         "subflow_fwd_bytes": log.subflow_fwd_bytes,
-#         "subflow_bwd_packets": log.subflow_bwd_packets,
-#         "subflow_bwd_bytes": log.subflow_bwd_bytes,
-#         "init_win_bytes_forward": log.init_win_bytes_forward,
-#         "init_win_bytes_backward": log.init_win_bytes_backward,
-#         "act_data_pkt_fwd": log.act_data_pkt_fwd,
-#         "min_seg_size_forward": log.min_seg_size_forward,
-#         "active_mean": log.active_mean,
-#         "active_std": log.active_std,
-#         "active_max": log.active_max,
-#         "active_min": log.active_min,
-#         "idle_mean": log.idle_mean,
-#         "idle_std": log.idle_std,
-#         "idle_max": log.idle_max,
-#         "idle_min": log.idle_min,
-#     }
+def get_log_by_id(log_id: int, orgId: int):
+    """Get a single network log by its ID and orgId"""
+    with SessionLocal() as db:
+        log = db.query(NetworkLogs).filter(
+            NetworkLogs.id == log_id,
+            NetworkLogs.organization_id == orgId
+        ).first()
+        if log:
+            return serialize_network_log(log)
+        return None
 
 def serialize_network_log(log):
     """
@@ -383,7 +297,7 @@ def get_paginated_network_logs(page: int, page_size: int):
         offset = (page - 1) * page_size
         logs_query: Query = db.query(NetworkLogs).order_by(NetworkLogs.id.desc()).offset(offset).limit(page_size)
         logs = [serialize_network_log(log) for log in logs_query]  # Serialize logs
-        return {"logs": logs, "totalPages": total_pages}  # Return serialized logs and total pages
+        return {"logs": logs, "totalPages": total_pages, "total_count": total_logs}  # Return serialized logs and total pages
 
 def fetch_cicflow_logs_from_es(orgId: int, size: int = 1000, from_time=None):
     """Fetch CICFlow logs from ES and store in DB"""
@@ -640,3 +554,21 @@ def fetch_cicflow_logs_for_all_orgs(limit=1000, minutes=5):
     except Exception as e:
         print(f"Error processing logs for all organizations: {str(e)}")
         return False
+
+def delete_network_log(log_id: int):
+    with SessionLocal() as db:
+        log = db.query(NetworkLogs).filter(NetworkLogs.id == log_id).first()
+        if not log:
+            return False
+        db.delete(log)
+        db.commit()
+        return True
+
+def delete_network_logs_batch(log_ids: list):
+    with SessionLocal() as db:
+        logs = db.query(NetworkLogs).filter(NetworkLogs.id.in_(log_ids)).all()
+        count = len(logs)
+        for log in logs:
+            db.delete(log)
+        db.commit()
+        return count

@@ -609,3 +609,6 @@ class MLModelOut(BaseModel):
 
     class Config:
         from_attributes = True
+    
+class LogIdsRequest(BaseModel):
+    log_ids: List[int]
