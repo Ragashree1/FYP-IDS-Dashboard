@@ -79,6 +79,23 @@ const EventLogPage = () => {
     }
   };
 
+  const handleDownloadLogs = async () => {
+    try {
+      const orgId = await getOrgId();
+      if (!orgId) {
+        alert("Could not determine organization ID. Unable to download logs.");
+        return;
+      }
+      const downloadUrl = `${API_BASE_URL}/logs/networkLogs/export/${orgId}`;
+      // Trigger file download
+      window.location.href = downloadUrl;
+    } catch (error) {
+      console.error("Error preparing log download:", error);
+      alert("Failed to initiate log download.");
+    }
+  };
+
+
   const handleDeleteSelected = async () => {
     if (selectedLogs.length === 0) {
       alert("Please select at least one log to delete.");
@@ -397,6 +414,19 @@ const EventLogPage = () => {
         }}
       >
         Upload CSV
+      </button>
+      <button
+        onClick={handleDownloadLogs}
+        style={{
+          padding: "10px 20px",
+          background: "#17a2b8", // A different color for download
+          color: "white",
+          border: "none",
+          borderRadius: "4px",
+          cursor: "pointer",
+        }}
+      >
+        Download Logs
       </button>
     </div>
   </div>

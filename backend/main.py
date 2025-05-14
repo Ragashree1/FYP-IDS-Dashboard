@@ -108,14 +108,36 @@ async def startup_event():
     # Schedule periodic jobs
     # logs_scheduler.add_job(fetch_logs_job, "interval", seconds=30)  # Fetch logs every 30 seconds
     # logs_scheduler.add_job(fetch_alerts_job, "interval", minutes=3)  # Fetch alerts every 5 minutes
-    # logs_scheduler.add_job(execute_playbook_rules_job, "interval", minutes=1)  # Execute playbook rules every 1 minute
-    # logs_scheduler.add_job(
-    #     predict_recent_logs_job,
-    #     "interval",
-    #     minutes=5,
-    #     id="predict_recent_logs_job",
-    #     replace_existing=True
-    # )
+    logs_scheduler.add_job(
+        fetch_logs_job, 
+        "interval", 
+        seconds=30,  # Fetch logs every 30 seconds
+        id="fetch_logs_job",
+        coalesce=True,
+        max_instances=1
+    )
+    logs_scheduler.add_job(
+        fetch_alerts_job, 
+        "interval", 
+        minutes=3,  # Fetch alerts every 3 minutes
+        id="fetch_alerts_job",
+        coalesce=True,
+        max_instances=1
+    )
+    logs_scheduler.add_job(execute_playbook_rules_job, "interval", minutes=1, id="execute_playbook_rules_job",  # Good practice to add an ID
+        coalesce=True,                   # Prevent overlapping runs
+        max_instances=1                  # Allow only one instance at a time
+    )  # Execute playbook rules every 1 minute
+    logs_scheduler.add_job(
+            predict_recent_logs_job,
+            "interval",
+            minutes=5,
+            id="predict_recent_logs_job",
+            replace_existing=True,
+            coalesce=True,
+            max_instances=1
+        )
+
 
     logs_scheduler.start()
 

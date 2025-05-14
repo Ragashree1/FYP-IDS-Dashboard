@@ -572,3 +572,36 @@ def delete_network_logs_batch(log_ids: list):
             db.delete(log)
         db.commit()
         return count
+
+def export_organization_network_logs_to_csv(org_id: int):
+    """Export all network logs for a specific organization to a CSV file for download"""
+    with SessionLocal() as db:
+        logs_query = db.query(NetworkLogs).filter(NetworkLogs.organization_id == org_id).order_by(NetworkLogs.timestamp.desc())
+        logs = logs_query.all()
+
+        if not logs:
+            # You might want to return an empty CSV or a specific message
+            # For now, let's return an empty response or raise an error if preferred
+            return StreamingResponse(iter(["No logs found for this organization."]), media_type="text/plain")
+
+        csv_buffer = StringIO()
+        # Define headers based on the serialize_network_log function or NetworkLogs model
+        # Using keys from serialize_network_log for consistency
+        sample_serialized_log = serialize_network_log(logs[0]) # Get keys from a sample
+        fieldnames = list(sample_serialized_log.keys())
+        
+        writer = csv.DictWriter(csv_buffer, fieldnames=fieldnames)
+        writer.writeheader()
+        
+        for log_entry in logs:
+            writer.writerow(serialize_network_log(log_entry))
+    
+    csv_buffer.seek(0)
+    
+    return StreamingResponse(
+        iter([csv_buffer.getvalue()]),
+        media_type="text/csv",
+        headers={
+            "Content-Disposition": f"attachment; filename=organization_{org_id}_network_logs_{time.strftime('%Y%m%d_%H%M%S')}.csv"
+        }
+    )

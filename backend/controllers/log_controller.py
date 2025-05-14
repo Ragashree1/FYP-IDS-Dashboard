@@ -54,3 +54,8 @@ def delete_network_logs_batch(request: LogIdsRequest = Body(...)):
     # An empty list (e.g., {"log_ids": []}) is considered valid by Pydantic for List[int].
     deleted_count = log_service.delete_network_logs_batch(request.log_ids)
     return {"message": f"Deleted {deleted_count} logs"}
+
+@router.get("/logs/networkLogs/export/{org_id}")
+def export_organization_network_logs(org_id: int):
+    """Export all network logs for a specific organization to CSV"""
+    return log_service.export_organization_network_logs_to_csv(org_id=org_id)
