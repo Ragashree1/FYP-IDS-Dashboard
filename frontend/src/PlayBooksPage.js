@@ -62,7 +62,7 @@ const PlaybookModal = ({ playbook, onClose, onSave }) => {
         condition_type: condition.condition_type || "threshold",
         field: condition.field || "source_ip_alert_count",
         operator: condition.operator || "greater than or equal",
-        value: condition.value || "",
+        value: condition.condition_type === "severity" ? (condition.value || "low") : (condition.value || ""),
         window_period: condition.window_period || "",
       }));
       setConditions(parsedConditions);
@@ -113,7 +113,7 @@ const PlaybookModal = ({ playbook, onClose, onSave }) => {
               ...(field === "condition_type" && {
                 field: conditionFieldOptions[value]?.[0]?.value || "",
                 operator: conditionOperatorOptions[value]?.[0]?.value || "",
-                value: "",
+                value: conditionValueOptions[value]?.[0]?.value || "", // Set default value "low" for severity
               }),
             }
           : condition

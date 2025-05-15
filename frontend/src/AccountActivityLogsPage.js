@@ -1,5 +1,3 @@
-"use client"
-
 import { useState, useEffect } from "react"
 import { useNavigate } from "react-router-dom"
 import { useAuth } from "./context/AuthContext"
@@ -17,11 +15,27 @@ const AccountActivityLogsPage = () => {
   const [deleteLoading, setDeleteLoading] = useState(false)
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
   const [logToDelete, setLogToDelete] = useState(null)
+  const [organizationId, setOrganizationId] = useState(null)
 
   useEffect(() => {
-    // Fetch activity logs from the API
-    fetchLogs()
-  }, [authData])
+    const fetchOrgId = async () => {
+      const token = localStorage.getItem("token")
+      const response = await fetch("http://127.0.0.1:8000/login/get_user", {
+        headers: { Authorization: `Bearer ${token}` },
+      })
+      if (response.ok) {
+        const data = await response.json()
+        setOrganizationId(data.user.organization_id)
+      }
+    }
+    fetchOrgId()
+  }, [])
+
+  useEffect(() => {
+    if (authData && organizationId) {
+      fetchLogs()
+    }
+  }, [authData, organizationId])
 
   const fetchLogs = async () => {
     try {
@@ -37,7 +51,8 @@ const AccountActivityLogsPage = () => {
 
       if (response.ok) {
         const data = await response.json()
-        setLogs(data)
+        // Filter logs by organizationId
+        setLogs(data.filter((log) => log.organization_id === organizationId))
       } else {
         throw new Error("Failed to fetch account activity logs")
       }
@@ -55,7 +70,6 @@ const AccountActivityLogsPage = () => {
           targetUser: "john.doe@example.com",
           action: "user_created",
           description: "Created new user account for John Doe",
-          ipAddress: "192.168.1.45",
         },
         {
           id: 2,
@@ -64,7 +78,6 @@ const AccountActivityLogsPage = () => {
           targetUser: "sarah.smith@example.com",
           action: "role_changed",
           description: "Changed user role from Network Admin to IT Manager",
-          ipAddress: "192.168.1.45",
         },
       ])
       setLoading(false)
@@ -121,8 +134,7 @@ const AccountActivityLogsPage = () => {
     const matchesSearch =
       log.user.toLowerCase().includes(searchQuery.toLowerCase()) ||
       log.targetUser.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      log.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      (log.ipAddress && log.ipAddress.toLowerCase().includes(searchQuery.toLowerCase()))
+      log.description.toLowerCase().includes(searchQuery.toLowerCase())
 
     // Date filter
     const logDate = new Date(log.timestamp)
@@ -220,7 +232,7 @@ const AccountActivityLogsPage = () => {
 
   // Handle export to CSV
   const exportToCSV = () => {
-    const headers = ["Timestamp", "User", "Target User", "Action", "Description", "IP Address"]
+    const headers = ["Timestamp", "User", "Target User", "Action", "Description"]
 
     const csvContent = [
       headers.join(","),
@@ -231,7 +243,6 @@ const AccountActivityLogsPage = () => {
           log.targetUser,
           getActionDisplayName(log.action),
           `"${log.description.replace(/"/g, '""')}"`, // Escape quotes in description
-          log.ipAddress,
         ].join(","),
       ),
     ].join("\n")
@@ -413,20 +424,19 @@ const AccountActivityLogsPage = () => {
                 <th style={{ padding: "16px", textAlign: "left", borderBottom: "1px solid #eee" }}>Target User</th>
                 <th style={{ padding: "16px", textAlign: "left", borderBottom: "1px solid #eee" }}>Action</th>
                 <th style={{ padding: "16px", textAlign: "left", borderBottom: "1px solid #eee" }}>Description</th>
-                <th style={{ padding: "16px", textAlign: "left", borderBottom: "1px solid #eee" }}>IP Address</th>
                 <th style={{ padding: "16px", textAlign: "center", borderBottom: "1px solid #eee" }}>Actions</th>
               </tr>
             </thead>
             <tbody>
               {loading ? (
                 <tr>
-                  <td colSpan={7} style={{ padding: "16px", textAlign: "center" }}>
+                  <td colSpan={6} style={{ padding: "16px", textAlign: "center" }}>
                     Loading...
                   </td>
                 </tr>
               ) : filteredLogs.length === 0 ? (
                 <tr>
-                  <td colSpan={7} style={{ padding: "16px", textAlign: "center" }}>
+                  <td colSpan={6} style={{ padding: "16px", textAlign: "center" }}>
                     No logs found matching your criteria
                   </td>
                 </tr>
@@ -454,7 +464,6 @@ const AccountActivityLogsPage = () => {
                         </span>
                       </td>
                       <td style={{ padding: "16px" }}>{log.description}</td>
-                      <td style={{ padding: "16px" }}>{log.ipAddress}</td>
                       <td style={{ padding: "16px", textAlign: "center" }}>
                         <button
                           onClick={() => confirmDeleteLog(log.id)}

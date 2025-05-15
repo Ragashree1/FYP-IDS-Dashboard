@@ -1,7 +1,6 @@
 import os
 from dotenv import load_dotenv
 import smtplib
-from email.mime.text import MIMEText
 
 load_dotenv()
 
@@ -21,20 +20,16 @@ def send_email(recipients, message, subject="Notification"):
     sender_email = "no-reply@email.secuboard.live"
 
     try:
-        # Connect to the SMTP server
-        server = smtplib.SMTP(SMTP_SERVER, 587)
-        server.ehlo()
+        server = smtplib.SMTP(SMTP_SERVER)
+        server.connect(SMTP_SERVER, 587)
         server.starttls()
-        server.ehlo()
+        print(SMTP_PASSWORD)
+        print(SMTP_USERNAME)
         server.login(SMTP_USERNAME, SMTP_PASSWORD)
 
         for recipient_email in recipients:
-            msg = MIMEText(message)
-            msg['Subject'] = subject
-            msg['From'] = sender_email
-            msg['To'] = recipient_email
-
-            server.sendmail(sender_email, recipient_email, msg.as_string())
+            msg = f"From: {sender_email}\nTo: {recipient_email}\nSubject: {subject}\n\n{message}"
+            server.sendmail(sender_email, recipient_email, msg)
             print(f"Email sent successfully to {recipient_email}")
 
         server.quit()

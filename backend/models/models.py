@@ -457,39 +457,34 @@ class LogPredictions(Base):
     class Config:
         orm_mode = True
 
-
-
-    
-# New ActivityLog model for tracking user management activities
 class ActivityLog(Base):
     __tablename__ = "activity_logs"
     
     id = Column(Integer, primary_key=True, index=True)
     timestamp = Column(TIMESTAMP, server_default=func.now())
-    user = Column(String, nullable=False)  # Username of the user who performed the action
-    targetUser = Column(String, nullable=False)  # Username of the user who was affected
-    action = Column(String, nullable=False)  # Type of action (user_created, user_updated, etc.)
-    description = Column(String, nullable=False)  # Description of the action
-    ipAddress = Column(String)  # IP address of the user who performed the action
-    userComName = Column(String, nullable=False)  # Company name for filtering logs by company
+    user = Column(String, nullable=False)
+    targetUser = Column(String, nullable=False)
+    action = Column(String, nullable=False)
+    description = Column(String, nullable=False)
+    organization_id = Column(Integer, ForeignKey("Organizations.id"), nullable=False)
+    organization = relationship("Organization")
     
     class Config:
         from_attributes = True
 
-# New SystemLog model for tracking system activities (playbooks, etc.)
 class SystemLog(Base):
     __tablename__ = "system_logs"
     
     id = Column(Integer, primary_key=True, index=True)
     timestamp = Column(TIMESTAMP, server_default=func.now())
-    user = Column(String, nullable=False)  # Username of the user who performed the action
-    component = Column(String, nullable=False)  # System component affected (e.g., "Playbook", "Firewall", etc.)
-    action = Column(String, nullable=False)  # Type of action (playbook_created, rule_added, etc.)
-    description = Column(String, nullable=False)  # Description of the action
-    ipAddress = Column(String)  # IP address of the user who performed the action
-    resourceId = Column(String, nullable=True)  # ID of the affected resource (e.g., playbook ID)
-    resourceName = Column(String, nullable=True)  # Name of the affected resource (e.g., playbook name)
-    userComName = Column(String, nullable=True)
+    user = Column(String, nullable=False)
+    component = Column(String, nullable=False)
+    action = Column(String, nullable=False)
+    description = Column(String, nullable=False)
+    resourceId = Column(String, nullable=True)
+    resourceName = Column(String, nullable=True)
+    organization_id = Column(Integer, ForeignKey("Organizations.id"), nullable=False)
+    organization = relationship("Organization")
 	
     class Config:
         from_attributes = True

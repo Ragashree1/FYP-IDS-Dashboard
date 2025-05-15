@@ -18,14 +18,29 @@ const SystemActivityLogsPage = () => {
   const [deleteLoading, setDeleteLoading] = useState(false)
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
   const [logToDelete, setLogToDelete] = useState(null)
+  const [organizationId, setOrganizationId] = useState(null)
+
+  useEffect(() => {
+    const fetchOrgId = async () => {
+      const token = localStorage.getItem("token")
+      const response = await fetch("http://127.0.0.1:8000/login/get_user", {
+        headers: { Authorization: `Bearer ${token}` },
+      })
+      if (response.ok) {
+        const data = await response.json()
+        setOrganizationId(data.user.organization_id)
+      }
+    }
+    fetchOrgId()
+  }, [])
 
   useEffect(() => {
     // Fetch system activity logs from the API
-    if (user) {
+    if (user && organizationId) {
       console.log("Current user:", user)  // Debug log
       fetchLogs()
     }
-  }, [user])
+  }, [user, organizationId])
 
   const fetchLogs = async () => {
     try {
@@ -43,7 +58,8 @@ const SystemActivityLogsPage = () => {
       if (response.ok) {
         const data = await response.json()
         console.log("Received logs from API:", data)  // Debug log
-        setLogs(data)
+        // Filter logs by organizationId
+        setLogs(data.filter(log => log.organization_id === organizationId))
       } else {
         const errorText = await response.text()
         console.error("API error response:", errorText)  // Debug log
@@ -63,10 +79,10 @@ const SystemActivityLogsPage = () => {
           component: "Playbook",
           action: "playbook_created",
           description: "Created new playbook: DDoS Protection",
-          ipAddress: "192.168.1.45",
           resourceId: "1",
           resourceName: "DDoS Protection",
-          userComName: user?.userComName || "default"
+          userComName: user?.userComName || "default",
+          organization_id: organizationId
         },
         {
           id: 2,
@@ -75,10 +91,10 @@ const SystemActivityLogsPage = () => {
           component: "Playbook",
           action: "playbook_updated",
           description: "Updated playbook Brute Force Detection: conditions, actions",
-          ipAddress: "192.168.1.32",
           resourceId: "2",
           resourceName: "Brute Force Detection",
-          userComName: user?.userComName || "default"
+          userComName: user?.userComName || "default",
+          organization_id: organizationId
         },
         {
           id: 3,
@@ -87,10 +103,10 @@ const SystemActivityLogsPage = () => {
           component: "Playbook",
           action: "playbook_status_changed",
           description: "Deactivated playbook: Content Filtering",
-          ipAddress: "192.168.1.28",
           resourceId: "3",
           resourceName: "Content Filtering",
-          userComName: user?.userComName || "default"
+          userComName: user?.userComName || "default",
+          organization_id: organizationId
         },
         {
           id: 4,
@@ -99,10 +115,10 @@ const SystemActivityLogsPage = () => {
           component: "Playbook",
           action: "playbook_deleted",
           description: "Deleted playbook: Obsolete Rule",
-          ipAddress: "192.168.1.45",
           resourceId: "4",
           resourceName: "Obsolete Rule",
-          userComName: user?.userComName || "default"
+          userComName: user?.userComName || "default",
+          organization_id: organizationId
         },
       ]
       console.log("Using mock data:", mockData)  // Debug log
@@ -162,8 +178,7 @@ const SystemActivityLogsPage = () => {
       log.user.toLowerCase().includes(searchQuery.toLowerCase()) ||
       log.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
       log.component.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      (log.resourceName && log.resourceName.toLowerCase().includes(searchQuery.toLowerCase())) ||
-      (log.ipAddress && log.ipAddress.toLowerCase().includes(searchQuery.toLowerCase()))
+      (log.resourceName && log.resourceName.toLowerCase().includes(searchQuery.toLowerCase()))
 
     // Date filter
     const logDate = new Date(log.timestamp)
@@ -281,7 +296,7 @@ const getActionBadgeColor = (action) => {
 
   // Handle export to CSV
   const exportToCSV = () => {
-    const headers = ["Timestamp", "User", "Component", "Action", "Description", "IP Address", "Resource Name"]
+    const headers = ["Timestamp", "User", "Component", "Action", "Description", "Resource Name"]
 
     const csvContent = [
       headers.join(","),
@@ -292,7 +307,6 @@ const getActionBadgeColor = (action) => {
           log.component,
           getActionDisplayName(log.action),
           `"${log.description.replace(/"/g, '""')}"`, // Escape quotes in description
-          log.ipAddress,
           log.resourceName ? `"${log.resourceName.replace(/"/g, '""')}"` : "",
         ].join(","),
       ),
@@ -356,7 +370,7 @@ const getActionBadgeColor = (action) => {
 
         <h1 style={{ margin: "0 0 8px 0" }}>System Activity Logs</h1>
         <h2 style={{ margin: "0 0 24px 0", fontWeight: "normal", color: "#666" }}>
-          Track changes to playbooks, rules, and system configurations
+          Track changes to playbooks and system configurations
         </h2>
 
         <div
@@ -492,20 +506,19 @@ const getActionBadgeColor = (action) => {
                 <th style={{ padding: "16px", textAlign: "left", borderBottom: "1px solid #eee" }}>Action</th>
                 <th style={{ padding: "16px", textAlign: "left", borderBottom: "1px solid #eee" }}>Description</th>
                 <th style={{ padding: "16px", textAlign: "left", borderBottom: "1px solid #eee" }}>Resource</th>
-                <th style={{ padding: "16px", textAlign: "left", borderBottom: "1px solid #eee" }}>IP Address</th>
                 <th style={{ padding: "16px", textAlign: "center", borderBottom: "1px solid #eee" }}>Actions</th>
               </tr>
             </thead>
             <tbody>
               {loading ? (
                 <tr>
-                  <td colSpan={8} style={{ padding: "16px", textAlign: "center" }}>
+                  <td colSpan={7} style={{ padding: "16px", textAlign: "center" }}>
                     Loading...
                   </td>
                 </tr>
               ) : filteredLogs.length === 0 ? (
                 <tr>
-                  <td colSpan={8} style={{ padding: "16px", textAlign: "center" }}>
+                  <td colSpan={7} style={{ padding: "16px", textAlign: "center" }}>
                     No logs found matching your criteria
                   </td>
                 </tr>
@@ -534,7 +547,6 @@ const getActionBadgeColor = (action) => {
                       </td>
                       <td style={{ padding: "16px" }}>{log.description}</td>
                       <td style={{ padding: "16px" }}>{log.resourceName || "-"}</td>
-                      <td style={{ padding: "16px" }}>{log.ipAddress}</td>
                       <td style={{ padding: "16px", textAlign: "center" }}>
                         <button
                           onClick={() => confirmDeleteLog(log.id)}

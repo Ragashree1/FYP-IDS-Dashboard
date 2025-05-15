@@ -143,7 +143,12 @@ const SystemConfiguration = () => {
 
   const fetchVerifiedIPs = async (orgId) => {
     try {
-      const response = await fetch(`${API_BASE_URL}/ip-verification/verified-ips/${orgId}`);
+      const token = localStorage.getItem("token");
+      const response = await fetch(`${API_BASE_URL}/ip-verification/verified-ips/${orgId}`, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
       if (!response.ok) {
         const errorData = await response.json();
         throw new Error(errorData.message || "Failed to fetch verified IPs");
@@ -162,12 +167,14 @@ const SystemConfiguration = () => {
     }
   };
 
-  
-
   const handleRemoveClient = async (id) => {
     try {
+      const token = localStorage.getItem("token");
       const response = await fetch(`${API_BASE_URL}/ip-verification/remove-ip/${id}`, {
         method: "DELETE",
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
       });
 
       if (!response.ok) {
@@ -186,9 +193,13 @@ const SystemConfiguration = () => {
 
   const handleAddIP = async (newIP) => {
     try {
+      const token = localStorage.getItem("token");
       const response = await fetch(`${API_BASE_URL}/ip-verification/verify-ip`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
         body: JSON.stringify({ organization_id: userOrgId, ip: newIP }),
       });
 

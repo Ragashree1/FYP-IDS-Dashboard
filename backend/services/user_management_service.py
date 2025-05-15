@@ -244,3 +244,32 @@ def get_all_roles() -> List[RoleOut]:
         raise e
     finally:
         db.close()
+
+def get_users_by_org_id(org_id: int) -> List[AccountBase]:
+    db = next(get_db())
+    try:
+        users = db.query(Account).filter(Account.organization_id == org_id).all()
+        
+        # Convert to Pydantic models
+        result = []
+        for user in users:
+            result.append(AccountBase(
+                id=user.id,
+                username=user.username,
+                userFirstName=user.userFirstName,
+                userLastName=user.userLastName,
+                userComName=user.userComName,
+                userEmail=user.userEmail,
+                userPhoneNum=user.userPhoneNum,
+                userRole=user.userRole,
+                userSuspend=user.userSuspend,
+                userRejected=user.userRejected,
+                organization_id=user.organization_id
+            ))
+        
+        return result
+    except Exception as e:
+        print(f"Error in get_users_by_org_id: {str(e)}")
+        raise e
+    finally:
+        db.close()

@@ -1,145 +1,105 @@
-from models.models import SystemLog, Account
+from models.models import SystemLog
 from models.schemas import SystemLogBase
-from sqlalchemy.orm import Session
-from typing import List, Optional
+from typing import List
 from datetime import datetime
-import sqlalchemy as sa
+from database import SessionLocal
 
-def add_system_log(db: Session, log_data: SystemLogBase, company_name: str = None) -> SystemLog:
-    """Add a new system activity log entry"""
+def add_system_log(log_data: SystemLogBase) -> SystemLog:
+    """
+    Add a new system activity log entry
+    """
     try:
-        print(f"Adding system log for company: {company_name}")
-        
-        # If company_name is not provided, try to get it from the user
-        if not company_name:
-            # Try to get the company name from the user's record
-            user_record = db.query(Account).filter(Account.username == log_data.user).first()
-            if user_record and user_record.userComName:
-                company_name = user_record.userComName
-            else:
-                # Fallback to a default if we can't determine the company
-                company_name = "unknown_company"
-                
-        print(f"Using company name: {company_name}")
-        
-        # Create new system log entry with userComName field
-        new_log = SystemLog(
-            user=log_data.user,
-            component=log_data.component,
-            action=log_data.action,
-            description=log_data.description,
-            ipAddress=log_data.ipAddress,
-            resourceId=log_data.resourceId,
-            resourceName=log_data.resourceName,
-            userComName=company_name,  # Use the proper column
-            timestamp=datetime.now()
-        )
-        
-        db.add(new_log)
-        db.commit()
-        db.refresh(new_log)
-        
-        print(f"Successfully added system log for company: {company_name}, ID: {new_log.id}")
-        return new_log
+        with SessionLocal() as db:
+            new_log = SystemLog(
+                user=log_data.user,
+                component=log_data.component,
+                action=log_data.action,
+                description=log_data.description,
+                resourceId=log_data.resourceId,
+                resourceName=log_data.resourceName,
+                organization_id=log_data.organization_id,
+                timestamp=datetime.now()
+            )
+            db.add(new_log)
+            db.commit()
+            db.refresh(new_log)
+            return new_log
     except Exception as e:
-        db.rollback()
-        print(f"Error in add_system_log: {str(e)}")
         raise e
 
-def get_all_system_logs(db: Session) -> List[SystemLog]:
-    """Get all system activity logs"""
-    try:
+def get_all_system_logs() -> List[SystemLog]:
+    """
+    Get all system activity logs
+    """
+    with SessionLocal() as db:
         logs = db.query(SystemLog).order_by(SystemLog.timestamp.desc()).all()
-        print(f"Retrieved {len(logs)} logs in get_all_system_logs")
         return logs
-    except Exception as e:
-        print(f"Error in get_all_system_logs: {str(e)}")
-        raise e
 
-def get_company_system_logs(db: Session, company_name: str) -> List[SystemLog]:
-    """Get system activity logs for a specific company"""
-    try:
-        # Debug print to check the company name being used for filtering
-        print(f"Filtering system logs for company: {company_name}")
-        
-        if not company_name:
-            print("No company name provided, returning empty list")
-            return []
-        
-        # STRICT FILTERING: Only return logs that exactly match the company name (case-insensitive)
+def get_company_system_logs(organization_id: int) -> List[SystemLog]:
+    """
+    Get system activity logs for a specific organization
+    """
+    with SessionLocal() as db:
         logs = db.query(SystemLog).filter(
-            sa.func.lower(SystemLog.userComName) == sa.func.lower(company_name)
-        ).order_by(SystemLog.timestamp.desc()).all()
-        
-        print(f"Found {len(logs)} system logs for company {company_name}")
-        
-        # Do not return any logs if no exact match is found
-        # This ensures strict separation between companies
-        return logs
-    except Exception as e:
-        print(f"Error in get_company_system_logs: {str(e)}")
-        # Return empty list on error to prevent showing logs from other companies
-        return []
-
-def get_system_logs_by_component(db: Session, component: str, company_name: str) -> List[SystemLog]:
-    """Get system activity logs filtered by component"""
-    try:
-        # Add company filtering to component filter
-        logs = db.query(SystemLog).filter(
-            SystemLog.component == component,
-            sa.func.lower(SystemLog.userComName) == sa.func.lower(company_name)
+            SystemLog.organization_id == organization_id
         ).order_by(SystemLog.timestamp.desc()).all()
         return logs
-    except Exception as e:
-        raise e
 
-def get_system_logs_by_action(db: Session, action: str, company_name: str) -> List[SystemLog]:
-    """Get system activity logs filtered by action"""
-    try:
-        # Add company filtering to action filter
+def get_system_logs_by_component(organization_id: int, component: str) -> List[SystemLog]:
+    """
+    Get system activity logs filtered by component for an organization
+    """
+    with SessionLocal() as db:
         logs = db.query(SystemLog).filter(
-            SystemLog.action == action,
-            sa.func.lower(SystemLog.userComName) == sa.func.lower(company_name)
+            SystemLog.organization_id == organization_id,
+            SystemLog.component == component
         ).order_by(SystemLog.timestamp.desc()).all()
         return logs
-    except Exception as e:
-        raise e
 
-def get_system_logs_by_user(db: Session, user: str, company_name: str) -> List[SystemLog]:
-    """Get system activity logs filtered by user"""
-    try:
-        # Add company filtering to user filter
+def get_system_logs_by_action(organization_id: int, action: str) -> List[SystemLog]:
+    """
+    Get system activity logs filtered by action for an organization
+    """
+    with SessionLocal() as db:
         logs = db.query(SystemLog).filter(
-            SystemLog.user == user,
-            sa.func.lower(SystemLog.userComName) == sa.func.lower(company_name)
+            SystemLog.organization_id == organization_id,
+            SystemLog.action == action
         ).order_by(SystemLog.timestamp.desc()).all()
         return logs
-    except Exception as e:
-        raise e
 
-def get_system_logs_by_resource(db: Session, resource_id: str, company_name: str) -> List[SystemLog]:
-    """Get system activity logs filtered by resource ID"""
-    try:
-        # Add company filtering to resource filter
+def get_system_logs_by_user(organization_id: int, user: str) -> List[SystemLog]:
+    """
+    Get system activity logs filtered by user for an organization
+    """
+    with SessionLocal() as db:
         logs = db.query(SystemLog).filter(
-            SystemLog.resourceId == resource_id,
-            sa.func.lower(SystemLog.userComName) == sa.func.lower(company_name)
+            SystemLog.organization_id == organization_id,
+            SystemLog.user == user
         ).order_by(SystemLog.timestamp.desc()).all()
         return logs
-    except Exception as e:
-        raise e
 
-def delete_system_log(db: Session, log_id: int) -> bool:
-    """Delete a system activity log entry"""
+def get_system_logs_by_resource(organization_id: int, resource_id: str) -> List[SystemLog]:
+    """
+    Get system activity logs filtered by resource ID for an organization
+    """
+    with SessionLocal() as db:
+        logs = db.query(SystemLog).filter(
+            SystemLog.organization_id == organization_id,
+            SystemLog.resourceId == resource_id
+        ).order_by(SystemLog.timestamp.desc()).all()
+        return logs
+
+def delete_system_log(log_id: int) -> bool:
+    """
+    Delete a system activity log entry
+    """
     try:
-        log = db.query(SystemLog).filter(SystemLog.id == log_id).first()
-        if not log:
-            return False
-            
-        db.delete(log)
-        db.commit()
-        
-        return True
+        with SessionLocal() as db:
+            log = db.query(SystemLog).filter(SystemLog.id == log_id).first()
+            if not log:
+                return False
+            db.delete(log)
+            db.commit()
+            return True
     except Exception as e:
-        db.rollback()
         raise e

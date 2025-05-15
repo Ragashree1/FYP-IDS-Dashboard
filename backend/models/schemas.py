@@ -489,8 +489,7 @@ class ActivityLogBase(BaseModel):
     targetUser: str
     action: str
     description: str
-    ipAddress: Optional[str] = "127.0.0.1"
-    userComName: Optional[str] = None
+    organization_id: int
 
 class ActivityLog(ActivityLogBase):
     id: Optional[int] = None
@@ -505,10 +504,9 @@ class SystemLogBase(BaseModel):
     component: str
     action: str
     description: str
-    ipAddress: Optional[str] = "127.0.0.1"
     resourceId: Optional[str] = None
     resourceName: Optional[str] = None
-    userComName: Optional[str] = None
+    organization_id: int
 
 class SystemLog(SystemLogBase):
     id: Optional[int] = None

@@ -1,6 +1,6 @@
 from database import SessionLocal
 from models.models import Playbook, VerifiedIP
-from models.schemas import PlaybookBase, PlaybookOut
+from models.schemas import PlaybookBase, PlaybookOut, SystemLogBase
 from models.schemas import IPAddressSchema
 from typing import List, Optional
 from fastapi import HTTPException
@@ -8,6 +8,7 @@ import uuid
 from services.organization_service import ensure_default_organization, DEFAULT_ORG_ID
 from services.ip_blocking_service import block_ip
 from services.email_service import send_email
+from services import system_audit_service
 from sqlalchemy.sql import text
 
 def get_all_playbooks() -> List[PlaybookOut]:
@@ -15,7 +16,7 @@ def get_all_playbooks() -> List[PlaybookOut]:
         playbooks = db.query(Playbook).all()
         return [PlaybookOut.model_validate(playbook) for playbook in playbooks]
 
-def add_playbook(playbook_data: PlaybookBase, organization_id: int = DEFAULT_ORG_ID) -> PlaybookOut:
+def add_playbook(playbook_data: PlaybookBase, organization_id: int = DEFAULT_ORG_ID, current_user: str = "system") -> PlaybookOut:
     with SessionLocal() as db:
         # Ensure default organization exists
         ensure_default_organization()
@@ -32,18 +33,44 @@ def add_playbook(playbook_data: PlaybookBase, organization_id: int = DEFAULT_ORG
         db.add(db_playbook)
         db.commit()
         db.refresh(db_playbook)
+
+        # Log the playbook creation in system logs
+        log_data = SystemLogBase(
+            user=current_user,
+            component="Playbook",
+            action="playbook_created",
+            description=f"Created new playbook: {db_playbook.name}",
+            resourceId=str(db_playbook.id),
+            resourceName=db_playbook.name,
+            organization_id=organization_id
+        )
+        system_audit_service.add_system_log(log_data)
+        
         return PlaybookOut.model_validate(db_playbook)
 
-def delete_playbook(playbook_id: int) -> bool:
+def delete_playbook(playbook_id: int, organization_id: int = DEFAULT_ORG_ID, current_user: str = "system") -> bool:
     with SessionLocal() as db:
         playbook = db.query(Playbook).filter(Playbook.id == playbook_id).first()
         if playbook:
+            playbook_name = playbook.name  # Store name before deletion
             db.delete(playbook)
             db.commit()
+
+            # Log the playbook deletion in system logs
+            log_data = SystemLogBase(
+                user=current_user,
+                component="Playbook",
+                action="playbook_deleted",
+                description=f"Deleted playbook: {playbook_name}",
+                resourceId=str(playbook_id),
+                resourceName=playbook_name,
+                organization_id=organization_id
+            )
+            system_audit_service.add_system_log(log_data)
             return True
         return False
 
-def update_playbook(playbook_id: int, update_data: PlaybookBase) -> Optional[PlaybookOut]:
+def update_playbook(playbook_id: int, update_data: PlaybookBase, organization_id: int = DEFAULT_ORG_ID, current_user: str = "system") -> Optional[PlaybookOut]:
     with SessionLocal() as db:
         playbook = db.query(Playbook).filter(Playbook.id == playbook_id).first()
         if not playbook:
@@ -55,22 +82,51 @@ def update_playbook(playbook_id: int, update_data: PlaybookBase) -> Optional[Pla
             if existing:
                 raise HTTPException(status_code=400, detail="Playbook with this name already exists")
 
+        old_name = playbook.name  # Store old name for logging
         for key, value in update_data.model_dump().items():
             setattr(playbook, key, value)
 
         db.commit()
         db.refresh(playbook)
+
+        # Log the playbook update in system logs
+        log_data = SystemLogBase(
+            user=current_user,
+            component="Playbook",
+            action="playbook_updated",
+            description=f"Updated playbook '{playbook.name}'",
+            resourceId=str(playbook_id),
+            resourceName=playbook.name,
+            organization_id=organization_id
+        )
+        system_audit_service.add_system_log(log_data)
+
         return PlaybookOut.model_validate(playbook)
 
-def toggle_playbook_status(playbook_id: int) -> Optional[PlaybookOut]:
+def toggle_playbook_status(playbook_id: int, organization_id: int = DEFAULT_ORG_ID, current_user: str = "system") -> Optional[PlaybookOut]:
     with SessionLocal() as db:
         playbook = db.query(Playbook).filter(Playbook.id == playbook_id).first()
         if not playbook:
             return None
 
         playbook.is_active = not playbook.is_active
+        new_status = "activated" if playbook.is_active else "deactivated"
+        
         db.commit()
         db.refresh(playbook)
+
+        # Log the playbook status change in system logs
+        log_data = SystemLogBase(
+            user=current_user,
+            component="Playbook",
+            action="playbook_status_changed",
+            description=f"{new_status.capitalize()} playbook: {playbook.name}",
+            resourceId=str(playbook_id),
+            resourceName=playbook.name,
+            organization_id=organization_id
+        )
+        system_audit_service.add_system_log(log_data)
+
         return PlaybookOut.model_validate(playbook)
 
 def get_active_playbooks() -> List[PlaybookOut]:
@@ -78,32 +134,6 @@ def get_active_playbooks() -> List[PlaybookOut]:
         playbooks = db.query(Playbook).filter(Playbook.is_active == True).all()
         return [PlaybookOut.model_validate(playbook) for playbook in playbooks]
         
-# def check_ip_alerts_by_organization(threshold: int, interval_minutes: int, organization_id: int):
-#     with SessionLocal() as db:
-#         query = text(f"""
-#         WITH time_windows AS (
-#             SELECT 
-#                 generate_series(
-#                     (SELECT MIN(timestamp)::timestamp FROM "SnortAlerts" WHERE organization_id = :organization_id),  
-#                     (SELECT MAX(timestamp)::timestamp FROM "SnortAlerts" WHERE organization_id = :organization_id),  
-#                     INTERVAL '1 minute' * {interval_minutes}  
-#                 ) AS window_start
-#         )
-#         SELECT 
-#             s.src_ip,
-#             t.window_start,
-#             COUNT(*) AS alert_count
-#         FROM "SnortAlerts" s
-#         JOIN time_windows t
-#             ON s.timestamp BETWEEN t.window_start AND t.window_start + INTERVAL '{interval_minutes} minutes'
-#         WHERE s.organization_id = :organization_id
-#         GROUP BY s.src_ip, t.window_start
-#         HAVING COUNT(*) >= {threshold}
-#         ORDER BY t.window_start DESC;
-#         """)
-#         result = db.execute(query, {"organization_id": organization_id}).fetchall()
-#         return result
-
 def check_ip_alerts_by_organization(threshold: int, interval_minutes: int, organization_id: int):
     with SessionLocal() as db:
         query = text(f"""
@@ -185,67 +215,6 @@ def check_internations_blacklist_and_block_ips():
             block_ip(ip_data)
 
     return ips_to_block
-
-    
-# def check_exceed_severity_level_by_organization(severity: str, organization_id: int) -> List[str]:
-#     """
-#     Returns all source IP addresses of threats that exceed the specified severity level for a given organization.
-#     Severity levels: "low", "medium", "high", "critical".
-#     Args:
-#         severity (str): The severity level to check ("low", "medium", "high", "critical")
-#         organization_id (int): The ID of the organization to filter alerts
-#     Returns:
-#         List[str]: List of source IP addresses that exceed the severity level
-#     """
-#     severity_mapping = {
-#         "low": 1,
-#         "medium": 2,
-#         "high": 3,
-#         "critical": 4
-#     }
-
-#     if severity not in severity_mapping:
-#         print('severity '+ severity)
-#         raise ValueError("Invalid severity level. Choose from 'low', 'medium', 'high', or 'critical'.")
-
-#     min_priority = severity_mapping[severity.lower()]
-
-#     with SessionLocal() as db:
-#         query = text("""
-#         SELECT DISTINCT s.src_ip
-#         FROM "SnortAlerts" s
-#         JOIN priority_classification p
-#         ON s.classification = p.classification
-#         WHERE p.priority >= :min_priority
-#         AND s.organization_id = :organization_id;
-#         """)
-#         result = db.execute(query, {
-#             "min_priority": min_priority,
-#             "organization_id": organization_id
-#         }).fetchall()
-#         return [row[0] for row in result]
-
-# def check_classtype_by_organization(classType: str, organization_id: int) -> List[str]:
-#     """
-#     Returns all source IP addresses of threats that match the specified classtype for a given organization.
-#     Args:
-#         classType (str): The classification type to check
-#         organization_id (int): The ID of the organization to filter alerts
-#     Returns:
-#         List[str]: List of source IP addresses that match the classtype
-#     """
-#     with SessionLocal() as db:
-#         query = text("""
-#         SELECT DISTINCT s.src_ip
-#         FROM "SnortAlerts" s
-#         WHERE s.classification = :classtype
-#         AND s.organization_id = :organization_id;
-#         """)
-#         result = db.execute(query, {
-#             "classtype": classType,
-#             "organization_id": organization_id
-#         }).fetchall()
-#         return [row[0] for row in result]
 
 def check_exceed_severity_level_by_organization(severity: str, organization_id: int) -> List[str]:
     """
