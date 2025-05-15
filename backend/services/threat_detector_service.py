@@ -234,9 +234,9 @@ def predict_recent_logs():
     """
     with SessionLocal() as db:
         now = datetime.utcnow()
-        five_minutes_ago = now - timedelta(minutes=500)
+        time = now - timedelta(minutes=2880)
         # Fetch logs from the last 5 minutes
-        recent_logs = db.query(NetworkLogs).filter(NetworkLogs.timestamp >= five_minutes_ago).all()
+        recent_logs = db.query(NetworkLogs).filter(NetworkLogs.timestamp >= time).all()
         recent_logs = db.query(NetworkLogs).all()
         results = []
         for log in recent_logs:

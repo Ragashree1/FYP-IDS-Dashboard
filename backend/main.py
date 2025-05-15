@@ -124,7 +124,7 @@ async def startup_event():
     logs_scheduler.add_job(
             predict_recent_logs_job,
             "interval",
-            minutes=5,
+            minutes=3,
             id="predict_recent_logs_job",
             replace_existing=True,
             coalesce=True,
