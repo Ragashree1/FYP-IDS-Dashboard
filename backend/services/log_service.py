@@ -522,10 +522,9 @@ def get_logs_from_db(orgId: int):
 
         return results
 
-def fetch_cicflow_logs_for_all_orgs(limit=1000, minutes=5):
+def fetch_cicflow_logs_for_all_orgs(limit=1000, minutes=2880):
     """Fetch CICFlow logs from ES and store in DB for all organizations for the past X minutes"""
     try:
-        # Calculate timestamp for X minutes ago
         from_time = datetime.utcnow() - pd.Timedelta(minutes=minutes)
         from_time_str = from_time.strftime("%Y-%m-%dT%H:%M:%S.%fZ")
 
@@ -539,6 +538,11 @@ def fetch_cicflow_logs_for_all_orgs(limit=1000, minutes=5):
                                 "@timestamp": {
                                     "gte": from_time_str
                                 }
+                            }
+                        },
+                        {
+                            "term": {
+                                "log_type": "cicflow"
                             }
                         }
                     ]
@@ -556,82 +560,127 @@ def fetch_cicflow_logs_for_all_orgs(limit=1000, minutes=5):
             return False
 
         hits = response.json().get("hits", {}).get("hits", [])
+        print('hits')
+        print('there are hits')
+        # print(hits)
         if not hits:
             print(f"No logs found in Elasticsearch for the past {minutes} minutes")
             return False
 
         with SessionLocal() as db:
-            verified_ips = db.query(VerifiedIP.ip, VerifiedIP.organization_id).filter(
-                VerifiedIP.is_verified == True
-            ).all()
+            verified_ips = db.query(VerifiedIP.ip, VerifiedIP.organization_id).all()
 
-        if not verified_ips:
-            print("No verified IPs found in any organization")
-            return False
+            print('verified ips' + str(verified_ips))
 
-        ip_org_map = {ip: org_id for ip, org_id in verified_ips}
-        org_logs = {}
-        
-        for hit in hits:
-            source = hit.get("_source", {})
-            src_ip = source.get("src_ip", "")
-            dst_ip = source.get("dst_ip", "")
-            
-            if isinstance(src_ip, list):
-                src_ip = src_ip[0] if src_ip else ""
-            if isinstance(dst_ip, list):
-                dst_ip = dst_ip[0] if dst_ip else ""
-            
-            org_id = None
-            if src_ip in ip_org_map:
-                org_id = ip_org_map[src_ip]
-            elif dst_ip in ip_org_map:
-                org_id = ip_org_map[dst_ip]
-            
-            if org_id:
+            if not verified_ips:
+                print("No verified IPs found in any organization")
+                return False
+
+            ip_org_map = {ip: org_id for ip, org_id in verified_ips}
+            print('ip_org_map' + str(ip_org_map))
+            org_logs = {}
+
+            for hit in hits:
+                source = hit.get("_source", {})
+                
+                # Extract IPs from source
+                src_ip = source.get("src_ip")
+                dst_ip = source.get("dst_ip")
+                # print('src_ip' + str(src_ip))
+                # print(ip_org_map.get(str(src_ip)))
+                
+                # Get organization ID
+                org_id = ip_org_map.get(src_ip) or ip_org_map.get(dst_ip)
+                if not org_id:
+                    org_id = 1
+                    # print(f"Skipping log with src_ip {src_ip} and dst_ip {dst_ip} as no organization ID found")
+                    # continue
+
                 if org_id not in org_logs:
                     org_logs[org_id] = []
-                org_logs[org_id].append(hit)
+                org_logs[org_id].append(source)
 
-        with SessionLocal() as db:
-            for org_id, logs in org_logs.items():
-                stored_count = 0
-                for log in logs:
-                    source = log.get("_source", {})
-                    excluded_fields = {"src_ip", "dst_ip", "src_port", "dst_port", "protocol", "timestamp", "src_mac", "dst_mac"}
+        
+                # Check if log already exists
+                # exists = db.query(NetworkLogs).filter(
+                #     NetworkLogs.timestamp == source.get("timestamp"),
+                #     NetworkLogs.src_ip == source.get("src_ip"),
+                #     NetworkLogs.dst_ip == source.get("dst_ip"),
+                #     NetworkLogs.organization_id == org_id
+                # ).first()
+                
+                # if exists:
+                #     continue
 
-                    exists = db.query(NetworkLogs).filter(
-                        NetworkLogs.timestamp == source.get("timestamp"),
-                        NetworkLogs.src_ip == source.get("src_ip"),
-                        NetworkLogs.dst_ip == source.get("dst_ip"),
-                        NetworkLogs.organization_id == org_id
-                    ).first()
+                # Extract numeric values safely
+                def safe_float(value):
+                    try:
+                        return float(value) if value else 0.0
+                    except (ValueError, TypeError):
+                        return 0.0
+
+                def safe_int(value):
+                    try:
+                        return int(float(value)) if value else 0
+                    except (ValueError, TypeError):
+                        return 0
                     
-                    if exists:
-                        continue
+                excluded_fields = {"src_ip", "dst_ip", "src_port", "dst_port", "protocol", "timestamp", "src_mac", "dst_mac"}
 
-                    db_entry = NetworkLogs(
-                        src_ip=source.get("src_ip"),
-                        dst_ip=source.get("dst_ip"),
-                        src_port=source.get("src_port"),
-                        dst_port=source.get("dst_port"),
-                        protocol=source.get("protocol"),
-                        timestamp=source.get("timestamp"),
-                        src_mac=source.get("src_mac"),
-                        dst_mac=source.get("dst_mac"),
-                        organization_id=org_id,
-                        **{
-                            field_mapping_val: source.get(field_mapping_val)
-                            for field_mapping_val in FIELD_MAPPING.values()
-                            if field_mapping_val not in excluded_fields and hasattr(NetworkLogs, field_mapping_val)
-                        }
-                    )
-                    db.add(db_entry)
-                    stored_count += 1
 
-                print(f"Stored {stored_count} new logs for organization {org_id}")
-            
-            db.commit()
+                db_entry = NetworkLogs(
+                    src_ip=source.get("src_ip"),
+                    dst_ip=source.get("dst_ip"),
+                    src_port=safe_int(source.get("src_port")),
+                    dst_port=safe_int(source.get("dst_port")),
+                    src_mac=source.get("src_mac"),
+                    dst_mac=source.get("dst_mac"),
+                    protocol=safe_int(source.get("protocol")),
+                    timestamp=source.get("timestamp"),
+                    flow_duration=safe_float(source.get("flow_duration")),
+                    flow_bytes_per_s=safe_float(source.get("flow_byts_s")),
+                    flow_packets_per_s=safe_float(source.get("flow_pkts_s")),
+                    flow_iat_mean=safe_float(source.get("flow_iat_mean")),
+                    flow_iat_std=safe_float(source.get("flow_iat_std")),
+                    flow_iat_max=safe_float(source.get("flow_iat_max")),
+                    flow_iat_min=safe_float(source.get("flow_iat_min")),
+                    fwd_iat_total=safe_float(source.get("fwd_iat_tot")),
+                    fwd_iat_mean=safe_float(source.get("fwd_iat_mean")),
+                    fwd_iat_std=safe_float(source.get("fwd_iat_std")),
+                    fwd_iat_max=safe_float(source.get("fwd_iat_max")),
+                    fwd_iat_min=safe_float(source.get("fwd_iat_min")),
+                    bwd_iat_total=safe_float(source.get("bwd_iat_tot")),
+                    bwd_iat_mean=safe_float(source.get("bwd_iat_mean")),
+                    bwd_iat_std=safe_float(source.get("bwd_iat_std")),
+                    bwd_iat_max=safe_float(source.get("bwd_iat_max")),
+                    bwd_iat_min=safe_float(source.get("bwd_iat_min")),
+                    fwd_psh_flags=safe_int(source.get("fwd_psh_flags")),
+                    bwd_psh_flags=safe_int(source.get("bwd_psh_flags")),
+                    fwd_urg_flags=safe_int(source.get("fwd_urg_flags")),
+                    bwd_urg_flags=safe_int(source.get("bwd_urg_flags")),
+                    total_fwd_packets=safe_int(source.get("tot_fwd_pkts")),
+                    total_bwd_packets=safe_int(source.get("tot_bwd_pkts")),
+                    total_length_fwd_packets=safe_float(source.get("totlen_fwd_pkts")),
+                    total_length_bwd_packets=safe_float(source.get("totlen_bwd_pkts")),
+                    fwd_packet_length_max=safe_float(source.get("fwd_pkt_len_max")),
+                    fwd_packet_length_min=safe_float(source.get("fwd_pkt_len_min")),
+                    fwd_packet_length_mean=safe_float(source.get("fwd_pkt_len_mean")),
+                    fwd_packet_length_std=safe_float(source.get("fwd_pkt_len_std")),
+                    bwd_packet_length_max=safe_float(source.get("bwd_pkt_len_max")),
+                    bwd_packet_length_min=safe_float(source.get("bwd_pkt_len_min")),
+                    bwd_packet_length_mean=safe_float(source.get("bwd_pkt_len_mean")),
+                    bwd_packet_length_std=safe_float(source.get("bwd_pkt_len_std")),
+                    psh_flag_count=safe_float(source.get("psh_flag_cnt")),
+                    ack_flag_count=safe_float(source.get("ack_flag_cnt")),
+                    init_win_bytes_forward = source.get("init_fwd_win_byts"),
+                    bwd_packets_per_s = source.get("bwd_pkts_s"),
+                    urg_flag_count = source.get("urg_flag_cnt"),
+                    min_seg_size_forward = source.get("fwd_seg_size_min"),
+                    min_packet_length = source.get("pkt_len_min"),
+                    organization_id=org_id
+                )
+                db.add(db_entry)
+                db.commit()
         
         return True
 

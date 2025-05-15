@@ -343,6 +343,7 @@ class Playbook(Base):
 
         return {log.src_ip for log in logs if geo_ip_map.get(log.src_ip) in restricted_countries}
 
+
 class NetworkLogs(Base):
     __tablename__ = "NetworkLogs"
 
