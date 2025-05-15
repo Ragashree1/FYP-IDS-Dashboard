@@ -32,6 +32,7 @@ def parse_timestamp(timestamp_str):
     raise ValueError(f"Timestamp '{timestamp_str}' does not match any supported formats.")
 
 def fetch_alerts():
+    print("Starting fetch_alerts...")  # Debug print
     es_url = "http://localhost:9200/snort-logs-*/_search"
     query = {
         "size": 100,
@@ -40,10 +41,15 @@ def fetch_alerts():
     }
     
     headers = {"Content-Type": "application/json"}
-    response = requests.get(es_url, json=query, headers=headers)
-    alerts = response.json().get('hits', {}).get('hits', [])
-    
-    return alerts
+    try:
+        response = requests.get(es_url, json=query, headers=headers)
+        print(f"Elasticsearch response status: {response.status_code}")  # Debug print
+        alerts = response.json().get('hits', {}).get('hits', [])
+        print(f"Found {len(alerts)} alerts")  # Debug print
+        return alerts
+    except Exception as e:
+        print(f"Error fetching alerts: {e}")  # Debug print
+        return []
 
 def get_last_alert_time():
     with SessionLocal() as db:
@@ -52,12 +58,19 @@ def get_last_alert_time():
 
 def preprocess_alert(alert):
     try:
+        print("Raw Alert:", alert)
         message_parts = alert['_source']['message'].split(',')
-        timestamp = alert['_source']['@timestamp']
+        timestamp_str = alert['_source']['@timestamp']
+        # Convert timestamp string to datetime object
+        try:
+            timestamp = parse_timestamp(timestamp_str)
+        except Exception as e:
+            print(f"Failed to parse timestamp: {timestamp_str} ({e})")
+            return None
         if len(message_parts) < 12:
             raise ValueError("Alert format is incorrect")
         return {
-            "timestamp": timestamp,
+            "timestamp": timestamp,  # Now a datetime object
             "priority": int(message_parts[1].strip()),
             "protocol": message_parts[2].strip(),
             "raw": message_parts[3].strip(),
@@ -98,28 +111,51 @@ def save_alerts(alerts):
             if preprocessed_alert:
                 client_ip, org_id = get_client_ip_and_org(preprocessed_alert, verified_ip_map)
                 if org_id:
+                    print("Saving Alert:", preprocessed_alert)  # Debug print
                     preprocessed_alert["organization_id"] = org_id
                     db_alert = SnortAlerts(**preprocessed_alert)
                     db.add(db_alert)
-                # If not verified, skip saving
-        db.commit()
+        try:
+            db.commit()
+        except Exception as e:
+            print(f"Error during db.commit(): {e}")
+            db.rollback()
 
 def update_and_fetch_alerts():
-    last_alert_time = get_last_alert_time()
-    if last_alert_time:
-        last_alert_time = parse_timestamp(last_alert_time)
-    alerts = fetch_alerts()
-    
-    new_alerts = []
-    for alert in alerts:
-        alert_time = datetime.strptime(alert['_source']['@timestamp'], "%Y-%m-%dT%H:%M:%S.%fZ")
-        if not last_alert_time or alert_time > last_alert_time:
-            new_alerts.append(alert)
-    
-    save_alerts(new_alerts)
-    
-    with SessionLocal() as db:
-        return db.query(SnortAlerts).all()
+    print("Starting update_and_fetch_alerts...")  # Debug print
+    try:
+        last_alert_time = get_last_alert_time()
+        print(f"Last alert time: {last_alert_time}")  # Debug print
+
+        # Only parse if last_alert_time is a string
+        if last_alert_time and isinstance(last_alert_time, str):
+            last_alert_time = parse_timestamp(last_alert_time)
+            print(f"Parsed last alert time: {last_alert_time}")  # Debug print
+
+        alerts = fetch_alerts()
+        print(f"Fetched {len(alerts)} alerts")  # Debug print
+
+        new_alerts = []
+        for alert in alerts:
+            try:
+                alert_time = datetime.strptime(alert['_source']['@timestamp'], "%Y-%m-%dT%H:%M:%S.%fZ")
+                if not last_alert_time or alert_time > last_alert_time:
+                    new_alerts.append(alert)
+            except Exception as e:
+                print(f"Error processing alert: {e}")  # Debug print
+                continue
+
+        print(f"Found {len(new_alerts)} new alerts")  # Debug print
+        if new_alerts:
+            save_alerts(new_alerts)
+
+        with SessionLocal() as db:
+            all_alerts = db.query(SnortAlerts).all()
+            print(f"Total alerts in database: {len(all_alerts)}")  # Debug print
+            return all_alerts
+    except Exception as e:
+        print(f"Error in update_and_fetch_alerts: {e}")  # Debug print
+        return []
 
 def fetch_alerts_by_org(organization_id: int):
     """

@@ -333,27 +333,30 @@ def check_classtype_by_organization(classType: str, organization_id: int) -> Lis
         return [row[0] for row in result]
 
 def execute_playbook_rules():
-    print("executing")
-    """
-    Iterates over all active playbooks and evaluates their conditions.
-    If all conditions in a playbook are met, the specified actions are executed.
-    """
+    print("Executing playbook rules...")
     try:
         with SessionLocal() as db:
             active_playbooks = db.query(Playbook).filter(Playbook.is_active == True).all()
+            print(f"Found {len(active_playbooks)} active playbooks.")
 
             for playbook in active_playbooks:
+                print(f"\nEvaluating playbook: {playbook.name} (ID: {playbook.id})")
                 conditions = playbook.conditions
                 actions = playbook.actions
                 organization_id = playbook.organization_id
 
-                # Parse conditions and actions
+                print(f"Conditions: {conditions}")
+                print(f"Actions: {actions}")
+                print(f"Organization ID: {organization_id}")
+
                 if not conditions:
+                    print("No conditions found, skipping playbook.")
                     continue
 
                 ips_to_block = set()
 
                 for condition in conditions:
+                    print(f"Evaluating condition: {condition}")
                     condition_type = condition.get("condition_type")
                     field = condition.get("field")
                     operator = condition.get("operator")
@@ -363,28 +366,33 @@ def execute_playbook_rules():
                     if condition_type == "threshold" and field == "source_ip_alert_count":
                         threshold = int(value)
                         interval_minutes = int(window_period) if window_period else 1
-                        alerts = check_ip_alerts_by_organization(threshold, interval_minutes)
+                        alerts = check_ip_alerts_by_organization(threshold, interval_minutes, organization_id)
+                        print(f"Threshold alerts found: {alerts}")
                         ips_to_block.update(alert[0] for alert in alerts)
 
                     elif condition_type == "severity" and field == "severity":
-                        print("i am printing it now ...." + value)
-                        print("conditions " + str(condition))
-                        severity = value
-                        ips = check_exceed_severity_level_by_organization(severity, organization_id)
+                        print(f"Checking severity: {value}")
+                        ips = check_exceed_severity_level_by_organization(value, organization_id)
+                        print(f"IPs exceeding severity '{value}': {ips}")
                         ips_to_block.update(ips)
 
                     elif condition_type == "class_type" and field == "class_type":
-                        class_type = value
-                        ips = check_classtype_by_organization(class_type, organization_id)
+                        print(f"Checking class type: {value}")
+                        ips = check_classtype_by_organization(value, organization_id)
+                        print(f"IPs matching class type '{value}': {ips}")
                         ips_to_block.update(ips)
 
                     elif condition_type == "ip_reputation" and field == "source_ip" and operator == "exists":
+                        print("Checking international blacklist...")
                         ips = check_international_blacklist()
+                        print(f"IPs in international blacklist: {ips}")
                         ips_to_block.update(ips)
 
                 # If multiple conditions exist, ensure all are met
                 if len(conditions) > 1:
+                    print("Multiple conditions detected, intersecting IPs...")
                     for condition in conditions:
+                        print(f"Intersecting for condition: {condition}")
                         condition_type = condition.get("condition_type")
                         field = condition.get("field")
                         operator = condition.get("operator")
@@ -396,20 +404,22 @@ def execute_playbook_rules():
                             interval_minutes = int(window_period) if window_period else 1
                             alerts = check_ip_alerts_by_organization(threshold, interval_minutes, organization_id)
                             condition_ips = set(alert[0] for alert in alerts)
+                            print(f"Threshold condition IPs: {condition_ips}")
 
                         elif condition_type == "severity" and field == "severity":
-                            severity = value
-                            condition_ips = set(check_exceed_severity_level_by_organization(severity, organization_id))
+                            condition_ips = set(check_exceed_severity_level_by_organization(value, organization_id))
+                            print(f"Severity condition IPs: {condition_ips}")
 
                         elif condition_type == "class_type" and field == "class_type":
-                            class_type = value
-                            condition_ips = set(check_classtype_by_organization(class_type, organization_id))
+                            condition_ips = set(check_classtype_by_organization(value, organization_id))
+                            print(f"Class type condition IPs: {condition_ips}")
 
                         elif condition_type == "ip_reputation" and field == "source_ip" and operator == "exists":
                             condition_ips = set(check_international_blacklist())
+                            print(f"IP reputation condition IPs: {condition_ips}")
 
-                        # Intersect with existing IPs to ensure all conditions are met
                         ips_to_block.intersection_update(condition_ips)
+                        print(f"IPs to block after intersection: {ips_to_block}")
 
                 # Filter out verified IPs
                 verified_ips = db.query(VerifiedIP).filter(
@@ -418,7 +428,9 @@ def execute_playbook_rules():
                     VerifiedIP.ip.in_(ips_to_block)
                 ).with_entities(VerifiedIP.ip).all()
                 verified_ips_set = {ip[0] for ip in verified_ips}
+                print(f"Verified IPs to exclude: {verified_ips_set}")
                 ips_to_block = ips_to_block - verified_ips_set
+                print(f"Final IPs to block (after excluding verified): {ips_to_block}")
 
                 # Consolidate IPs for email alert (only non-verified IPs)
                 if actions.get("sendEmailAlert"):
@@ -428,16 +440,16 @@ def execute_playbook_rules():
                         ip_list = ", ".join(ips_to_block)
                         message = f"Playbook '{playbook.name}' triggered actions for the following IPs: {ip_list}"
                         subject = f"Alert from Playbook: {playbook.name}"
+                        print(f"Sending email to {recipient_list} with subject '{subject}' and message: {message}")
                         send_email(recipient_list, message, subject)
 
                 # Execute blockIP action for each non-verified IP
                 if actions.get("blockIP") and ips_to_block:
                     for ip in ips_to_block:
-                        print("ip is getting blocked")
-                        ip_data = IPAddressSchema(ip=ip, reason=f"Blocked by playbook: {playbook.name}, organization_id: {organization_id}")
-                        block_ip(ip_data)
+                        print(f"Blocking IP: {ip} for playbook: {playbook.name}, organization_id: {organization_id}")
+                        block_ip(ip, f"Blocked by playbook: {playbook.name}, organization_id: {organization_id}", organization_id)
+        print("Playbook rule execution complete.")
         return True
     except Exception as e:
-        # Log the exception if needed
         print(f"Error executing playbook rules: {e}")
         return False
