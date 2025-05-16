@@ -42,6 +42,8 @@ const ReviewsPage = () => {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
   const [reviewToDelete, setReviewToDelete] = useState(null)
   const [userPermission, setuserPermission] = useState([]) ;
+  const [showWarning, setShowWarning] = useState(false);
+  const [hasPermission, setHasPermission] = useState(null);
 
   // Function to get the token - hardcoded for platform admin
   const getToken = () => {

@@ -7,6 +7,31 @@ import { checkPermissions, fetchPermissions } from "./utils/check_permissions"
 
 const permission = "Account_Activity"
 
+const PermissionDeniedPopup = () => (
+  <div className="permission-popup-overlay">
+    <div className="success-popup">
+      <div className="success-popup-header">
+        <div className="success-popup-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"
+            strokeLinecap="round" strokeLinejoin="round">
+            <circle cx="12" cy="12" r="10"></circle>
+            <line x1="12" y1="8" x2="12" y2="12"></line>
+            <circle cx="12" cy="16" r="1"></circle>
+          </svg>
+        </div>
+        <div className="success-popup-title">PERMISSION DENIED</div>
+      </div>
+      <div className="success-popup-content">
+        <div className="success-popup-message">
+          You do not have permission to view this page.
+        </div>
+      </div>
+    </div>
+  </div>
+);
+
+
+
 const AccountActivityLogsPage = () => {
   const { authData } = useAuth()
   const [logs, setLogs] = useState([])
@@ -15,6 +40,8 @@ const AccountActivityLogsPage = () => {
   const [searchQuery, setSearchQuery] = useState("")
   const [dateFilter, setDateFilter] = useState("all")
   const [actionFilter, setActionFilter] = useState("all")
+  const [showWarning, setShowWarning] = useState(false);
+  const [hasPermission, setHasPermission] = useState(null);
   const [deleteLoading, setDeleteLoading] = useState(false)
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
   const [logToDelete, setLogToDelete] = useState(null)

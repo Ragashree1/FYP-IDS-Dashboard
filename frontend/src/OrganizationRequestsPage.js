@@ -527,7 +527,7 @@ const OrganizationRequestsPage = () => {
         overflow: "hidden",
       }}
     >
-      <Sidebar userRole={userRole} />
+      <Sidebar permissions = {userPermission} />
       <div
         style={{
           flex: 1,

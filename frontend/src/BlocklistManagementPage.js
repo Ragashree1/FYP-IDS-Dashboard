@@ -285,7 +285,7 @@ const BlocklistManagementPage = () => {
   const [selectedIP, setSelectedIP] = useState(null)
   const [blocklist, setBlocklist] = useState([])
   const [userOrgId, setUserOrgId] = useState(null);
-    const [hasPermission, setHasPermission] = useState(null);
+  const [hasPermission, setHasPermission] = useState(null);
   const [showWarning, setShowWarning] = useState(false);
   const [userPermission, setuserPermission] = useState([]) ;
   const [error, setError] = useState(null);

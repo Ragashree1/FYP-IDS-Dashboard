@@ -155,7 +155,9 @@ export default function LoginPage() {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          userComName: userComName,
+          organisation: {
+            name: userComName,  // Changed to nested organisation object
+          },
           username: loginId,
           passwd: password,
         }),
