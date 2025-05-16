@@ -3,8 +3,9 @@ import { useNavigate, useLocation } from "react-router-dom"
 import axios from 'axios';
 import Sidebar from "./Sidebar" // Import the Sidebar component
 import defaultClassifications from "./defaultClassifications" // Import default classifications
+import { checkPermissions, fetchPermissions } from "./utils/check_permissions"
 
-const userRole = "2"
+const permission = "Offences"
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
 const FilterModal = ({ onClose, onSubmit , initialValues}) => {
@@ -715,6 +716,31 @@ const GenerateReportModal = ({ onClose, onSubmit }) => {
   )
 }
 
+
+ const PermissionDeniedPopup = () => (
+  <div className="permission-popup-overlay">
+    <div className="success-popup">
+      <div className="success-popup-header">
+        <div className="success-popup-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"
+            strokeLinecap="round" strokeLinejoin="round">
+            <circle cx="12" cy="12" r="10"></circle>
+            <line x1="12" y1="8" x2="12" y2="12"></line>
+            <circle cx="12" cy="16" r="1"></circle>
+          </svg>
+        </div>
+        <div className="success-popup-title">PERMISSION DENIED</div>
+      </div>
+      <div className="success-popup-content">
+        <div className="success-popup-message">
+          You do not have permission to view this page.
+        </div>
+      </div>
+    </div>
+  </div>
+);
+
+
 const Offences = () => {
   const [filterType, setFilterType] = useState("")
   const [searchQuery, setSearchQuery] = useState("")
@@ -739,6 +765,11 @@ const Offences = () => {
   const [snortLogs, setSnortLogs] = useState([]);
   const [suricataLogs, setSuricataLogs] = useState([]);
   const [zeekLogs, setZeekLogs] = useState([]);
+
+  const [hasPermission, setHasPermission] = useState(null); // null = loading
+  const [showWarning, setShowWarning] = useState(false);
+  const [userPermission, setuserPermission] = useState([]) ;
+
 
   function convertToKeyValuePair(data) {
     return data.reduce((acc, item) => {
@@ -765,6 +796,32 @@ const Offences = () => {
     const data = await response.json();
     return data.user.organization_id;
   };
+
+  useEffect(() => {
+    const verifyPermissions = async () => {
+      const allowed = await checkPermissions(permission);
+      setHasPermission(allowed);
+      if (!allowed) {
+        setShowWarning(true);
+      }
+    };
+
+    verifyPermissions();
+  }, []);
+
+  const getUserPermission = async () => {
+    const perm  = await fetchPermissions();
+    setuserPermission(perm);
+    if (!perm) {
+      setError("Failed to fetch user's permission for Sidebar");
+    }
+  };
+  
+  useEffect(() => {
+    getUserPermission();
+  }, []);
+
+
 
   useEffect(() => {
     const fetchOrgAndAlerts = async () => {
@@ -916,6 +973,17 @@ const Offences = () => {
     return filtered;
   }, [offences, hideUncategorized, filterCriteria, searchQuery, filterType]);
 
+
+  if (!hasPermission) {
+    return (
+      <div style={{ display: 'flex', minHeight: '100vh' }}>
+        <Sidebar permissions = {userPermission} />
+        <div style={{ flex: 1, position: 'relative' }}>
+          {showWarning && <PermissionDeniedPopup />}
+        </div>
+      </div>
+    );
+  }
   const resetFilters = () => {
     setFilterType("");
     setSearchQuery("");
@@ -1031,6 +1099,7 @@ const Offences = () => {
     setFilterCriteria(formData);
     setIsFilterModalOpen(false);
   };
+  {showWarning && <PermissionDeniedPopup />}
 
   // Update the log source change handler
   const handleLogSourceChange = (e) => {
@@ -1057,7 +1126,7 @@ const Offences = () => {
   return (
     <div style={{ display: "flex", height: "100vh", background: "#f4f4f4" }}>
       {/* Use the Sidebar component */}
-      <Sidebar userRole={userRole} />
+      <Sidebar permissions = {userPermission} />
 
       {/* Main Content */}
       <div style={{ flex: 1, padding: "20px" }}>

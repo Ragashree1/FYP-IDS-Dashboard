@@ -341,7 +341,7 @@ const RegistrationPage = () => {
     userFirstName: "",
     userLastName: "",
     passwd: "",
-    userComName: "",
+    organisation: { name: "" },
     userEmail: "",
     userPhoneNum: "",
     userRole: 1, // Set default role
@@ -390,7 +390,7 @@ const RegistrationPage = () => {
         return value.trim() !== "" ? "" : "First Name is required."
       case "userLastName":
         return value.trim() !== "" ? "" : "Last Name is required."
-      case "userComName":
+      case "organisation.name":
         return value.trim() !== "" ? "" : "Company Name is required."
       default:
         return ""
@@ -455,10 +455,22 @@ const RegistrationPage = () => {
   // Handle input changes
   const handleChange = (e) => {
     const { name, value } = e.target
-    setFormData({
-      ...formData,
-      [name]: name === "userComName" ? value.toLowerCase() : value,
-    })
+    setFormData((prevData) => {
+      if (name === "organisation.name") {
+        return {
+          ...prevData,
+          organisation: {
+            ...prevData.organisation,
+            name: value.toLowerCase()
+          },
+        };
+      } else {
+        return {
+          ...prevData,
+          [name]: value,
+        };
+      }
+    });
 
     // If the field has been touched, validate it on change
     if (touched[name]) {
@@ -523,7 +535,8 @@ const RegistrationPage = () => {
     console.log("Submitting registration data:", registrationData)
 
     try {
-      const response = await fetch("http://127.0.0.1:8000/register/", {
+      const response = await fetch("http://localhost:8000/register/", {
+      //const response = await fetch("https://api.secuboard.live/register/", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -669,10 +682,10 @@ const RegistrationPage = () => {
             <div className="form-group">
               <input
                 type="text"
-                name="userComName"
-                id="userComName"
+                name="organisation.name"
+                id="organisation.name"
                 placeholder="Company Name"
-                value={formData.userComName}
+                value={formData.organisation.name}
                 onChange={handleChange}
                 required
               />

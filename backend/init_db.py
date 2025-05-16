@@ -7,6 +7,7 @@ import os
 
 def init_database():
     # Create all tables
+    #Base.metadata.drop_all(bind=engine)
     Base.metadata.create_all(bind=engine)
     
     db = SessionLocal()
@@ -16,14 +17,64 @@ def init_database():
         if not existing_roles:
             # Create default roles
             roles = [
-                Role(id=1, roleName="organisation-admin"),
-                Role(id=2, roleName="network-admin"),
+                    Role(roleName="Organisation Admin"),
+                    Role(roleName="Network Admin"),
+                    Role(roleName="IT Manager"),
+                    Role(roleName="Platform Admin"),
             ]
             db.bulk_save_objects(roles)
             db.commit()
             print("Default roles created successfully")
         else:
             print("Roles already exist")
+
+             # Check if permissions already exist
+        existing_permissions = db.query(Permission).all()
+        if not existing_permissions:
+            # Create default roles
+            permissions = [
+                Permission(permissionName="Blacklist UI"),
+                Permission(permissionName="Event Logs"),
+                Permission(permissionName="Generate Report"),
+                Permission(permissionName="Offences"),
+                Permission(permissionName="Playbook Modal"),
+                Permission(permissionName="Reports Page"),
+                Permission(permissionName="System Configuration Page"),
+               # Permission(permissionName="Trained Models"),
+               # Permission(permissionName="Train Models"),
+                Permission(permissionName="Dashboard"),
+                Permission(permissionName="User Management"),
+                Permission(permissionName="Roles & Permissions"),
+                Permission(permissionName="ML Predictions"),
+                Permission(permissionName="organisation_requests"),
+                Permission(permissionName="manage_organisation"),
+                Permission(permissionName="view_log_forwarding"),
+                Permission(permissionName="manage_api_access"),
+                Permission(permissionName="platform_settings"),
+                Permission(permissionName="System_Activity"),
+                Permission(permissionName="Account_Activity"),
+                Permission(permissionName="Reviews_Management"),
+                Permission(permissionName="Settings"),
+            ]
+            db.bulk_save_objects(permissions)
+            db.commit()
+            print("Default permissions created successfully")
+        else:
+            print("Permissions already exist")
+
+    
+        organisation_admin_role = db.query(Role).filter_by(roleName="Organisation Admin").first()
+
+        # Fetch the "Roles & Permissions" and "User Management" permissions
+        roles_permissions = db.query(Permission).filter(Permission.permissionName.in_([
+            "Roles & Permissions",
+            "User Management"
+        ])).all()
+
+        if organisation_admin_role and roles_permissions:
+            organisation_admin_role.permissions.extend(roles_permissions)
+            db.commit()
+            print('"Organisation Admin" role linked to "Roles & Permissions" and "User Management" successfully')
 
         # Check if the international blacklist table is already filled
         existing_blacklist = db.query(InternationalBlacklist).first()

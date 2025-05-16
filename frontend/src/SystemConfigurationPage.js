@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom"
+import { checkPermissions, fetchPermissions } from "./utils/check_permissions"
 import Sidebar from "./Sidebar";
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
-const userRole = "2";
+const permission = "System Configuration Page"
 
 const AddIPModal = ({ onClose, onAdd }) => {
   const [newIP, setNewIP] = useState("");
@@ -131,6 +132,29 @@ const AddIPModal = ({ onClose, onAdd }) => {
     </div>
   );
 };
+  
+const PermissionDeniedPopup = () => (
+  <div className="permission-popup-overlay">
+    <div className="success-popup">
+      <div className="success-popup-header">
+        <div className="success-popup-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"
+            strokeLinecap="round" strokeLinejoin="round">
+            <circle cx="12" cy="12" r="10"></circle>
+            <line x1="12" y1="8" x2="12" y2="12"></line>
+            <circle cx="12" cy="16" r="1"></circle>
+          </svg>
+        </div>
+        <div className="success-popup-title">PERMISSION DENIED</div>
+      </div>
+      <div className="success-popup-content">
+        <div className="success-popup-message">
+          You do not have permission to view this page.
+        </div>
+      </div>
+    </div>
+  </div>
+);
 
 const SystemConfiguration = () => {
   const [logType, setLogType] = useState("all");
@@ -138,8 +162,38 @@ const SystemConfiguration = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [clients, setClients] = useState([]); // Ensure clients is initialized as an empty array
   const [logs, setLogs] = useState([]);
+  const [hasPermission, setHasPermission] = useState(null);
+  const [showWarning, setShowWarning] = useState(false);
+  const [userPermission, setuserPermission] = useState([]) ;
+  const [error, setError] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [userOrgId, setOrgId] = useState(0);
+
+
+  useEffect(() => {
+    const verifyPermissions = async () => {
+      const allowed = await checkPermissions(permission);
+      setHasPermission(allowed);
+      if (!allowed) {
+        setShowWarning(true);
+      }
+    };
+
+    verifyPermissions();
+  }, []);
+
+  const getUserPermission = async () => {
+    const perm  = await fetchPermissions();
+    setuserPermission(perm);
+    if (!perm) {
+      setError("Failed to fetch user's permission for Sidebar");
+    }
+  };
+  
+  useEffect(() => {
+    getUserPermission();
+  }, []);
+  
 
   const fetchVerifiedIPs = async (orgId) => {
     try {
@@ -241,6 +295,18 @@ const SystemConfiguration = () => {
 
     }, []);
 
+    if (!hasPermission) {
+      return (
+        <div style={{ display: 'flex', minHeight: '100vh' }}>
+          <Sidebar permissions = {userPermission} />
+          <div style={{ flex: 1, position: 'relative' }}>
+            {showWarning && <PermissionDeniedPopup />}
+          </div>
+        </div>
+      );
+    }
+
+    
   const handleSearch = (e) => {
     setSearchQuery(e.target.value);
   };
@@ -267,7 +333,7 @@ const SystemConfiguration = () => {
       }}
     >
      
-      <Sidebar userRole={userRole} />
+      <Sidebar permissions = {userPermission} />
 
       <div
         style={{

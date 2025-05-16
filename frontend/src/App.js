@@ -1,4 +1,6 @@
+
 import React from "react";
+import './App.css';
 import { BrowserRouter as Router, Route, Routes, Navigate } from 'react-router-dom';
 import { useAuth } from "./context/AuthContext";
 import LoginPage from './LoginPage';

@@ -8,8 +8,34 @@ import Sidebar from "./Sidebar"
 import DeleteConfirmationModal from "./components/modals/DeleteConfirmationModal"
 import UserModal from "./components/modals/UserModal" // Updated import
 import SuspendConfirmationModal from "./components/modals/SuspendConfirmationModal"
+import { checkPermissions, fetchPermissions } from "./utils/check_permissions"
 
-const userRole = "1"
+const permission = "User Management"
+
+const PermissionDeniedPopup = () => (
+  <div className="permission-popup-overlay">
+    <div className="success-popup">
+      <div className="success-popup-header">
+        <div className="success-popup-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"
+            strokeLinecap="round" strokeLinejoin="round">
+            <circle cx="12" cy="12" r="10"></circle>
+            <line x1="12" y1="8" x2="12" y2="12"></line>
+            <circle cx="12" cy="16" r="1"></circle>
+          </svg>
+        </div>
+        <div className="success-popup-title">PERMISSION DENIED</div>
+      </div>
+      <div className="success-popup-content">
+        <div className="success-popup-message">
+          You do not have permission to view this page.
+        </div>
+      </div>
+    </div>
+  </div>
+);
+
+
 const UserManagementPage = () => {
   const navigate = useNavigate()
   const location = useLocation()
@@ -26,51 +52,16 @@ const UserManagementPage = () => {
   const [userToSuspend, setUserToSuspend] = useState(null)
   const [loading, setLoading] = useState(true) // Added loading state
   const [error, setError] = useState(null)
+  const [hasPermission, setHasPermission] = useState(null);
+  const [showWarning, setShowWarning] = useState(false);
+  const [userPermission, setuserPermission] = useState([]) ;
 
-  // Function to extract organization ID from token and save to localStorage
-  const extractOrgIdFromToken = () => {
-    try {
-      const token = localStorage.getItem("token")
-      if (!token) {
-        console.error("No token found in localStorage")
-        return null
-      }
-
-      // Decode the token
-      const decodedToken = jwtDecode(token)
-      console.log("Decoded token:", decodedToken)
-
-      // Try to find organization_id in different possible locations in the token
-      let orgId = null
-
-      // Check if organization_id is directly in the token
-      if (decodedToken.organization_id) {
-        orgId = decodedToken.organization_id
-      }
-      // Check if it's in the user object
-      else if (decodedToken.user && decodedToken.user.organization_id) {
-        orgId = decodedToken.user.organization_id
-      }
-
-      if (orgId) {
-        console.log("Found organization ID in token:", orgId)
-        localStorage.setItem("orgId", String(orgId))
-        return orgId
-      } else {
-        console.warn("Organization ID not found in token")
-        return null
-      }
-    } catch (err) {
-      console.error("Error extracting organization ID from token:", err)
-      return null
-    }
-  }
-
+ 
   // Function to log user activity
   const logActivity = async (action, targetUser, description) => {
     try {
       const token = localStorage.getItem("token")
-      const response = await fetch("http://127.0.0.1:8000/audit/log-activity", {
+      const response = await fetch("http://localhost:8000/audit/log-activity", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -94,103 +85,79 @@ const UserManagementPage = () => {
   const fetchRoles = async () => {
     try {
       const token = localStorage.getItem("token") // Get the token from localStorage
-      const response = await fetch("http://127.0.0.1:8000/user-management/roles", {
+      const response = await fetch("http://localhost:8000/user-management/roles", {
+        //const response = await fetch ("https://api.secuboard.live/user-management/roles", {
         method: "GET",
-        headers: {
-          Authorization: `Bearer ${token}`, // Include the token in the headers
-        },
-      })
+        });
 
       if (response.ok) {
         const data = await response.json()
         console.log("Fetched roles:", data) // Debug log
         setRoles(data)
         setLoading(false)
-      } else {
-        // If API fails, set default roles
-        setRoles([
-          { id: 1, roleName: "Organisation Admin" },
-          { id: 2, roleName: "Network Admin" },
-          { id: 3, roleName: "IT Manager" }, // Added IT Manager role
-        ])
-        throw new Error("Failed to fetch roles")
-      }
+            }else {
+        throw new Error('Failed to fetch permissions');
+      } 
     } catch (err) {
-      console.error("Error fetching roles:", err)
-      // Set default roles on error
-      setRoles([
-        { id: 1, roleName: "Organisation Admin" },
-        { id: 2, roleName: "Network Admin" },
-        { id: 3, roleName: "IT Manager" }, // Added IT Manager role
-      ])
-      setLoading(false)
+      console.error(err);
     }
-  }
+  };
+  
+  useEffect(() => {
+    fetchRoles();
+  }, []);
 
   // Check for organization ID on component mount
-  useEffect(() => {
-    // Check if orgId exists in localStorage
-    const orgId = localStorage.getItem("orgId")
-
-    if (!orgId || isNaN(Number(orgId))) {
-      console.log("No valid organization ID in localStorage, attempting to extract from token")
-      const extractedOrgId = extractOrgIdFromToken()
-
-      if (!extractedOrgId) {
-        // If we still don't have an orgId, try to get it from authData
-        if (authData && authData.orgId) {
-          console.log("Using organization ID from authData:", authData.orgId)
-          localStorage.setItem("orgId", String(authData.orgId))
-        } else {
-          console.warn("Could not find organization ID in token or authData")
-        }
+ useEffect(() => {
+    const verifyPermissions = async () => {
+      const allowed = await checkPermissions(permission);
+      setHasPermission(allowed);
+      if (!allowed) {
+        setShowWarning(true);
       }
-    } else {
-      console.log("Found organization ID in localStorage:", orgId)
-    }
-  }, [authData])
+    };
 
-  useEffect(() => {
-    fetchRoles()
-  }, [])
+    verifyPermissions();
+  }, []);
 
-  const getRoleName = (roleId) => {
-    // Convert roleId to number for comparison if it's a string
-    const roleIdNum = typeof roleId === "string" ? Number.parseInt(roleId, 10) : roleId
+  const getUserPermission = async () => {
+      const perm  = await fetchPermissions();
+      setuserPermission(perm);
+      if (!perm) {
+        setError("Failed to fetch user's permission for Sidebar");
+      }
+    };
+    
+    useEffect(() => {
+      getUserPermission();
+    }, []);
+  
 
-    // Handle specific role IDs
-    if (roleIdNum === 1) {
-      return "Organisation Admin"
-    } else if (roleIdNum === 2) {
-      return "Network Admin"
-    } else if (roleIdNum === 3) {
-      return "IT Manager" // Added IT Manager role
-    }
+   const getRoleName = (roleId) => {
+    const role = roles.find((role) => role.id === roleId);
+    return role ? role.roleName : "Unknown";
+  };
 
-    // Otherwise look up in the roles array
-    const role = roles.find((r) => r.id === roleIdNum)
-    return role ? role.roleName : "Unknown Role"
-  }
 
   const fetchUsers = async () => {
     try {
       const token = localStorage.getItem("token") // Get the token from localStorage
-      const response = await fetch("http://127.0.0.1:8000/user-management/", {
+      const response = await fetch("http://localhost:8000/user-management/", {
+      // const response = await fetch("https://api.secuboard.live/user-management/", {
         method: "GET",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`, // Pass the token in the headers
+          Authorization: `Bearer ${authData.token}`, // Pass the token in the headers
         },
       })
 
-      if (response.ok) {
-        const data = await response.json()
-        console.log("Fetched users:", data) // Debug log
-        setUsers(data)
-        setLoading(false)
-      } else {
-        throw new Error("Failed to fetch users")
-      }
+ if (response.ok) {
+        const data = await response.json();
+        console.log("Fetched users:", data); // Add this line to inspect the fetched data
+        setUsers(data); // Assuming the response is an array of users
+      }else {
+        throw new Error('Failed to fetch users');
+      } 
     } catch (err) {
       console.error("Error fetching users:", err)
       setError("Failed to fetch users. Please try refreshing the page.")
@@ -198,20 +165,24 @@ const UserManagementPage = () => {
     }
   }
 
-  // Load data on component mount
   useEffect(() => {
-    // First fetch roles, then fetch users
-    const loadData = async () => {
-      await fetchRoles()
-      await fetchUsers()
-    }
+    fetchUsers();
+  }, []);
 
-    loadData()
-  }, [])
+  if (!hasPermission) {
+    return (
+      <div style={{ display: 'flex', minHeight: '100vh' }}>
+        <Sidebar permissions = {userPermission} />
+        <div style={{ flex: 1, position: 'relative' }}>
+          {showWarning && <PermissionDeniedPopup />}
+        </div>
+      </div>
+    );
+  }
 
   const filteredUsers = (users || []).filter(
     (user) =>
-      (user.userComName || "").toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (user.name || "").toLowerCase().includes(searchQuery.toLowerCase()) ||
       (user.username || "").toLowerCase().includes(searchQuery.toLowerCase()) ||
       (getRoleName(user.userRole) || "").toLowerCase().includes(searchQuery.toLowerCase()) ||
       (user.userEmail || "").toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -266,124 +237,55 @@ const UserManagementPage = () => {
 
   const addUser = async (user) => {
     try {
-      const token = localStorage.getItem("token") // Get the token from localStorage
-      let orgId = localStorage.getItem("orgId") // Get the organization ID
+    const token = localStorage.getItem("token"); // Get the token from localStorage
+    const response = await fetch("http://localhost:8000/user-management/", {
+    //const response = await fetch("https://api.secuboard.live/user-management/", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`, // Ensure the token is included in the headers
+      },
+      body: JSON.stringify(user), // Send the user data in the request body
+    });
 
-      console.log("Organization ID from localStorage:", orgId)
-
-      // If no orgId in localStorage, try to extract from token
-      if (!orgId || isNaN(Number(orgId))) {
-        console.log("No valid organization ID in localStorage, attempting to extract from token")
-        orgId = extractOrgIdFromToken()
-
-        // If still no orgId, try from authData
-        if (!orgId && authData && authData.orgId) {
-          orgId = String(authData.orgId)
-          console.log("Using organization ID from authData:", orgId)
-          localStorage.setItem("orgId", orgId)
-        }
-      }
-
-      // Parse organization ID as a number
-      let parsedOrgId = null
-      if (orgId && !isNaN(Number(orgId))) {
-        parsedOrgId = Number(orgId)
-        console.log("Parsed organization ID:", parsedOrgId)
-      } else {
-        console.error("Invalid or missing organization ID")
-        setError("Organization ID is missing or invalid. Please log in again.")
-        setTimeout(() => setError(null), 5000)
-        return false
-      }
-
-      // Set userSuspend to false for users created in user management page
-      // This allows them to log in immediately without approval
-      const newUser = {
-        ...user,
-        userSuspend: false,
-        userRejected: false,
-        organization_id: parsedOrgId, // Add organization_id to the new user
-      }
-
-      console.log("Creating new user with data:", newUser)
-
-      const response = await fetch("http://127.0.0.1:8000/user-management/", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`, // Ensure the token is included in the headers
-        },
-        body: JSON.stringify(newUser), // Send the user data in the request body
-      })
-
-      if (!response.ok) {
-        const errorData = await response.json()
-        throw new Error(errorData.detail || "Failed to add user")
-      }
-
-      const addedUser = await response.json()
-      console.log("Successfully added user:", addedUser)
-
-      // Log the activity
-      const description = `Created new user account: ${newUser.username} with role ${getRoleName(newUser.userRole)}`
-      await logActivity("user_created", newUser, description)
-
-      // Refresh the user list after adding
-      fetchUsers()
-      return true
-    } catch (err) {
-      console.error("Error in addUser:", err)
-      setError(err.message)
-      setTimeout(() => setError(null), 5000)
-      throw err
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.detail || "Failed to add user");
     }
+
+    fetchUsers(); // Refresh the user list after adding a new user
+  } catch (err) {
+    setError(err.message);
+    // Optional: Add a timeout to clear the error after 5 seconds
+    setTimeout(() => setError(null), 5000);
   }
+}
+
 
   const handleEdit = (user) => {
     setSelectedUser({ ...user })
     setShowNewUserModal(true)
   }
 
-  const updateUser = async (user) => {
+const updateUser = async (user) => {
     try {
-      const token = localStorage.getItem("token") // Get the token from localStorage
-      let orgId = localStorage.getItem("orgId") // Get the organization ID
-
-      // If no orgId in localStorage, try to extract from token
-      if (!orgId || isNaN(Number(orgId))) {
-        orgId = extractOrgIdFromToken()
-
-        // If still no orgId, try from authData
-        if (!orgId && authData && authData.orgId) {
-          orgId = String(authData.orgId)
-          localStorage.setItem("orgId", orgId)
-        }
-      }
-
-      // Parse organization ID as a number
-      let parsedOrgId = null
-      if (orgId && !isNaN(Number(orgId))) {
-        parsedOrgId = Number(orgId)
-      }
-
-      // Get the original user to compare changes
-      const originalUser = users.find((u) => u.id === user.id)
-
-      // Ensure all required fields are included
+      const token = localStorage.getItem("token"); // Get the token from localStorage
       const payload = {
         id: user.id,
         username: user.username,
-        userFirstName: user.userFirstName || "",
-        userLastName: user.userLastName || "",
-        userComName: user.userComName,
+        userFirstName: user.userFirstName,
+        userLastName: user.userLastName,
+        org: user.org,
         userEmail: user.userEmail,
         userPhoneNum: user.userPhoneNum,
         userRole: user.userRole,
         userSuspend: user.userSuspend,
         userRejected: user.userRejected || false,
-        organization_id: parsedOrgId || user.organization_id, // Preserve or update organization_id
+        //organization_id: parsedOrgId || user.organization_id, // Preserve or update organization_id
       }
 
+      const originalUser = users.find((u) => u.id === user.id)
+      
       // Include password only if it is provided
       if (user.passwd) {
         payload.passwd = user.passwd
@@ -391,7 +293,8 @@ const UserManagementPage = () => {
 
       console.log("Updating user with payload:", payload)
 
-      const response = await fetch(`http://127.0.0.1:8000/user-management/${user.id}`, {
+      const response = await fetch(`http://localhost:8000/user-management/${user.id}`, {
+      //const response = await fetch(`https://api.secuboard.live/user-management/${user.id}`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
@@ -455,52 +358,20 @@ const UserManagementPage = () => {
     setShowDeleteModal(true)
   }
 
-  const deleteUser = async (id) => {
+ const deleteUser = async (id) => {
     try {
-      const token = localStorage.getItem("token") // Get the token from localStorage
-
-      // Find the user before deleting to use in the log
-      const userToBeDeleted = users.find((user) => user.id === id)
-
-      const response = await fetch(`http://127.0.0.1:8000/user-management/${id}`, {
-        method: "DELETE",
-        headers: {
-          Authorization: `Bearer ${token}`, // Include the token in the headers
-        },
-      })
-
-      if (!response.ok && response.status !== 404) {
-        // 404 is acceptable - it means the user was already deleted
-        const errorData = await response.json()
-        throw new Error(errorData.detail || "Failed to delete user")
-      }
-
-      // Log the activity if we found the user
-      if (userToBeDeleted) {
-        const description = `Deleted user account: ${userToBeDeleted.username}`
-        await logActivity("user_deleted", userToBeDeleted, description)
-      }
-
-      // Remove the user from the local state
-      setUsers((prevUsers) => prevUsers.filter((user) => user.id !== id))
-      return true
+      await fetch(`http://localhost:8000/user-management/${id}`, { method: "DELETE" });
+      //await fetch(`https://api.secuboard.live/user-management/${id}`, { method: "DELETE" });
+      fetchUsers()
     } catch (err) {
-      console.error("Error in deleteUser:", err)
-      // Don't show error message for delete since it might have succeeded
-      return true
+      setError("Failed to delete user");
     }
-  }
+  };
 
-  const handleConfirmDelete = async () => {
-    try {
-      if (!userToDelete) return
-
-      await deleteUser(userToDelete.id)
-      setShowDeleteModal(false)
-      setUserToDelete(null)
-    } catch (err) {
-      console.error("Error in handleConfirmDelete:", err)
-    }
+  const handleConfirmDelete = () => {
+    setUsers(users.filter((user) => user.id !== userToDelete.id))
+    setShowDeleteModal(false)
+    setUserToDelete(null)
   }
 
   const handleCloseDeleteModal = () => {
@@ -526,6 +397,7 @@ const UserManagementPage = () => {
     setShowNewUserModal(false)
     setSelectedUser(null)
   }
+  console.log("User's Permissions:", userPermission)
 
   const handleRefresh = () => {
     setLoading(true)
@@ -541,7 +413,7 @@ const UserManagementPage = () => {
         overflow: "hidden", // Added to prevent horizontal scrolling
       }}
     >
-      <Sidebar userRole={userRole} />
+      <Sidebar permissions = {userPermission} />
       <div
         style={{
           flex: 1,

@@ -1,5 +1,5 @@
 from database import SessionLocal
-from models.models import Account, Role, Organization
+from models.models import Account, Role, Organisation
 from models.schemas import AccountBase
 from typing import List, Optional  # Removed Annotated
 from passlib.context import CryptContext
@@ -7,7 +7,7 @@ from datetime import timedelta, timezone, datetime
 from jose import jwt, JWTError
 from fastapi.security import OAuth2PasswordRequestForm, OAuth2PasswordBearer
 from fastapi import APIRouter, Depends, HTTPException
-
+from sqlalchemy.orm import joinedload
 SECRET_KEY = 's3cr3tk3y'  #Could be anything
 ALGORITHM = 'HS256'
 
@@ -19,14 +19,28 @@ oauth2_bearer = OAuth2PasswordBearer(tokenUrl='/token')
 def add_user(user_particulars: AccountBase):
     with SessionLocal() as db:
         try:
-            # Check if username already exists for this company
-            existing_user = db.query(Account).filter(
-                Account.username == user_particulars.username,
-                Account.userComName == user_particulars.userComName
-            ).first()
+            # Access the nested organisation name correctly
+            org_name = user_particulars.organisation.name.lower().strip()
+            if not org_name:
+                raise HTTPException(
+                    status_code=400, 
+                    detail="Organisation name cannot be empty."
+                )
             
+            org = db.query(Organisation).filter(Organisation.name == org_name).first()
+            if not org:
+                org = Organisation(name=org_name)
+                db.add(org)
+                db.commit()
+                db.refresh(org)
+
+            # Check if user with same username and company exists
+            existing_user = db.query(Account).filter(Account.username == user_particulars.username,Account.organisation_id == org.id).first()
             if existing_user:
-                raise HTTPException(status_code=400, detail="Username already exists for this company")
+                raise HTTPException(
+                status_code=400,
+                detail=f"User with username '{user_particulars.username}' already exists in company '{user_particulars.userComName}'"
+                )
             
             # Check if email already exists
             existing_email = db.query(Account).filter(
@@ -52,30 +66,20 @@ def add_user(user_particulars: AccountBase):
             hashed_password = bcrypt_context.hash(user_particulars.passwd)
             user_data = user_particulars.model_dump()
             user_data.pop("passwd", None)
-
-            org = db.query(Organization).filter(Organization.name == user_particulars.userComName).first()
-
-            if not org:
-                print("FIRST")
-                org = Organization(name=user_particulars.userComName)
-                db.add(org)
-                db.commit()
-                db.refresh(org)
-            
-            
-            user_data["organization_id"] = org.id
-
-            create_user = Account(**user_data,passwd=hashed_password)
+            user_data.pop("organisation", None)
+            create_user = Account(**user_data,passwd=hashed_password,organisation_id=org.id)
             db.add(create_user)
             db.commit()
             db.refresh(create_user)
+
+            user_with_org = db.query(Account).options(joinedload(Account.organisation)).filter_by(id=create_user.id).first()
             
             # Create a response object without the id field
             response_data = user_particulars.model_dump()
             if "id" in response_data:
                 del response_data["id"]
                 
-            return create_user
+            return user_with_org
         except HTTPException as e:
             db.rollback()
             raise e
@@ -100,18 +104,13 @@ def create_access_token(username: str, user_id: str, userRole: str, userComName:
 
 
 async def get_current_user(token: Depends(oauth2_bearer)): # type: ignore
+#async def get_current_user(token: Annotated[str,Depends(oauth2_bearer)]): #From Backend version
    try:
        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
        username: str = payload.get('sub','')
        user_id: int = payload.get('id','-1')
        if username is None or user_id is None:
         raise 
-       
-        with SessionLocal() as db:
-            account = db.query(Account).filter(Account.id == user_id).first()
-            if account is None:
-                raise HTTPException(status_code=404, detail="User not found")
-            organisation_id = account.organisation_id
        
        return {'username':username,'id':user_id}    
    except JWTError: #JWTError is the error raised for when the payload= jwt.decode line fails to decode

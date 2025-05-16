@@ -29,7 +29,7 @@ const LandingPage = () => {
   // Add a function to fetch reviews
   const fetchReviews = async () => {
     try {
-      const response = await fetch("http://127.0.0.1:8000/reviews/")
+      const response = await fetch("http://localhost:8000/reviews/")
       if (response.ok) {
         const data = await response.json()
         setTestimonials(data)
@@ -273,7 +273,7 @@ const LandingPage = () => {
     setSubmitError("")
 
     try {
-      const response = await fetch("http://127.0.0.1:8000/reviews/", {
+      const response = await fetch("http://localhost:8000/reviews/", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

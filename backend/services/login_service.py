@@ -3,7 +3,7 @@ from database import SessionLocal
 from sqlalchemy.orm import Session
 from models.models import Account, Role
 from models.schemas import AccountBase, RoleBase, RoleIn, RoleOut, AccountStatusCheck
-from typing import List, Optional, Dict, Any
+from typing import List, Optional, Dict,Annotated, Any
 from passlib.context import CryptContext
 from datetime import timedelta, timezone, datetime
 from jose import jwt, JWTError
@@ -21,12 +21,13 @@ oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/token")
 
 oauth2_bearer = OAuth2PasswordBearer(tokenUrl='/login/token')
 
-def authenticate_user(db: Session, username: str, password: str, userComName: str):
+def authenticate_user(username: str, password: str, userComName: str):
     """Authenticate a user by username, password, and company name"""
-    user = db.query(Account).filter(
-        Account.username == username, 
-        Account.userComName == userComName
-    ).first()
+    with SessionLocal() as db:
+        user = db.query(Account).filter(
+            Account.username == username, 
+            Account.userComName == userComName
+        ).first()
 
     if not user:
         return False
@@ -36,10 +37,9 @@ def authenticate_user(db: Session, username: str, password: str, userComName: st
 
     return user
 
-def create_access_token(data: Dict[str, Any], user: Account, expires_delta: Optional[timedelta] = None):
+def create_access_token(username: str, user_id: str, userRole: str, userComName: str,userFirstName: str ,userLastName: str ,userEmail: str,userPhoneNum: str, userSuspend: bool, userRejected: bool,organization_id: str,expires_delta: Optional[timedelta] = None):
     """Create a JWT access token with user data including organization_id"""
-    to_encode = data.copy()
-    
+   
     if expires_delta:
         expire = datetime.utcnow() + expires_delta
     else:
@@ -47,23 +47,24 @@ def create_access_token(data: Dict[str, Any], user: Account, expires_delta: Opti
     
     # Add user data to token
     user_data = {
-        "id": user.id,
-        "username": user.username,
-        "userComName": user.userComName,
-        "userRole": user.userRole,
-        "userFirstName": user.userFirstName,
-        "userLastName": user.userLastName,
-        "userEmail": user.userEmail,
-        "userPhoneNum": user.userPhoneNum,
-        "userSuspend": user.userSuspend,
-        "organization_id": user.organization_id  # Include organization_id
+        "id": user_id,
+        "username": username,
+        "userComName": userComName,
+        "userRole": userRole,
+        "userFirstName":userFirstName,
+        "userLastName": userLastName,
+        "userEmail": userEmail,
+        "userPhoneNum": userPhoneNum,
+        "userSuspend": userSuspend,
+        "userRejected": userRejected,
+        "organization_id": organization_id  # Include organization_id
     }
     
     # Add userRejected if it exists
     if hasattr(user, 'userRejected'):
         user_data["userRejected"] = user.userRejected
     
-    to_encode.update({"user": user_data, "exp": expire})
+    user_data.update({"user": user_data, "exp": expire})
     
     # Create and return the encoded token
     return jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)

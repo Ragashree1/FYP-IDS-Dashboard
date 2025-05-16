@@ -1,12 +1,10 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { useNavigate } from "react-router-dom"
 import { useAuth } from "./context/AuthContext"
 import Sidebar from "./Sidebar"
 
 const AccountActivityLogsPage = () => {
-  const navigate = useNavigate()
   const { authData } = useAuth()
   const [logs, setLogs] = useState([])
   const [loading, setLoading] = useState(true)
@@ -18,17 +16,13 @@ const AccountActivityLogsPage = () => {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
   const [logToDelete, setLogToDelete] = useState(null)
 
-  useEffect(() => {
-    // Fetch activity logs from the API
-    fetchLogs()
-  }, [authData])
 
   const fetchLogs = async () => {
     try {
       setLoading(true)
       const token = localStorage.getItem("token")
 
-      const response = await fetch("http://127.0.0.1:8000/audit/account-logs", {
+      const response = await fetch("http://localhost:8000/audit/account-logs", {
         method: "GET",
         headers: {
           Authorization: `Bearer ${token}`,
@@ -71,13 +65,18 @@ const AccountActivityLogsPage = () => {
     }
   }
 
+  useEffect(() => {
+    // Fetch activity logs from the API
+    fetchLogs()
+  }, [authData])
+
   // Handle deleting a log
   const handleDeleteLog = async (logId) => {
     try {
       setDeleteLoading(true)
       const token = localStorage.getItem("token")
 
-      const response = await fetch(`http://127.0.0.1:8000/audit/delete-log/${logId}`, {
+      const response = await fetch(`http://localhost:8000/audit/delete-log/${logId}`, {
         method: "DELETE",
         headers: {
           Authorization: `Bearer ${token}`,

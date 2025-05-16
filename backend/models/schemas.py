@@ -1,6 +1,6 @@
 import uuid
 from datetime import datetime
-from pydantic import BaseModel, EmailStr, IPvAnyAddress, validator, constr
+from pydantic import BaseModel,EmailStr, IPvAnyAddress, validator, constr
 from typing import List, Optional, Dict, Any
 import re
 
@@ -24,9 +24,6 @@ class JournalOut(BaseModel):
     jDescription: str
     jWeek: str
 
-    class Config:
-        from_attributes = True  # Updated from orm_mode = True
-
 class MeetingMinutesOut(BaseModel):
     id: int
     date: str
@@ -36,9 +33,6 @@ class MeetingMinutesOut(BaseModel):
     agenda: str
     discussion: str
     actions: str
-
-    class Config:
-        from_attributes = True  # Updated from orm_mode = True
 
 class SnortAlertsBase(BaseModel):
     timestamp: str
@@ -100,7 +94,6 @@ class SuricataAlertsBase(BaseModel):
     host: str
     alert_source: str = "suricata"
     organization_id: Optional[int] = None
-
 class SuricataAlertsOut(BaseModel):
     id: int
     timestamp: str
@@ -120,7 +113,6 @@ class SuricataAlertsOut(BaseModel):
     host: str
     alert_source: str
     organization_id: Optional[int] = None
-
     class Config:
         from_attributes = True
 
@@ -148,6 +140,7 @@ class ZeekAlertsBase(BaseModel):
     uid: Optional[str] = None
     service: Optional[str] = None
 
+	
 class ZeekAlertsOut(BaseModel):
     id: int
     timestamp: str
@@ -156,6 +149,7 @@ class ZeekAlertsOut(BaseModel):
     protocol: str
     raw: str
     length: int
+        
     direction: str
     src_ip: str
     src_port: int
@@ -172,42 +166,46 @@ class ZeekAlertsOut(BaseModel):
     event_type: Optional[str] = None
     uid: Optional[str] = None
     service: Optional[str] = None
-
     class Config:
         from_attributes = True
 
+class OrganisationBase(BaseModel):
+    name: str
+        
 class AccountBase(BaseModel):
-    id: Optional[int] = None
+    id: Optional[int] = None  # Changed to make it truly optional
     username: str
     userFirstName: Optional[str] = ""
     userLastName: Optional[str] = ""
     passwd: Optional[str] = None
-    userComName: str
-    userEmail: EmailStr
+    userEmail: EmailStr  # Changed to use EmailStr for better validation
     userPhoneNum: str
-    userRole: Optional[int] = 1
-    userSuspend: bool = True
+    userRole: Optional[int] = 1  # Set default value
+    userSuspend: bool = False
     userRejected: Optional[bool] = False
-    organization_id: Optional[int] = None
-    fromOrgRequestsPage: Optional[bool] = False  # Ensure consistent naming
+    organisation: OrganisationBase
 
     @validator('id', pre=True)
     def handle_empty_id(cls, v):
-        if v == "" or v is None:
+        if v == "":
             return None
         return v
 
     @validator('userPhoneNum')
     def validate_phone(cls, v):
-        if not v or v.strip() == "":
-            return "+65123456789"
+        # Validate phone number format
         phone_regex = re.compile(r'^\+[1-9]\d{0,2}\d{6,14}$')
         if not phone_regex.match(v):
             raise ValueError('Phone number must follow format: +[country code][number]')
-        if len(v) < 9:
+        
+        # Check for minimum length (country code + 7 digits)
+        if len(v) < 9:  # +[1-3 digits] + 7 digits minimum
             raise ValueError('Phone number too short')
-        if len(v) > 16:
+            
+        # Check for maximum length (country code + 15 digits)
+        if len(v) > 16:  # + + 15 digits maximum
             raise ValueError('Phone number too long')
+            
         return v
 
     @validator('userEmail')
@@ -218,7 +216,7 @@ class AccountBase(BaseModel):
 
     @validator('passwd')
     def validate_password(cls, v):
-        if v is None:
+        if v is None:  # Skip validation if no password is provided
             return v
         if len(v) < 8:
             raise ValueError('Password must be at least 8 characters')
@@ -233,7 +231,7 @@ class AccountBase(BaseModel):
         return v
 
     class Config:
-        from_attributes = True  # Updated from orm_mode = True
+        orm_mode = True
 
 class AccountStatusCheck(BaseModel):
     exists: bool
@@ -241,10 +239,10 @@ class AccountStatusCheck(BaseModel):
     userRejected: bool
 
 class AccountLogin(BaseModel):
-    userComName: str
-    userRole: Optional[int] = None
-    username: str
-    passwd: str
+    organisation: OrganisationBase
+    userRole: str = None
+    username : str
+    passwd : str
 
 class CreditCardBase(BaseModel):
     creditFirstName: str
@@ -255,9 +253,11 @@ class CreditCardBase(BaseModel):
     subscription: str
     total: str
 
+
 class Token(BaseModel):
     access_token: str
     token_type: str
+
 
 class PermissionBase(BaseModel):
     id: int
@@ -266,29 +266,31 @@ class PermissionBase(BaseModel):
     class Config:
         from_attributes = True
 
+
 class RoleBase(BaseModel):
-    id: int
+    id:int
     roleName: str
 
 class RoleIn(RoleBase):
-    id: Optional[int] = None
+    id:Optional[int] = None
     roleName: Optional[str] = None
     permission_id: Optional[List[int]] = None
 
 class RoleOut(RoleBase):
-    id: Optional[int] = None
+    id:Optional[int] = None
+    username:Optional[str] = None
     roleName: Optional[str] = None
-    permissions: Optional[List[PermissionBase]] = None
+    permissions: Optional[List[PermissionBase]] = None  # Return permission details
     permission_id: Optional[List[int]] = None
 
     class Config:
-        from_attributes = True  # Updated from orm_mode = True
+        orm_mode = True
 
 class AccountOut(AccountBase):
-    role: RoleOut
+    role: RoleOut  # Return role details instead of just an ID
 
     class Config:
-        from_attributes = True  # Updated from orm_mode = True
+         from_attributes = True  # Updated from orm_mode = True
 
 class LogsBase(BaseModel):
     timestamp: str
@@ -322,26 +324,23 @@ class LogsOut(BaseModel):
 
 class IPAddressSchema(BaseModel):
     ip: str
-    reason: str
+    reason : str
     organization_id: int
-
     class Config:
         from_attributes = True
 
 class ClientSchema(BaseModel):
     name: str
     email: str
-
     class Config:
         from_attributes = True
-
 class VerifyIPRequest(BaseModel):
     organization_id: int
     ip: str
 
 class PlaybookBase(BaseModel):
     name: str
-    description: Optional[str] = None
+    description: Optional[str]
     conditions: list
     actions: dict
     is_active: bool = True
@@ -351,22 +350,17 @@ class PlaybookBase(BaseModel):
 
 class LogRequest(BaseModel):
     log_data: str
-
     class Config:
         from_attributes = True  
-
 class ClientRequest(BaseModel):
     name: str
     email: str
-
     class Config:
         from_attributes = True
-
 class LogEntryOut(BaseModel):
     timestamp: str
     ip: str
     log_data: str
-
     class Config:
         orm_mode = True
 
@@ -375,13 +369,14 @@ class PlaybookOut(PlaybookBase):
     description: str = None  
     conditions: list  # JSON field
     actions: dict  # JSON field
-    organization_id: int  # Foreign key to Organizations table
+    organization_id: uuid.UUID  # Foreign key to Organizations table
     is_active: bool = True
     created_at: datetime
     updated_at: datetime
 
     class Config:
-        from_attributes = True  # Updated from orm_mode = True
+         from_attributes = True  # Updated from orm_mode = True
+
 
 class NetworkLogsBase(BaseModel):
     src_ip: Optional[str] = None
@@ -469,21 +464,15 @@ class NetworkLogsBase(BaseModel):
     idle_max: Optional[float] = None
     idle_min: Optional[float] = None
     organization_id: Optional[int] = None
-
     class Config:
         from_attributes = True  # Updated from orm_mode = True
 
-
-class VerifyIPRequest(BaseModel):
-    organization_id: int
-    ip: str
 class CombinedLogResponse(BaseModel):
     source: str
     timestamp: str
     message: str
     type: str
     additional_data: Optional[Dict[str, Any]] = None
-
 class ActivityLogBase(BaseModel):
     user: str
     targetUser: str
@@ -491,14 +480,13 @@ class ActivityLogBase(BaseModel):
     description: str
     ipAddress: Optional[str] = "127.0.0.1"
     userComName: Optional[str] = None
-
 class ActivityLog(ActivityLogBase):
     id: Optional[int] = None
     timestamp: datetime
-
     class Config:
         from_attributes = True
 
+	
 # New SystemLogBase model for tracking system activities
 class SystemLogBase(BaseModel):
     user: str
@@ -509,14 +497,11 @@ class SystemLogBase(BaseModel):
     resourceId: Optional[str] = None
     resourceName: Optional[str] = None
     userComName: Optional[str] = None
-
 class SystemLog(SystemLogBase):
     id: Optional[int] = None
     timestamp: datetime
-
     class Config:
         from_attributes = True
-
 # New ReviewBase model for customer reviews
 class ReviewBase(BaseModel):
     name: str
@@ -536,7 +521,6 @@ class ReviewBase(BaseModel):
         if len(v) < 5:
             raise ValueError('Review text must be at least 5 characters long')
         return v
-
 # New ReviewOut model for returning reviews
 class ReviewOut(ReviewBase):
     id: int
@@ -544,32 +528,27 @@ class ReviewOut(ReviewBase):
     
     class Config:
         from_attributes = True
-
 class MLModelBase(BaseModel):
     model_name: str
     algorithm: str
     model_type: str  # 'anomaly' or 'multiclass'
     model_file_name: str
     model_file_path: str
-
     use_default_preprocessor: bool = False
     has_built_in_preprocessor: bool = False
     use_default_features: bool = False
     normal_class_name: Optional[str] = None
-
     preprocessor_file_name: Optional[str] = None
     preprocessor_file_path: Optional[str] = None
     label_mapping: Optional[Dict[str, str]] = None
     features_list: Optional[str] = None
     organization_id: int
     is_active: Optional[bool] = False
-
     @validator('model_type')
     def validate_model_type(cls, v):
         if v not in ['anomaly', 'multiclass']:
             raise ValueError('model_type must be either "anomaly" or "multiclass"')
         return v
-
     @validator('features_list')
     def validate_features_list(cls, v, values):
         # Skip validation if use_default_features is True
@@ -578,7 +557,6 @@ class MLModelBase(BaseModel):
         if not v or not v.strip():
             raise ValueError('features_list is required when not using default features')
         return v
-
     @validator('preprocessor_file_path')
     def validate_preprocessor(cls, v, values):
         # Skip validation if using default or built-in preprocessor
@@ -587,7 +565,6 @@ class MLModelBase(BaseModel):
         if not v:
             raise ValueError('preprocessor file is required when not using default or built-in preprocessor')
         return v
-
 class MLModelOut(BaseModel):
     id: int
     model_name: str
@@ -598,7 +575,6 @@ class MLModelOut(BaseModel):
     preprocessor_file_name: Optional[str] = None
     preprocessor_file_path: Optional[str] = None
     use_default_preprocessor: bool = False
-    use_default_preprocessor: bool = False
     has_built_in_preprocessor: bool = False
     normal_class_name: Optional[str] = None
     label_mapping: Optional[Dict[str, str]] = None
@@ -606,9 +582,9 @@ class MLModelOut(BaseModel):
     use_default_features: bool = False
     organization_id: int
     is_active: bool = True
-
     class Config:
         from_attributes = True
     
 class LogIdsRequest(BaseModel):
     log_ids: List[int]
+ 

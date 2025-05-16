@@ -1,6 +1,6 @@
 from database import SessionLocal
 from sqlalchemy.orm import Session
-from models.models import BlockedIP, Playbook, SnortAlerts, Organization, VerifiedIP
+from models.models import BlockedIP, Playbook, SnortAlerts, Organisation, VerifiedIP
 from fastapi import HTTPException, Request
 import re
 from datetime import datetime, timedelta
@@ -8,8 +8,8 @@ from datetime import datetime, timedelta
 
 def get_org_name_blocked_ips(org_name: str):
     with SessionLocal() as db:
-        organization = db.query(Organization).filter(Organization.name == org_name).first()
-        if not organization:
+        organisation = db.query(Organisation).filter(Organisation.name == org_name).first()
+        if not organisation:
             return {"blocked_ips": []}
 
         blocked_ips = (

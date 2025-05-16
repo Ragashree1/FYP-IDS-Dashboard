@@ -6,7 +6,6 @@ from sqlalchemy import (
 )
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import validates, relationship
-from sqlalchemy.dialects.postgresql import UUID
 from database import Base
 from datetime import datetime
 import json
@@ -35,16 +34,20 @@ class Journal(Base):
     class Config:
         from_attributes = True  # Updated from orm_mode = True
 
-class Organization(Base):
-    __tablename__ = "Organizations"
+class Organisation(Base):
+    __tablename__ = "Organisations"
 
-    id = Column(Integer, primary_key=True, index=True)
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     name = Column(String, unique=True, nullable=False)
+
+     # Back reference to accounts
+    accounts = relationship("Account", back_populates="organisation", cascade="all, delete")
+    roles = relationship("Role", back_populates="organisation", cascade="all, delete")
 
 class BlockedIP(Base):
     __tablename__ = "blocked_ips"
     __table_args__ = (
-        UniqueConstraint('ip', 'organization_id', name='unique_ip_per_org'),
+        UniqueConstraint('ip', 'organisation_id', name='unique_ip_per_org'),
     )
 
     id = Column(Integer, primary_key=True, index=True)
@@ -52,8 +55,8 @@ class BlockedIP(Base):
     reason = Column(String, nullable=False)
     created_at = Column(DateTime, server_default=func.now())
 
-    organization_id = Column(Integer, ForeignKey("Organizations.id"), nullable=False)
-    organization = relationship("Organization")
+    organisation_id = Column(UUID(as_uuid=True), ForeignKey("Organisations.id"), nullable=False)
+    organisation = relationship("Organisation")
 
 class SnortAlerts(Base):
     __tablename__ = 'SnortAlerts'
@@ -73,8 +76,8 @@ class SnortAlerts(Base):
     message = Column(String)
     signature_id = Column(String)
     host = Column(String)
-    organization_id = Column(Integer, ForeignKey("Organizations.id"), nullable=True)
-    organization = relationship("Organization")
+    organisation_id = Column(UUID(as_uuid=True), ForeignKey("Organisations.id"), nullable=True)
+    organisation = relationship("Organisation")
 
     class Config:
         from_attributes = True  # Updated from orm_mode = True
@@ -99,7 +102,7 @@ class SuricataAlerts(Base):
     signature_id = Column(String)
     host = Column(String)
     alert_source = Column(String, default="suricata") 
-    organization_id = Column(Integer)
+    organisation_id = Column(UUID(as_uuid=True))
 
     class Config:
         from_attributes = True  # Updated from orm_mode = True
@@ -124,7 +127,7 @@ class ZeekAlerts(Base):
     signature_id = Column(String, default="0")
     host = Column(String)
     alert_source = Column(String, default="zeek")
-    organization_id = Column(Integer)
+    organisation_id = Column(UUID(as_uuid=True))
     conn_id = Column(String, nullable=True)
     event_type = Column(String, nullable=True)
     uid = Column(String, nullable=True)
@@ -136,10 +139,10 @@ class ZeekAlerts(Base):
 class VerifiedIP(Base):
     __tablename__ = "verified_ips"
     id = Column(Integer, primary_key=True, index=True)
-    ip = Column(String, unique=True, nullable=False)
+    ip = Column(String, nullable=False)
     is_verified = Column(Boolean, default=False)
-    organization_id = Column(Integer, ForeignKey("Organizations.id"), nullable=True)  # Ensure IP is linked to an organization
-    organization = relationship("Organization")
+    organisation_id = Column(UUID(as_uuid=True), ForeignKey("Organisations.id"), nullable=False)  # Ensure IP is linked to an organisation
+    organisation = relationship("Organisation")
 
 class Account(Base):
     __tablename__= 'Account'
@@ -148,19 +151,19 @@ class Account(Base):
     userFirstName = Column(String)
     userLastName = Column(String)
     passwd = Column(String)
-    userComName = Column(String)
+    #userComName = Column(String) Rmb to delete later
     userEmail = Column(String)
     userPhoneNum = Column(String)
     userRole = Column(Integer, ForeignKey("role.id"))
     userSuspend = Column(Boolean)
-    organization_id = Column(Integer, ForeignKey("Organizations.id"))  
-    organization = relationship("Organization") 
+    organisation = relationship("Organisation", back_populates="accounts")
+    organisation_id = Column(UUID(as_uuid=True), ForeignKey("Organisations.id", ondelete="SET NULL"), nullable=True)
     role = relationship("Role", back_populates="accounts")
     userRejected = Column(Boolean, default=False)  # Added userRejected field
     fromOrgRequestsPage = Column(Boolean, default=False)
     
     __table_args__ = (
-        UniqueConstraint('username', 'userComName', name='unique_username_company'),
+        UniqueConstraint('username', 'organisation_id', name='unique_username_per_org'),
     )
     
     class Config:
@@ -188,11 +191,15 @@ role_permission_association = Table(
     Column('permission_id', Integer, ForeignKey('permission.id'))
 )
 
-
+	
 class Role(Base):
     __tablename__ = 'role'
-    id = Column(Integer, primary_key=True, index=True)
+    id = Column(Integer, primary_key=True, index=True, autoincrement=True)
     roleName = Column(String)
+
+    organisation_id = Column(UUID(as_uuid=True), ForeignKey("Organisations.id", ondelete="SET NULL"), nullable=True)
+    organisation = relationship("Organisation", back_populates="roles")
+
 
     # Back reference to Account
     accounts = relationship("Account", back_populates="role")
@@ -205,7 +212,7 @@ class Role(Base):
 
 class Permission(Base):
     __tablename__ = 'permission'
-    id = Column(Integer, primary_key=True, index=True)
+    id = Column(Integer, primary_key=True, index=True, autoincrement=True)
     permissionName = Column(String)
 
     # Many-to-many relationship
@@ -266,7 +273,7 @@ class Playbook(Base):
     __tablename__ = "Playbooks"
 
     id = Column(Integer, primary_key=True, index=True)
-    organization_id = Column(Integer, ForeignKey("Organizations.id", ondelete="SET NULL"), nullable=True, index=True)  # Foreign key to an Organization table
+    organisation_id = Column(UUID(as_uuid=True), ForeignKey("Organisations.id", ondelete="SET NULL"), nullable=True, index=True)  # Foreign key to an Organization table
     name = Column(String, unique=True, nullable=False)  # Name of the playbook
     description = Column(String, nullable=True)  # Optional description of what the playbook does
     conditions = Column(JSON, nullable=False)  # JSON structure to define rules (e.g., {"log_type": "alert", "priority": ">3"})
@@ -431,8 +438,8 @@ class NetworkLogs(Base):
     idle_std = Column(Float, nullable=True)
     idle_max = Column(Float, nullable=True)
     idle_min = Column(Float, nullable=True)
-    organization_id = Column(Integer, ForeignKey("Organizations.id"))
-    organization = relationship("Organization")
+    organisation_id = Column(UUID(as_uuid=True), ForeignKey("Organisations.id"), nullable=True)
+    organisation = relationship("Organisation")
 
     class Config:
         orm_mode = True
@@ -440,14 +447,14 @@ class NetworkLogs(Base):
 class LogPredictions(Base):
     __tablename__ = "logPredictions"
     __table_args__ = (
-        Index('idx_org_created', 'organization_id', 'created_at'),
+        Index('idx_org_created', 'organisation_id', 'created_at'),
     )
 
     id = Column(Integer, primary_key=True, index=True)
     log_id = Column(Integer, ForeignKey("NetworkLogs.id", ondelete="CASCADE"), nullable=False) 
     prediction = Column(String, nullable=False) 
-    organization_id = Column(Integer, ForeignKey("Organizations.id"))
-    organization = relationship("Organization")
+    organisation_id = Column(UUID(as_uuid=True), ForeignKey("Organisations.id"), nullable=False)
+    organisation = relationship("Organisation")
     confidence = Column(Float, nullable=True) 
     created_at = Column(TIMESTAMP, server_default=func.now())  
 
@@ -528,8 +535,8 @@ class MLModels(Base):
     normal_class_name = Column(String, nullable=True)  # For multiclass models
     is_active = Column(Boolean, default=False)
     created_at = Column(TIMESTAMP, server_default=func.now())
-    organization_id = Column(Integer, ForeignKey("Organizations.id"))
-    organization = relationship("Organization")
+    organisation_id = Column(UUID(as_uuid=True), ForeignKey("Organisations.id"))
+    organisation = relationship("Organisation")
 
     class Config:
         from_attributes = True

@@ -1,6 +1,6 @@
 from database import SessionLocal
 from sqlalchemy.orm import Session
-from models.models import VerifiedIP, Organization
+from models.models import VerifiedIP, Organisation
 from fastapi import Request, HTTPException
 import ipaddress
 import logging
@@ -17,7 +17,7 @@ def normalize_ip(ip_str: str) -> str:
 
 def verify_and_store_ip(organization_id: int, submitted_ip: str):
     with SessionLocal() as db:
-        organization_exists = db.query(Organization).filter(Organization.id == organization_id).first()
+        organization_exists = db.query(Organisation).filter(Organisation.id == organization_id).first()
         if not organization_exists:
             return {"status": "error", "message": "Organization ID does not exist."}
 

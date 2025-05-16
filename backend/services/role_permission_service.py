@@ -12,16 +12,24 @@ from fastapi import APIRouter, Depends, HTTPException
 
 def add_role(role: RoleIn):
     with SessionLocal() as db: 
-        create_role = Role(roleName=role.roleName)# Ragashree asked for default value as 'organizational-admin', putting system-admin, if wrong rmb to change
-        for permission_id in role.permission_id:
-            permission = db.query(Permission).filter(Permission.id == permission_id).first()
-            if permission:
-                create_role.permissions.append(permission)
-        
-        db.add(create_role)
-        db.commit()
-        db.refresh(create_role)
-        return create_role
+        try:
+            create_role = Role(roleName=role.roleName)# Ragashree asked for default value as 'organizational-admin', putting system-admin, if wrong rmb to change
+            for permission_id in role.permission_id:
+                permission = db.query(Permission).filter(Permission.id == permission_id).first()
+                if permission:
+                    create_role.permissions.append(permission)
+            
+            db.add(create_role)
+            db.commit()
+            db.refresh(create_role)
+            return create_role
+            
+        except Exception as e:
+            print(f"exception in adding role{e}") 
+            raise HTTPException(status_code=422, detail=str(e))
+
+        finally:
+            db.close()
     
 def get_all_roles() -> List[RoleOut]:
     with SessionLocal() as db:  

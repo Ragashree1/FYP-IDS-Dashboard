@@ -33,7 +33,7 @@ const SystemActivityLogsPage = () => {
       const token = localStorage.getItem("token")
       console.log("Using token for API call:", token)  // Debug log
 
-      const response = await fetch("http://127.0.0.1:8000/audit/system-logs", {
+      const response = await fetch("http://localhost:8000/audit/system-logs", {
         method: "GET",
         headers: {
           Authorization: `Bearer ${token}`,
@@ -117,7 +117,7 @@ const SystemActivityLogsPage = () => {
       setDeleteLoading(true)
       const token = localStorage.getItem("token")
 
-      const response = await fetch(`http://127.0.0.1:8000/audit/delete-system-log/${logId}`, {
+      const response = await fetch(`http://localhost:8000/audit/delete-system-log/${logId}`, {
         method: "DELETE",
         headers: {
           Authorization: `Bearer ${token}`,

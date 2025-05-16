@@ -1,8 +1,9 @@
 import { useState, useEffect } from "react"
 import { useNavigate, useLocation } from "react-router-dom"
 import Sidebar from "./Sidebar"
+import { checkPermissions, fetchPermissions } from "./utils/check_permissions"
 
-const userRole = "2"
+const permission = "Playbook Modal"
 
 // New AddPlaybookModal component that matches the design in the images
 const PlaybookModal = ({ playbook, onClose, onSave }) => {
@@ -669,6 +670,32 @@ const PlaybookModal = ({ playbook, onClose, onSave }) => {
   );
 };
 
+
+const PermissionDeniedPopup = () => (
+  <div className="permission-popup-overlay">
+    <div className="success-popup">
+      <div className="success-popup-header">
+        <div className="success-popup-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"
+            strokeLinecap="round" strokeLinejoin="round">
+            <circle cx="12" cy="12" r="10"></circle>
+            <line x1="12" y1="8" x2="12" y2="12"></line>
+            <circle cx="12" cy="16" r="1"></circle>
+          </svg>
+        </div>
+        <div className="success-popup-title">PERMISSION DENIED</div>
+      </div>
+      <div className="success-popup-content">
+        <div className="success-popup-message">
+          You do not have permission to view this page.
+        </div>
+      </div>
+    </div>
+  </div>
+);
+
+
+
 const PlaybooksPage = () => {
   const navigate = useNavigate()
   const location = useLocation()
@@ -681,6 +708,9 @@ const PlaybooksPage = () => {
   const [selectedRows, setSelectedRows] = useState([])
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [userPermission, setuserPermission] = useState([]) ;
+  const [hasPermission, setHasPermission] = useState(null);
+  const [showWarning, setShowWarning] = useState(false);
 
   // Sample data
   const [playbooks, setPlaybooks] = useState([])
@@ -736,6 +766,43 @@ const PlaybooksPage = () => {
 
     initializePage();
   }, []);
+
+  
+  useEffect(() => {
+    const verifyPermissions = async () => {
+      const allowed = await checkPermissions(permission);
+      setHasPermission(allowed);
+      if (!allowed) {
+        setShowWarning(true);
+      }
+    };
+
+    verifyPermissions();
+  }, []);
+
+  const getUserPermission = async () => {
+    const perm  = await fetchPermissions();
+    setuserPermission(perm);
+    if (!perm) {
+      setError("Failed to fetch user's permission for Sidebar");
+    }
+  };
+  
+  useEffect(() => {
+    getUserPermission();
+  }, []);
+
+  if (!hasPermission) {
+    return (
+      <div style={{ display: 'flex', minHeight: '100vh' }}>
+        <Sidebar permissions = {userPermission} />
+        <div style={{ flex: 1, position: 'relative' }}>
+          {showWarning && <PermissionDeniedPopup />}
+        </div>
+      </div>
+    );
+  }
+
 
   const fetchPlaybooks = async () => {
     try {
@@ -1026,7 +1093,7 @@ const PlaybooksPage = () => {
         overflow: "hidden",
       }}
     >
-      <Sidebar userRole={userRole} />
+      <Sidebar permissions = {userPermission} />
 
       <div
         style={{
