@@ -233,7 +233,11 @@ export default function LoginPage() {
           // Network Admin goes to dashboard
           console.log("Redirecting to dashboard (Network Admin)") // Debug log
           navigate("/dashboard")
-        } else if (userRoleId === 3) {
+        } else if (userRoleId === 4) {
+          // Platform Admin goes to dashboard
+          console.log("Redirecting to dashboard (Data Analyst)") // Debug log
+          navigate("/trained-models")
+        }  else if (userRoleId === 3) {
           // IT Manager goes to system activity logs
           console.log("Redirecting to system activity logs (IT Manager)") // Debug log
           navigate("/system-activity-logs")

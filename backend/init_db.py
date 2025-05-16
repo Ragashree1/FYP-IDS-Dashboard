@@ -18,6 +18,8 @@ def init_database():
             roles = [
                 Role(id=1, roleName="organisation-admin"),
                 Role(id=2, roleName="network-admin"),
+                Role(id=3, roleName="it-manager"),
+                Role(id=4, roleName="data-analyst"),
             ]
             db.bulk_save_objects(roles)
             db.commit()

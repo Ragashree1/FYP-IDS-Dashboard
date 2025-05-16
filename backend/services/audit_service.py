@@ -37,10 +37,14 @@ def get_company_activity_logs(organization_id: int) -> List[ActivityLog]:
     Get activity logs for a specific organization
     """
     with SessionLocal() as db:
+        print(f"Fetching logs for organization ID: {organization_id}")
         logs = db.query(ActivityLog).filter(
             ActivityLog.organization_id == organization_id
         ).order_by(ActivityLog.timestamp.desc()).all()
+        print(f"Fetched {len(logs)} logs for organization ID: {organization_id}")
         return logs
+    
+    
 
 def delete_activity_log(log_id: int) -> bool:
     """

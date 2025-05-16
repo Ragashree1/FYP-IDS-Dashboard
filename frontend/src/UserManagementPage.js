@@ -1,7 +1,6 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { jwtDecode } from "jwt-decode"
 import { useNavigate, useLocation } from "react-router-dom"
 import { useAuth } from "./context/AuthContext" // Import useAuth
 import Sidebar from "./Sidebar"
@@ -97,6 +96,7 @@ const UserManagementPage = () => {
           { id: 1, roleName: "Organisation Admin" },
           { id: 2, roleName: "Network Admin" },
           { id: 3, roleName: "IT Manager" }, // Added IT Manager role
+          { id: 4, roleName: "Data Analyst" }
         ])
         throw new Error("Failed to fetch roles")
       }
@@ -106,7 +106,8 @@ const UserManagementPage = () => {
       setRoles([
         { id: 1, roleName: "Organisation Admin" },
         { id: 2, roleName: "Network Admin" },
-        { id: 3, roleName: "IT Manager" }, // Added IT Manager role
+        { id: 3, roleName: "IT Manager" }, 
+        { id: 4, roleName: "Data Analyst" }
       ])
       setLoading(false)
     }

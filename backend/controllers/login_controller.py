@@ -19,12 +19,6 @@ router = APIRouter(prefix="/login", tags=["login"])
 
 @router.post("/token", response_model=Token)
 async def login_for_access_token(form_data: AccountLogin, db: Session = Depends(get_db), response: Response = None):
-    # Set CORS headers explicitly
-    if response:
-        response.headers["Access-Control-Allow-Origin"] = "*"
-        response.headers["Access-Control-Allow-Credentials"] = "true"
-        response.headers["Access-Control-Allow-Methods"] = "POST, OPTIONS"
-        response.headers["Access-Control-Allow-Headers"] = "Content-Type, Authorization"
     
     try:
         # Check if user exists and get status

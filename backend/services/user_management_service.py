@@ -2,10 +2,11 @@
 from models.schemas import AccountBase, RoleOut
 from database import get_db
 from sqlalchemy.orm import Session
-from models.models import Account, Role
+from models.models import Account, Role, Organization, ActivityLog
 from typing import List, Optional
 import bcrypt
 from fastapi import HTTPException
+from datetime import datetime
 
 def add_user(user_particulars: AccountBase) -> AccountBase:
     db = next(get_db())
@@ -22,13 +23,16 @@ def add_user(user_particulars: AccountBase) -> AccountBase:
         
         # Log the organization_id before creating the user
         print(f"Creating user with organization_id: {user_particulars.organization_id}")
+
+        company = db.query(Organization).filter(Organization.id == user_particulars.organization_id).first()
+        company_name = company.name 
         
         # Create new user
         new_user = Account(
             username=user_particulars.username,
             userFirstName=user_particulars.userFirstName,
             userLastName=user_particulars.userLastName,
-            userComName=user_particulars.userComName,
+            userComName=company_name,
             userEmail=user_particulars.userEmail,
             userPhoneNum=user_particulars.userPhoneNum,
             userRole=user_particulars.userRole,
@@ -59,6 +63,23 @@ def add_user(user_particulars: AccountBase) -> AccountBase:
             userRejected=new_user.userRejected,
             organization_id=new_user.organization_id  # Include organization_id in the response
         )
+        
+        # After successful user creation, try to log the activity
+        try:
+            print(f"Logging activity for user creation: {new_user.username}")
+            activity_log = ActivityLog(
+                user="System",  # Or pass the admin user who created this account
+                targetUser=new_user.username,
+                action="CREATE",
+                description=f"Created new user account for {new_user.userFirstName} {new_user.userLastName}",
+                organization_id=new_user.organization_id
+            )
+            print(f"Logging activity for user creation: {activity_log}")
+            db.add(activity_log)
+            db.commit()
+        except Exception as log_error:
+            print(f"Warning: Failed to create activity log: {str(log_error)}")
+            # Don't raise the exception as we don't want to affect the main flow
         
         return result
     except Exception as e:
@@ -161,6 +182,10 @@ def update_account(account_id: int, update_data: AccountBase) -> Optional[Accoun
         user = db.query(Account).filter(Account.id == account_id).first()
         if not user:
             return None
+
+        # Store old values for logging
+        old_role = user.userRole
+        old_status = user.userSuspend
         
         # Update fields
         user.username = update_data.username
@@ -200,6 +225,33 @@ def update_account(account_id: int, update_data: AccountBase) -> Optional[Accoun
             organization_id=user.organization_id  # Include organization_id
         )
         
+        # After successful update, try to log the activity
+        try:
+            print(f"Logging activity for user update: {user.username}")
+            changes = []
+            if old_role != user.userRole:
+                changes.append("role")
+            if old_status != user.userSuspend:
+                changes.append("status")
+            if changes:
+                change_description = f"Updated user {', '.join(changes)}"
+            else:
+                change_description = "Updated user details"
+                
+            activity_log = ActivityLog(
+                user="System",  # Or pass the admin user who made the update
+                targetUser=user.username,
+                action="UPDATE",
+                description=change_description,
+                organization_id=user.organization_id
+            )
+            db.add(activity_log)
+            db.commit()
+            print(f"Activity logged: {activity_log}")
+        except Exception as log_error:
+            print(f"Warning: Failed to create activity log: {str(log_error)}")
+            # Don't raise the exception as we don't want to affect the main flow
+        
         return result
     except Exception as e:
         db.rollback()
@@ -214,9 +266,28 @@ def delete_user(account_id: int) -> bool:
         user = db.query(Account).filter(Account.id == account_id).first()
         if not user:
             return False
+            
+        username = user.username
+        org_id = user.organization_id
         
         db.delete(user)
         db.commit()
+
+        # After successful deletion, try to log the activity
+        try:
+            activity_log = ActivityLog(
+                user="System",  # Or pass the admin user who performed the deletion
+                targetUser=username,
+                action="DELETE",
+                description=f"Deleted user account {username}",
+                organization_id=org_id
+            )
+            db.add(activity_log)
+            db.commit()
+        except Exception as log_error:
+            print(f"Warning: Failed to create activity log: {str(log_error)}")
+            # Don't raise the exception as we don't want to affect the main flow
+
         return True
     except Exception as e:
         db.rollback()

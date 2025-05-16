@@ -42,6 +42,7 @@ const UserModal = ({ onClose, onConfirm, user = null, fixedRole }) => {
             { id: 1, roleName: "Organisation Admin" },
             { id: 2, roleName: "Network Admin" },
             { id: 3, roleName: "IT Manager" }, // Added IT Manager role
+            { id: 4, roleName: "Data Analyst" }, // Added default role
           ])
         }
 

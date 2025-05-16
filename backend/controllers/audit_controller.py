@@ -36,13 +36,11 @@ async def log_activity(
             detail=f"Error logging activity: {str(e)}"
         )
 
-@router.get("/account-logs", response_model=List[ActivityLog])
+@router.get("/account-logs/", response_model=List[ActivityLog])
 async def get_account_logs(
-    token: str = Depends(get_token),
+    organization_id: int,  # This becomes a query parameter
 ):
     try:
-        current_user = get_current_user(token)
-        organization_id = current_user.organization_id
         logs = audit_service.get_company_activity_logs(organization_id)
         return logs
     except Exception as e:
@@ -54,11 +52,8 @@ async def get_account_logs(
 @router.delete("/delete-log/{log_id}")
 async def delete_log(
     log_id: int,
-    token: str = Depends(get_token),
-    response: Response = None,
 ):
     try:
-        current_user = get_current_user(token)
         success = audit_service.delete_activity_log(log_id)
         if not success:
             raise HTTPException(

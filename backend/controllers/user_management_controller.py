@@ -9,6 +9,7 @@ router = APIRouter(prefix="/user-management", tags=["user-management"])
 ORG_ADMIN_ROLE_ID = 1
 NETWORK_ADMIN_ROLE_ID = 2
 IT_MANAGER_ROLE_ID = 3
+Data_Analyst_ROLE_ID = 4
 
 def get_token(authorization: str = Header(None)):
     if not authorization or not authorization.startswith("Bearer "):

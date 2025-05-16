@@ -216,21 +216,21 @@ class AccountBase(BaseModel):
             raise ValueError('Invalid email format')
         return v
 
-    @validator('passwd')
-    def validate_password(cls, v):
-        if v is None:
-            return v
-        if len(v) < 8:
-            raise ValueError('Password must be at least 8 characters')
-        if not re.search(r'[A-Z]', v):
-            raise ValueError('Password must contain uppercase letter')
-        if not re.search(r'[a-z]', v):
-            raise ValueError('Password must contain lowercase letter')
-        if not re.search(r'\d', v):
-            raise ValueError('Password must contain number')
-        if not re.search(r'[!@#$%^&*]', v):
-            raise ValueError('Password must contain special character')
-        return v
+    # @validator('passwd')
+    # def validate_password(cls, v):
+    #     if v is None:
+    #         return v
+    #     if len(v) < 8:
+    #         raise ValueError('Password must be at least 8 characters')
+    #     if not re.search(r'[A-Z]', v):
+    #         raise ValueError('Password must contain uppercase letter')
+    #     if not re.search(r'[a-z]', v):
+    #         raise ValueError('Password must contain lowercase letter')
+    #     if not re.search(r'\d', v):
+    #         raise ValueError('Password must contain number')
+    #     if not re.search(r'[!@#$%^&*]', v):
+    #         raise ValueError('Password must contain special character')
+    #     return v
 
     class Config:
         from_attributes = True  # Updated from orm_mode = True

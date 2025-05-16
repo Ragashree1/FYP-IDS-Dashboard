@@ -73,7 +73,7 @@ function App() {
         <Route path="/roles-permission" element={<ProtectedRoute> <RolesAndPermissionPage />   </ProtectedRoute>   }  />
         <Route path="/user-management" element={<ProtectedRoute> <UserManagementPage />   </ProtectedRoute>   }  />
         <Route path="/sidebar" element={<ProtectedRoute> <Sidebar />   </ProtectedRoute>   }  />
-        <Route path="/train-model" element={<ProtectedRoute> <TrainModelPage />   </ProtectedRoute>   }  />
+        {/* <Route path="/train-model" element={<ProtectedRoute> <TrainModelPage />   </ProtectedRoute>   }  /> */}
         <Route path="/trained-models" element={<ProtectedRoute> <TrainedModelsPage />   </ProtectedRoute>   }  />
         <Route path="/threatAlerts" element={<ProtectedRoute> <PredictedThreatsPage />   </ProtectedRoute>   }  />
 		    <Route path="/playbooks" element={<ProtectedRoute> <PlayBooksPage />   </ProtectedRoute>   }  />

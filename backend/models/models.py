@@ -463,7 +463,7 @@ class ActivityLog(Base):
     
     id = Column(Integer, primary_key=True, index=True)
     timestamp = Column(TIMESTAMP, server_default=func.now())
-    user = Column(String, nullable=False)
+    user = Column(String, nullable=True)
     targetUser = Column(String, nullable=False)
     action = Column(String, nullable=False)
     description = Column(String, nullable=False)
@@ -478,7 +478,7 @@ class SystemLog(Base):
     
     id = Column(Integer, primary_key=True, index=True)
     timestamp = Column(TIMESTAMP, server_default=func.now())
-    user = Column(String, nullable=False)
+    user = Column(String, nullable=True)
     component = Column(String, nullable=False)
     action = Column(String, nullable=False)
     description = Column(String, nullable=False)
