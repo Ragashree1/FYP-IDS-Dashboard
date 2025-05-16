@@ -8,8 +8,35 @@ import DeleteConfirmationModal from "./components/modals/DeleteConfirmationModal
 import UserModal from "./components/modals/UserModal" // Using the same modal
 import SuspendConfirmationModal from "./components/modals/SuspendConfirmationModal"
 import RejectConfirmationModal from "./components/modals/RejectConfirmationModal"
+import { checkPermissions, fetchPermissions } from "./utils/check_permissions"
 
-const userRole = "platform-admin"
+const permission = "organisation_requests"
+
+const PermissionDeniedPopup = () => (
+  <div className="permission-popup-overlay">
+    <div className="success-popup">
+      <div className="success-popup-header">
+        <div className="success-popup-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"
+            strokeLinecap="round" strokeLinejoin="round">
+            <circle cx="12" cy="12" r="10"></circle>
+            <line x1="12" y1="8" x2="12" y2="12"></line>
+            <circle cx="12" cy="16" r="1"></circle>
+          </svg>
+        </div>
+        <div className="success-popup-title">PERMISSION DENIED</div>
+      </div>
+      <div className="success-popup-content">
+        <div className="success-popup-message">
+          You do not have permission to view this page.
+        </div>
+      </div>
+    </div>
+  </div>
+);
+
+
+
 const OrganizationRequestsPage = () => {
   const navigate = useNavigate()
   const location = useLocation()
@@ -28,6 +55,9 @@ const OrganizationRequestsPage = () => {
   const [userToReject, setUserToReject] = useState(null)
   const [loading, setLoading] = useState(true) // Added loading state
   const [error, setError] = useState(null)
+  const [userPermission, setuserPermission] = useState([]) ;
+  const [showWarning, setShowWarning] = useState(false);
+  const [hasPermission, setHasPermission] = useState(null);
 
   // Function to get the token - hardcoded for platform admin
   const getToken = () => {
@@ -168,6 +198,31 @@ const OrganizationRequestsPage = () => {
 
     loadData()
   }, [])
+
+  useEffect(() => {
+    const verifyPermissions = async () => {
+      const allowed = await checkPermissions(permission);
+      setHasPermission(allowed);
+      if (!allowed) {
+        setShowWarning(true);
+      }
+    };
+
+    verifyPermissions();
+  }, []);
+
+  const getUserPermission = async () => {
+      const perm  = await fetchPermissions();
+      setuserPermission(perm);
+      if (!perm) {
+        setError("Failed to fetch user's permission for Sidebar");
+      }
+    };
+    
+    useEffect(() => {
+      getUserPermission();
+    }, []);
+  
 
   const filteredUsers = (users || []).filter(
     (user) =>
@@ -516,6 +571,17 @@ const OrganizationRequestsPage = () => {
   const handleRefresh = () => {
     setLoading(true)
     fetchRoles().then(() => fetchUsers())
+  }
+
+  if (!hasPermission) {
+    return (
+      <div style={{ display: 'flex', minHeight: '100vh' }}>
+        <Sidebar permissions = {userPermission} />
+        <div style={{ flex: 1, position: 'relative' }}>
+          {showWarning && <PermissionDeniedPopup />}
+        </div>
+      </div>
+    );
   }
 
   return (
