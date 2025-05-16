@@ -1,6 +1,6 @@
 from database import SessionLocal
-from sqlalchemy.orm import Session
-from models.models import Account,Role
+from sqlalchemy.orm import Session, joinedload
+from models.models import Account,Role,Organisation
 from models.schemas import AccountBase,RoleBase,RoleIn,RoleOut
 from typing import List, Optional, Annotated
 from passlib.context import CryptContext
@@ -20,7 +20,11 @@ oauth2_bearer = OAuth2PasswordBearer(tokenUrl='/login/token')
 
 def authenticate_user (userComName:str, username: str, password: str):
     with SessionLocal() as db:
-        user = db.query(Account).filter(Account.username == username, Account.userComName == userComName).first()
+        user = (
+            db.query(Account).join(Organisation).options(joinedload(Account.organisation))
+            .filter(Account.username == username, Organisation.name == userComName).first()
+        )
+
 
         if not user:
             return False
