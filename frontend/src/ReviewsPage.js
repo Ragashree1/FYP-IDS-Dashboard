@@ -3,8 +3,34 @@
 import { useState, useEffect } from "react"
 import { useNavigate } from "react-router-dom"
 import Sidebar from "./Sidebar"
+import { checkPermissions, fetchPermissions } from "./utils/check_permissions"
 
-const userRole = "platform-admin"
+const permission = "Reviews_Management"
+
+
+const PermissionDeniedPopup = () => (
+  <div className="permission-popup-overlay">
+    <div className="success-popup">
+      <div className="success-popup-header">
+        <div className="success-popup-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"
+            strokeLinecap="round" strokeLinejoin="round">
+            <circle cx="12" cy="12" r="10"></circle>
+            <line x1="12" y1="8" x2="12" y2="12"></line>
+            <circle cx="12" cy="16" r="1"></circle>
+          </svg>
+        </div>
+        <div className="success-popup-title">PERMISSION DENIED</div>
+      </div>
+      <div className="success-popup-content">
+        <div className="success-popup-message">
+          You do not have permission to view this page.
+        </div>
+      </div>
+    </div>
+  </div>
+);
+
 
 const ReviewsPage = () => {
   const navigate = useNavigate()
@@ -15,6 +41,7 @@ const ReviewsPage = () => {
   const [deleteLoading, setDeleteLoading] = useState(false)
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
   const [reviewToDelete, setReviewToDelete] = useState(null)
+  const [userPermission, setuserPermission] = useState([]) ;
 
   // Function to get the token - hardcoded for platform admin
   const getToken = () => {
@@ -56,6 +83,31 @@ const ReviewsPage = () => {
     fetchReviews()
   }, [])
 
+  useEffect(() => {
+    const verifyPermissions = async () => {
+      const allowed = await checkPermissions(permission);
+      setHasPermission(allowed);
+      if (!allowed) {
+        setShowWarning(true);
+      }
+    };
+
+    verifyPermissions();
+  }, []);
+
+  const getUserPermission = async () => {
+      const perm  = await fetchPermissions();
+      setuserPermission(perm);
+      if (!perm) {
+        setError("Failed to fetch user's permission for Sidebar");
+      }
+    };
+    
+    useEffect(() => {
+      getUserPermission();
+    }, []);
+
+
   const filteredReviews = (reviews || []).filter(
     (review) =>
       (review.name || "").toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -72,6 +124,17 @@ const ReviewsPage = () => {
   const confirmDeleteReview = (review) => {
     setReviewToDelete(review)
     setShowDeleteConfirm(true)
+  }
+
+  if (!hasPermission) {
+    return (
+      <div style={{ display: 'flex', minHeight: '100vh' }}>
+        <Sidebar permissions = {userPermission} />
+        <div style={{ flex: 1, position: 'relative' }}>
+          {showWarning && <PermissionDeniedPopup />}
+        </div>
+      </div>
+    );
   }
 
   const deleteReview = async (id) => {
@@ -158,7 +221,7 @@ const ReviewsPage = () => {
         overflow: "hidden",
       }}
     >
-      <Sidebar userRole={userRole} />
+      <Sidebar permissions = {userPermission} />
       <div
         style={{
           flex: 1,

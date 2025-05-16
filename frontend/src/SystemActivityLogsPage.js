@@ -4,6 +4,9 @@ import { useState, useEffect } from "react"
 import { useNavigate } from "react-router-dom"
 import { useAuth } from "./context/AuthContext"
 import Sidebar from "./Sidebar"
+import { checkPermissions, fetchPermissions } from "./utils/check_permissions"
+
+const permission = "System_Activity"
 
 const SystemActivityLogsPage = () => {
   const navigate = useNavigate()
@@ -18,6 +21,7 @@ const SystemActivityLogsPage = () => {
   const [deleteLoading, setDeleteLoading] = useState(false)
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
   const [logToDelete, setLogToDelete] = useState(null)
+  const [userPermission, setuserPermission] = useState([]) ;
 
   useEffect(() => {
     // Fetch system activity logs from the API
@@ -26,6 +30,41 @@ const SystemActivityLogsPage = () => {
       fetchLogs()
     }
   }, [user])
+
+  useEffect(() => {
+    const verifyPermissions = async () => {
+      const allowed = await checkPermissions(permission);
+      setHasPermission(allowed);
+      if (!allowed) {
+        setShowWarning(true);
+      }
+    };
+
+    verifyPermissions();
+  }, []);
+
+  const getUserPermission = async () => {
+      const perm  = await fetchPermissions();
+      setuserPermission(perm);
+      if (!perm) {
+        setError("Failed to fetch user's permission for Sidebar");
+      }
+    };
+    
+    useEffect(() => {
+      getUserPermission();
+    }, []);
+
+    if (!hasPermission) {
+      return (
+        <div style={{ display: 'flex', minHeight: '100vh' }}>
+          <Sidebar permissions = {userPermission} />
+          <div style={{ flex: 1, position: 'relative' }}>
+            {showWarning && <PermissionDeniedPopup />}
+          </div>
+        </div>
+      );
+    }
 
   const fetchLogs = async () => {
     try {
@@ -317,7 +356,7 @@ const getActionBadgeColor = (action) => {
         overflow: "hidden",
       }}
     >
-      <Sidebar userRole="3" />
+      <Sidebar permissions = {userPermission} />
       <div
         style={{
           flex: 1,

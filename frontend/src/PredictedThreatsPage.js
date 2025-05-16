@@ -1,6 +1,9 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import axios from "axios";
 import Sidebar from "./Sidebar";
+import { checkPermissions, fetchPermissions } from "./utils/check_permissions"
+
+const permission = "ML Predictions"
 
 const PredictedThreatsPage = () => {
   const [predictions, setPredictions] = useState([]);
@@ -14,7 +17,6 @@ const PredictedThreatsPage = () => {
   const [logLoading, setLogLoading] = useState(false);
   const [logError, setLogError] = useState(null);
 
-  const userRole = "2";
   const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
   const handleDeletePrediction = async (prediction) => {
@@ -112,6 +114,43 @@ const PredictedThreatsPage = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [page]);
 
+  const [userPermission, setuserPermission] = useState([]) ;
+
+  useEffect(() => {
+   const verifyPermissions = async () => {
+     const allowed = await checkPermissions(permission);
+     setHasPermission(allowed);
+     if (!allowed) {
+       setShowWarning(true);
+     }
+   };
+
+   verifyPermissions();
+ }, []);
+
+ const getUserPermission = async () => {
+     const perm  = await fetchPermissions();
+     setuserPermission(perm);
+     if (!perm) {
+       setError("Failed to fetch user's permission for Sidebar");
+     }
+   };
+   
+   useEffect(() => {
+     getUserPermission();
+   }, []);
+
+   if (!hasPermission) {
+    return (
+      <div style={{ display: 'flex', minHeight: '100vh' }}>
+        <Sidebar permissions = {userPermission} />
+        <div style={{ flex: 1, position: 'relative' }}>
+          {showWarning && <PermissionDeniedPopup />}
+        </div>
+      </div>
+    );
+  }
+
   const loadMore = () => {
     if (!loadingMore && hasMore) {
       const nextPage = page + 1;
@@ -145,7 +184,7 @@ const PredictedThreatsPage = () => {
 
   return (
     <div style={{ display: "flex", height: "100vh", background: "#f4f4f4" }}>
-      <Sidebar userRole={userRole} />
+      <Sidebar permissions = {userPermission} />
 
       <div style={{ flex: 1, padding: "20px" }}>
         <h1>Predicted Threats</h1>

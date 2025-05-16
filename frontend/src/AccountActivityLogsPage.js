@@ -3,6 +3,9 @@
 import { useState, useEffect } from "react"
 import { useAuth } from "./context/AuthContext"
 import Sidebar from "./Sidebar"
+import { checkPermissions, fetchPermissions } from "./utils/check_permissions"
+
+const permission = "Account_Activity"
 
 const AccountActivityLogsPage = () => {
   const { authData } = useAuth()
@@ -15,6 +18,7 @@ const AccountActivityLogsPage = () => {
   const [deleteLoading, setDeleteLoading] = useState(false)
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
   const [logToDelete, setLogToDelete] = useState(null)
+  const [userPermission, setuserPermission] = useState([]) ;
 
 
   const fetchLogs = async () => {
@@ -69,6 +73,41 @@ const AccountActivityLogsPage = () => {
     // Fetch activity logs from the API
     fetchLogs()
   }, [authData])
+
+  useEffect(() => {
+    const verifyPermissions = async () => {
+      const allowed = await checkPermissions(permission);
+      setHasPermission(allowed);
+      if (!allowed) {
+        setShowWarning(true);
+      }
+    };
+
+    verifyPermissions();
+  }, []);
+
+  const getUserPermission = async () => {
+      const perm  = await fetchPermissions();
+      setuserPermission(perm);
+      if (!perm) {
+        setError("Failed to fetch user's permission for Sidebar");
+      }
+    };
+    
+    useEffect(() => {
+      getUserPermission();
+    }, []);
+
+    if (!hasPermission) {
+      return (
+        <div style={{ display: 'flex', minHeight: '100vh' }}>
+          <Sidebar permissions = {userPermission} />
+          <div style={{ flex: 1, position: 'relative' }}>
+            {showWarning && <PermissionDeniedPopup />}
+          </div>
+        </div>
+      );
+    }
 
   // Handle deleting a log
   const handleDeleteLog = async (logId) => {
@@ -254,7 +293,7 @@ const AccountActivityLogsPage = () => {
         overflow: "hidden",
       }}
     >
-      <Sidebar userRole="3" />
+      <Sidebar permissions = {userPermission} />
       <div
         style={{
           flex: 1,
