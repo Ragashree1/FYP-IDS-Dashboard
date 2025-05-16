@@ -128,7 +128,9 @@ export default function LoginPage() {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          userComName: userComName,
+          organisation: {
+            name: userComName,  // Nested organisation object
+          },
           username: loginId,
         }),
       })
@@ -231,6 +233,12 @@ export default function LoginPage() {
         login(userData)
 
         // Navigate based on user role
+
+        if (userRoleId === 1) {
+          // Network Admin goes to dashboard
+          console.log("Redirecting to dashboard (Network Admin)") // Debug log
+          navigate("/user-management")
+        }
         if (userRoleId === 2) {
           // Network Admin goes to dashboard
           console.log("Redirecting to dashboard (Network Admin)") // Debug log
@@ -242,7 +250,7 @@ export default function LoginPage() {
         } else {
           // All other roles (including Organization Admin) go to user management
           console.log("Redirecting to user management (Organization Admin or other)") // Debug log
-          navigate("/user-management")
+          navigate("/dashboard")
         }
       } catch (decodeError) {
         console.error("Error decoding token:", decodeError)

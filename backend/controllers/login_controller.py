@@ -40,8 +40,6 @@ async def login_access_token(user: AccountLogin):
         expires_delta=timedelta(minutes=60),
     )
 
-    login_service.store_token(token,user.id)
-
     # Return all necessary data for the frontend
     return {
         "access_token": token,
@@ -51,7 +49,7 @@ async def login_access_token(user: AccountLogin):
         "username": user.username,
         "userEmail": user.userEmail,
         "org": user.organisation.name,
-        "orgId": user.organisation.id,
+        "orgId": str(user.organisation.id),
     }
 
 @router.post("/delete_token")

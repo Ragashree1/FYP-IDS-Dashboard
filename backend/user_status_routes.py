@@ -1,8 +1,8 @@
 from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 from pydantic import BaseModel
 from database import get_db
-from models import Account
+from models import Account,Organisation
 
 router = APIRouter()
 
@@ -17,10 +17,13 @@ async def check_user_status(user_data: UserStatusCheck, db: Session = Depends(ge
     This endpoint is used during login to verify if an account is approved.
     """
     # Query the database for the user
-    user = db.query(Account).filter(
-        Account.username == user_data.username,
-        Account.userComName == user_data.userComName
-    ).first()
+    user = (
+            db.query(Account)
+            .join(Organisation)
+            .options(joinedload(Account.organisation))  # Eagerly load organisation
+            .filter(Account.username == user_data.username, Organisation.name == user_data.userComName)  # Use userComName as a string
+            .first()
+        )
     
     if not user:
         raise HTTPException(

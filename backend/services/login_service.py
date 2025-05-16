@@ -1,6 +1,6 @@
 # services/login_service.py
 from database import SessionLocal
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 from models.models import Account, Role, Organisation
 from models.schemas import AccountBase, RoleBase, RoleIn, RoleOut, AccountStatusCheck
 from typing import List, Optional, Dict,Annotated, Any
@@ -21,12 +21,12 @@ oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/token")
 
 oauth2_bearer = OAuth2PasswordBearer(tokenUrl='/login/token')
 
-def authenticate_user(username: str, password: str, userComName: str):
+def authenticate_user(userComName: str, username: str, password: str):
     """Authenticate a user by username, password, and company name"""
     with SessionLocal() as db:
-        user = db.query(Account).join(Organisation).filter(Account.username == username,Account.passwd == password,Organisation.name == userComName).first()
+        user = db.query(Account).join(Organisation).options(joinedload(Account.organisation)).filter(Account.username == username,Organisation.name == userComName).first()
 
-
+    
     if not user:
         return False
     
@@ -57,15 +57,12 @@ def create_access_token(username: str, user_id: str, userRole: str, userComName:
         "userRejected": userRejected,
         "organization_id": organization_id  # Include organization_id
     }
-    
-    # Add userRejected if it exists
-    if hasattr(user, 'userRejected'):
-        user_data["userRejected"] = user.userRejected
+
     
     user_data.update({"user": user_data, "exp": expire})
     
     # Create and return the encoded token
-    return jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
+    return jwt.encode(user_data, SECRET_KEY, algorithm=ALGORITHM)
 
 def get_user_by_username(username: str):
     with SessionLocal() as db:   
