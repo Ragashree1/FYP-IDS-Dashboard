@@ -11,30 +11,6 @@ from database import Base
 from datetime import datetime
 import json
 
-class MeetingMinutes(Base):
-    __tablename__= 'Meeting'
-    id = Column(Integer, primary_key=True, index=True)
-    date = Column(String)
-    startTime = Column(String)
-    endTime = Column(String)
-    pplpresent = Column(ARRAY(String))
-    agenda = Column(String)
-    discussion = Column(String)
-    actions = Column(String)
-
-    class Config:
-        from_attributes = True  # Updated from orm_mode = True
-
-class Journal(Base):
-    __tablename__= 'Journal'
-    id = Column(Integer, primary_key=True, index=True)
-    jName = Column(String, index=True)
-    jDescription = Column(String)
-    jWeek = Column(String)
-
-    class Config:
-        from_attributes = True  # Updated from orm_mode = True
-
 class Organization(Base):
     __tablename__ = "Organizations"
 
