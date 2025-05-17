@@ -4,29 +4,6 @@ from pydantic import BaseModel, EmailStr, IPvAnyAddress, validator, constr
 from typing import List, Optional, Dict, Any
 import re
 
-
-class JournalOut(BaseModel):
-    id: int
-    jName: str
-    jDescription: str
-    jWeek: str
-
-    class Config:
-        from_attributes = True  # Updated from orm_mode = True
-
-class MeetingMinutesOut(BaseModel):
-    id: int
-    date: str
-    startTime: str
-    endTime: str
-    pplpresent: List[str]
-    agenda: str
-    discussion: str
-    actions: str
-
-    class Config:
-        from_attributes = True  # Updated from orm_mode = True
-
 class SnortAlertsBase(BaseModel):
     timestamp: str
     priority: int
