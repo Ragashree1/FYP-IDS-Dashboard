@@ -233,15 +233,6 @@ class AccountLogin(BaseModel):
     username: str
     passwd: str
 
-class CreditCardBase(BaseModel):
-    creditFirstName: str
-    creditLastName: str
-    creditNum: str
-    creditDate: str
-    creditCVV: int
-    subscription: str
-    total: str
-
 class Token(BaseModel):
     access_token: str
     token_type: str
