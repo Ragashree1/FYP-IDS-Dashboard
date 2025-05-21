@@ -20,51 +20,77 @@ const EventLogPage = () => {
   const [totalCount, setTotalCount] = useState(0);
 
   const filteredLogs = useMemo(() => {
-    if (!Array.isArray(logs)) return []; // Ensure logs is an array
+    if (!Array.isArray(logs)) return [];
     if (!filterType && !searchQuery) {
       return logs;
     }
 
     return logs.filter((log) => {
-      const query = searchQuery.toLowerCase()
+      const query = searchQuery.toLowerCase();
 
+      // If we have a filter type but no search query, return all logs
       if (filterType && !searchQuery) {
-        return true
+        return true;
       }
 
+      // If we have a search query but no filter type, search across all relevant fields
       if (searchQuery && !filterType) {
-        return (
-          log.log_type.toLowerCase().includes(query) ||
-          log.message.toLowerCase().includes(query) ||
-          (new Date(log.timestamp).toLocaleString()).toLowerCase().includes(query) ||
-          log.source_ip.toLowerCase().includes(query) ||
-          log.host.toLowerCase().includes(query) ||
-          (log.http_method && log.http_method.toLowerCase().includes(query)) ||
-          (log.http_status && String(log.http_status).toLowerCase().includes(query))
-        )
+        if (logType === "apache") {
+          return (
+            log.log_type?.toLowerCase().includes(query) ||
+            log.message?.toLowerCase().includes(query) ||
+            (log.timestamp && new Date(log.timestamp).toLocaleString().toLowerCase().includes(query)) ||
+            log.source_ip?.toLowerCase().includes(query) ||
+            log.host?.toLowerCase().includes(query) ||
+            (log.http_method && log.http_method.toLowerCase().includes(query)) ||
+            (log.http_status && String(log.http_status).toLowerCase().includes(query))
+          );
+        } else { // network logs
+          return (
+            log.src_ip?.toLowerCase().includes(query) ||
+            log.dst_ip?.toLowerCase().includes(query) ||
+            String(log.dst_port)?.includes(query) ||
+            String(log.flow_duration)?.includes(query) ||
+            String(log.total_fwd_packets)?.includes(query) ||
+            String(log.total_bwd_packets)?.includes(query)
+          );
+        }
       }
 
+      // Apply specific filters based on filter type
       switch (filterType.toLowerCase()) {
-        case "type":
-          return log.log_type.toLowerCase().includes(query)
-        case "message":
-          return log.message.toLowerCase().includes(query)
-        case "date & time":
-          return (new Date(log.timestamp).toLocaleString()).toLowerCase().includes(query)
         case "source ip":
-          return log.source_ip.toLowerCase().includes(query)
+          return log.src_ip?.toLowerCase().includes(query);
+        case "destination ip":
+          return log.dst_ip?.toLowerCase().includes(query);
+        case "destination port":
+          return String(log.dst_port)?.includes(query);
+        case "flow duration":
+          return String(log.flow_duration)?.includes(query);
+        case "packets":
+          return (
+            String(log.total_fwd_packets)?.includes(query) ||
+            String(log.total_bwd_packets)?.includes(query)
+          );
+        // Apache log specific filters
+        case "type":
+          return logType === "apache" && log.log_type?.toLowerCase().includes(query);
+        case "message":
+          return logType === "apache" && log.message?.toLowerCase().includes(query);
+        case "date & time":
+          return logType === "apache" && log.timestamp && 
+            new Date(log.timestamp).toLocaleString().toLowerCase().includes(query);
         case "host":
-          return log.host.toLowerCase().includes(query)
+          return logType === "apache" && log.host?.toLowerCase().includes(query);
         case "http method":
-          return log.http_method && log.http_method.toLowerCase().includes(query)
+          return logType === "apache" && log.http_method?.toLowerCase().includes(query);
         case "http status":
-          return log.http_status && String(log.http_status).toLowerCase().includes(query)
-
+          return logType === "apache" && String(log.http_status)?.includes(query);
         default:
-          return false
+          return false;
       }
-    })
-  }, [logs, filterType, searchQuery])
+    });
+  }, [logs, filterType, searchQuery, logType]);
 
   const currentPageLogIds = useMemo(() => filteredLogs.map(log => log.id), [filteredLogs]);
   const userRole = "2"
@@ -299,13 +325,25 @@ const EventLogPage = () => {
             style={{ padding: "8px 12px", borderRadius: "4px", border: "1px solid #ddd" }}
           >
             <option value="">Filter By (All Fields)</option>
-            <option value="Type">Type</option>
-            <option value="Message">Message</option>
-            <option value="Date & Time">Date & Time</option>
-            <option value="Source IP">Source IP</option>
-            <option value="Host">Host</option>
-            <option value="http method">HTTP Method</option>
-            <option value="http status">HTTP Status</option>
+            {logType === "apache" ? (
+              <>
+                <option value="Type">Type</option>
+                <option value="Message">Message</option>
+                <option value="Date & Time">Date & Time</option>
+                <option value="Source IP">Source IP</option>
+                <option value="Host">Host</option>
+                <option value="http method">HTTP Method</option>
+                <option value="http status">HTTP Status</option>
+              </>
+            ) : (
+              <>
+                <option value="Source IP">Source IP</option>
+                <option value="Destination IP">Destination IP</option>
+                <option value="Destination Port">Destination Port</option>
+                <option value="Flow Duration">Flow Duration</option>
+                <option value="Packets">Packets (Fwd/Bwd)</option>
+              </>
+            )}
           </select>
           <div style={{ position: "relative", flex: 1 }}>
             <input

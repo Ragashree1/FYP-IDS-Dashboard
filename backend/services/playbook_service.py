@@ -164,27 +164,27 @@ def check_ip_alerts_by_organization(threshold: int, interval_minutes: int, organ
                 ) AS window_start
         ),
         combined_alerts AS (
-            SELECT src_ip, timestamp::timestamp, 'snort' as source
+            SELECT dest_ip, timestamp::timestamp, 'snort' as source
             FROM "SnortAlerts"
             WHERE organization_id = :organization_id
             UNION ALL
-            SELECT src_ip, timestamp::timestamp, 'zeek' as source
+            SELECT dest_ip, timestamp::timestamp, 'zeek' as source
             FROM "ZeekAlerts"
             WHERE organization_id = :organization_id
             UNION ALL
-            SELECT src_ip, timestamp::timestamp, 'suricata' as source
+            SELECT dest_ip, timestamp::timestamp, 'suricata' as source
             FROM "SuricataAlerts"
             WHERE organization_id = :organization_id
         )
         SELECT 
-            a.src_ip,
+            a.dest_ip,
             t.window_start,
             COUNT(*) AS alert_count,
             array_agg(DISTINCT a.source) as alert_sources
         FROM combined_alerts a
         JOIN time_windows t
             ON a.timestamp BETWEEN t.window_start AND t.window_start + INTERVAL '{interval_minutes} minutes'
-        GROUP BY a.src_ip, t.window_start
+        GROUP BY a.dest_ip, t.window_start
         HAVING COUNT(*) >= {threshold}
         ORDER BY t.window_start DESC;
         """)
@@ -242,19 +242,19 @@ def check_exceed_severity_level_by_organization(severity: str, organization_id: 
     with SessionLocal() as db:
         query = text("""
         WITH combined_alerts AS (
-            SELECT src_ip, classification, 'snort' as source
+            SELECT dest_ip, classification, 'snort' as source
             FROM "SnortAlerts"
             WHERE organization_id = :organization_id
             UNION ALL
-            SELECT src_ip, classification, 'zeek' as source
+            SELECT dest_ip, classification, 'zeek' as source
             FROM "ZeekAlerts"
             WHERE organization_id = :organization_id
             UNION ALL
-            SELECT src_ip, classification, 'suricata' as source
+            SELECT dest_ip, classification, 'suricata' as source
             FROM "SuricataAlerts"
             WHERE organization_id = :organization_id
         )
-        SELECT DISTINCT a.src_ip
+        SELECT DISTINCT a.dest_ip
         FROM combined_alerts a
         JOIN priority_classification p
         ON a.classification = p.classification
@@ -279,19 +279,19 @@ def check_classtype_by_organization(classType: str, organization_id: int) -> Lis
     with SessionLocal() as db:
         query = text("""
         WITH combined_alerts AS (
-            SELECT src_ip, classification, 'snort' as source
+            SELECT dest_ip, classification, 'snort' as source
             FROM "SnortAlerts"
             WHERE organization_id = :organization_id
             UNION ALL
-            SELECT src_ip, classification, 'zeek' as source
+            SELECT dest_ip, classification, 'zeek' as source
             FROM "ZeekAlerts"
             WHERE organization_id = :organization_id
             UNION ALL
-            SELECT src_ip, classification, 'suricata' as source
+            SELECT dest_ip, classification, 'suricata' as source
             FROM "SuricataAlerts"
             WHERE organization_id = :organization_id
         )
-        SELECT DISTINCT src_ip
+        SELECT DISTINCT dest_ip
         FROM combined_alerts
         WHERE classification = :classtype;
         """)

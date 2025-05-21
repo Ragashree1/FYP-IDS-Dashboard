@@ -8,8 +8,6 @@ from dotenv import load_dotenv
 from database import get_db, SessionLocal, engine, Base
 from models.models import BlockedIP
 from starlette.responses import JSONResponse
-from controllers.journal_controller import router as journal_router
-from controllers.meeting_minutes_controller import router as meeting_minutes_router
 from controllers.alert_controller import router as alerts_router
 from controllers.log_controller import router as logs_router
 from controllers.threat_detector_controller import router as threat_detector_router
@@ -107,27 +105,27 @@ async def startup_event():
 
     # Schedule periodic jobs
    
-    # logs_scheduler.add_job(
-    #     fetch_alerts_job, 
-    #     "interval", 
-    #     minutes=1,  # Fetch alerts every 3 minutes
-    #     id="fetch_alerts_job",
-    #     coalesce=True,
-    #     max_instances=1
-    # )
-    # logs_scheduler.add_job(execute_playbook_rules_job, "interval", minutes=1, id="execute_playbook_rules_job",  # Good practice to add an ID
-    #     coalesce=True,                   # Prevent overlapping runs
-    #     max_instances=1                  # Allow only one instance at a time
-    # )  # Execute playbook rules every 1 minute
-    # logs_scheduler.add_job(
-    #         predict_recent_logs_job,
-    #         "interval",
-    #         minutes=3,
-    #         id="predict_recent_logs_job",
-    #         replace_existing=True,
-    #         coalesce=True,
-    #         max_instances=1
-    #     )
+    logs_scheduler.add_job(
+        fetch_alerts_job, 
+        "interval", 
+        minutes=1,  # Fetch alerts every 3 minutes
+        id="fetch_alerts_job",
+        coalesce=True,
+        max_instances=1
+    )
+    logs_scheduler.add_job(execute_playbook_rules_job, "interval", minutes=1, id="execute_playbook_rules_job",  # Good practice to add an ID
+        coalesce=True,                   # Prevent overlapping runs
+        max_instances=1                  # Allow only one instance at a time
+    )  # Execute playbook rules every 1 minute
+    logs_scheduler.add_job(
+            predict_recent_logs_job,
+            "interval",
+            minutes=3,
+            id="predict_recent_logs_job",
+            replace_existing=True,
+            coalesce=True,
+            max_instances=1
+        )
 
 
     logs_scheduler.start()
@@ -189,8 +187,6 @@ async def validate_token(token: str = Depends(oauth2_scheme)):
         raise HTTPException(status_code=401, detail="Invalid token")
 
 # Include the routers
-app.include_router(journal_router)
-app.include_router(meeting_minutes_router)
 app.include_router(alerts_router)
 app.include_router(logs_router)
 app.include_router(login_router)
