@@ -20,10 +20,11 @@ import { Select, ColorPicker } from 'antd';
 import defaultClassifications from './defaultClassifications';  
 const { Option } = Select;
 
-const userRole = "2"
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
 const Dashboard = () => {
   const navigate = useNavigate();
+  const [userRole, setUserRole] = useState(null);
   const [logs, setLogs] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -42,7 +43,6 @@ const Dashboard = () => {
   const [topSourcesLimit, setTopSourcesLimit] = useState(10);
   const [sourceMetric, setSourceMetric] = useState('src_ip');
   const [selectedSource, setSelectedSource] = useState('src_ip');
-  const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
   //const [attackData, setAttackData] = useState([]);
   
   function convertToKeyValuePair(data) {
@@ -65,7 +65,45 @@ const Dashboard = () => {
     const data = await response.json();
     return data.user.organization_id;
   };
-  
+
+  // Add new function to get user role
+  const getUserRole = async () => {
+    try {
+      const token = localStorage.getItem("token");
+      const response = await fetch(`${API_BASE_URL}/login/get_user`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to fetch user data');
+      }
+      
+      const data = await response.json();
+      const role = data.user.userRole;
+      
+      // Only allow roles 2 and 3
+      if (role !== 2 && role !== 3) {
+        navigate("/"); // Redirect unauthorized users
+        return null;
+      }
+      
+      return role;
+    } catch (error) {
+      console.error("Error fetching user role:", error);
+      return null;
+    }
+  };
+
+  useEffect(() => {
+    const fetchUserRole = async () => {
+      const role = await getUserRole();
+      if (role) {
+        setUserRole(role);
+      }
+    };
+
+    fetchUserRole();
+  }, []);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -370,6 +408,11 @@ const alertsOverTime = useMemo(() => {
     { value: 'dest_port', label: 'Destination Port', label2: ' Targeted Ports', description: 'Helps understand which services are being targeted' }
   ];
 
+  // If userRole is not loaded yet or invalid, show loading or redirect
+  if (!userRole) {
+    return <div>Loading...</div>;
+  }
+
   return (
     <div
       style={{
@@ -380,7 +423,7 @@ const alertsOverTime = useMemo(() => {
       }}
     >
       {/* Sidebar */}
-      <Sidebar userRole={userRole} />
+      <Sidebar userRole={userRole.toString()} />
 
       {/* Main Content */}
       <div
