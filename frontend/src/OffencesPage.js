@@ -749,9 +749,30 @@ const Offences = () => {
   
   const classifications = convertToKeyValuePair(defaultClassifications);
 
-  function getPriority(name) {
+  function getPriority(name, doc) {
+    if (doc && doc.alert_source === "zeek") {
+      if (doc.priority !== undefined) {
+        const priority = parseInt(doc.priority);
+        return (5 - priority).toString();
+      }
+      
+      if (doc.severity !== undefined) {
+        const severity = parseInt(doc.severity);
+        return (5 - severity).toString();
+      }
+    }
+    
+    
+    if (doc && doc.priority !== undefined) {
+      return doc.priority.toString();
+    }
+    
+    if (doc && doc.severity !== undefined) {
+      return doc.severity.toString();
+    }
+    
     name = name.trim()
-    return classifications[name] ? classifications[name].priority : 'Unknown'
+    return classifications[name] ? classifications[name].priority : "Unknown"
   }
 
   const getOrgId = async () => {
@@ -826,8 +847,8 @@ const Offences = () => {
     let filtered = offences.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
 
     if (hideUncategorized) {
-      filtered = filtered.filter(offence => getPriority(offence.classification.toLowerCase().trim() || 'N/A') !== 'Unknown');
-    }
+      filtered = filtered.filter(offence => getPriority(offence.classification.toLowerCase().trim() || 'N/A', offence) !== 'Unknown');
+  }
 
     // Advanced filter logic
     filtered = filtered.filter(offence => {
@@ -882,8 +903,8 @@ const Offences = () => {
               match = match && offence.classification.toLowerCase().includes(searchQuery.toLowerCase());
               break;
             case "severity":
-              match = match && String(getPriority(offence.classification.toLowerCase().trim() || 'N/A')).toLowerCase().includes(searchQuery.toLowerCase());
-              break;
+              match = match && String(getPriority(offence.classification.toLowerCase().trim() || 'N/A', offence)).toLowerCase().includes(searchQuery.toLowerCase());
+    break;
             case "source ip":
               match = match && offence.src_ip.toLowerCase().includes(searchQuery.toLowerCase());
               break;
@@ -955,26 +976,34 @@ const Offences = () => {
     }
 
   function getCriticalAlerts() {
-    return offences.map((offence, index) => getPriority(offence.classification.toLowerCase().trim() || 'N/A')).filter((val) => val == 1).length;
-  }
+  return offences.filter((offence) => 
+    getPriority(offence.classification.toLowerCase().trim() || 'N/A', offence) === "1"
+  ).length;
+}
 
-  
-  function getHighAlerts() {
-    return offences.map((offence, index) => getPriority(offence.classification.toLowerCase().trim() || 'N/A')).filter((val) => val == 2).length;
-  }
+function getHighAlerts() {
+  return offences.filter((offence) => 
+    getPriority(offence.classification.toLowerCase().trim() || 'N/A', offence) === "2"
+  ).length;
+}
 
-  
-  function getMediumAlerts() {
-    return offences.map((offence, index) => getPriority(offence.classification.toLowerCase().trim() || 'N/A')).filter((val) => val == 3).length;
-  }
+function getMediumAlerts() {
+  return offences.filter((offence) => 
+    getPriority(offence.classification.toLowerCase().trim() || 'N/A', offence) === "3"
+  ).length;
+}
 
-  function getLowAlerts() {
-    return offences.map((offence, index) => getPriority(offence.classification.toLowerCase().trim() || 'N/A')).filter((val) => val == 4).length;
-  }
+function getLowAlerts() {
+  return offences.filter((offence) => 
+    getPriority(offence.classification.toLowerCase().trim() || 'N/A', offence) === "4"
+  ).length;
+}
 
-  function getUncategorizedAlerts() {
-    return offences.filter((offence, index) => getPriority(offence.classification.toLowerCase().trim() || 'N/A') == 'Unknown').length;
-  }
+function getUncategorizedAlerts() {
+  return offences.filter((offence) => 
+    getPriority(offence.classification.toLowerCase().trim() || 'N/A', offence) === "Unknown"
+  ).length;
+}
 
 
   const openModal = (offence) => {
@@ -1361,7 +1390,7 @@ const Offences = () => {
                   <td style={{ padding: "10px", textAlign: "center" }}>{new Date(offence.timestamp).toLocaleString()}</td>
                   <td style={{ padding: "10px", textAlign: "center" }}>{offence.protocol}</td>
                   <td style={{ padding: "10px", textAlign: "center" }}>{offence.classification.toLowerCase() || 'N/A'}</td>
-                  <td style={{ padding: "10px", textAlign: "center" }}>{getPriority(offence.classification.toLowerCase().trim() || 'N/A')}</td>
+                  <td style={{ padding: "10px", textAlign: "center" }}>{getPriority(offence.classification.toLowerCase().trim() || 'N/A', offence)}</td>
                   <td style={{ padding: "10px", textAlign: "center" }}>
                     <button
                       style={{ background: "purple", color: "#fff", padding: "5px 10px", borderRadius: "5px" }}
@@ -1471,7 +1500,7 @@ const Offences = () => {
       </div>
       <p style={{ fontWeight: "bold", marginBottom: "5px" }}>Severity Level:</p>
       <div style={{ background: "#f0f0f0", padding: "8px", borderRadius: "4px", marginBottom: "15px" }}>
-        {getPriority(selectedOffence.classification.toLowerCase().trim() || 'N/A')}
+        {getPriority(selectedOffence.classification.toLowerCase().trim() || 'N/A', selectedOffence)}
       </div>
 
     </div>
