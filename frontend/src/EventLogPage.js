@@ -94,7 +94,7 @@ const EventLogPage = () => {
 
   const currentPageLogIds = useMemo(() => filteredLogs.map(log => log.id), [filteredLogs]);
   const userRole = "2"
-  const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+  const API_BASE_URL = "https://api.secuboard.live";
 
   const isAllSelected = currentPageLogIds.length > 0 && currentPageLogIds.every(id => selectedLogs.includes(id));
   const handleSelectAll = () => {

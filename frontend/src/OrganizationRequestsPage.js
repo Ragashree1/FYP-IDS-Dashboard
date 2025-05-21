@@ -41,7 +41,7 @@ const OrganizationRequestsPage = () => {
       const token = getToken()
       console.log("Using token:", token) // Debug log
 
-      const response = await fetch("http://127.0.0.1:8000/user-management/roles", {
+      const response = await fetch("https://api.secuboard.live/user-management/roles", {
         method: "GET",
         headers: {
           Authorization: `Bearer ${token}`,
@@ -60,6 +60,7 @@ const OrganizationRequestsPage = () => {
         let hasOrgAdmin = false
         let hasNetworkAdmin = false
         let hasITManager = false
+        let hasDataAnalyst = false
 
         const processedRoles = data.map((role) => {
           // Standardize role names
@@ -72,6 +73,9 @@ const OrganizationRequestsPage = () => {
           } else if (role.id === 3) {
             hasITManager = true
             return { ...role, roleName: "IT Manager" }
+          }else if (role.id === 4) {
+            hasITManager = true
+            return { ...role, roleName: "Data Analyst" }
           }
           return role
         })
@@ -86,6 +90,9 @@ const OrganizationRequestsPage = () => {
         if (!hasITManager) {
           processedRoles.push({ id: 3, roleName: "IT Manager" })
         }
+        if (!hasITManager) {
+          processedRoles.push({ id: 4, roleName: "Data Analyst" })
+        }
 
         setRoles(processedRoles)
       } else {
@@ -95,6 +102,7 @@ const OrganizationRequestsPage = () => {
           { id: 1, roleName: "Organisation Admin" },
           { id: 2, roleName: "Network Admin" },
           { id: 3, roleName: "IT Manager" },
+          { id: 4, roleName: "Data Analyst" }
         ])
       }
     } catch (err) {
@@ -104,6 +112,7 @@ const OrganizationRequestsPage = () => {
         { id: 1, roleName: "Organisation Admin" },
         { id: 2, roleName: "Network Admin" },
         { id: 3, roleName: "IT Manager" },
+        { id: 4, roleName: "Data Analyst" }
       ])
     }
   }
@@ -119,6 +128,8 @@ const OrganizationRequestsPage = () => {
       return "Network Admin"
     } else if (roleIdNum === 3) {
       return "IT Manager"
+    }else if (roleIdNum === 4) {
+      return "Data Analyst"
     }
 
     // Otherwise look up in the roles array
@@ -132,7 +143,7 @@ const OrganizationRequestsPage = () => {
       console.log("Using token for fetchUsers:", token) // Debug log
 
       // For platform admin, we want to fetch all users
-      const response = await fetch("http://127.0.0.1:8000/user-management/", {
+      const response = await fetch("https://api.secuboard.live/user-management/", {
         method: "GET",
         headers: {
           "Content-Type": "application/json",
@@ -233,7 +244,7 @@ const OrganizationRequestsPage = () => {
 
       // Make a direct API call to update the user
       const token = getToken()
-      const response = await fetch(`http://127.0.0.1:8000/user-management/${updatedUser.id}`, {
+      const response = await fetch(`https://api.secuboard.live/user-management/${updatedUser.id}`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
@@ -288,7 +299,7 @@ const OrganizationRequestsPage = () => {
 
       // Make a direct API call to update the user
       const token = getToken()
-      const response = await fetch(`http://127.0.0.1:8000/user-management/${updatedUser.id}`, {
+      const response = await fetch(`https://api.secuboard.live/user-management/${updatedUser.id}`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
@@ -348,7 +359,7 @@ const OrganizationRequestsPage = () => {
 
       console.log("Adding new user:", newUser)
 
-      const response = await fetch("http://127.0.0.1:8000/user-management/", {
+      const response = await fetch("https://api.secuboard.live/user-management/", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -406,7 +417,7 @@ const OrganizationRequestsPage = () => {
 
       console.log("Updating user with payload:", payload)
 
-      const response = await fetch(`http://127.0.0.1:8000/user-management/${user.id}`, {
+      const response = await fetch(`https://api.secuboard.live/user-management/${user.id}`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
@@ -441,7 +452,7 @@ const OrganizationRequestsPage = () => {
     try {
       const token = getToken()
 
-      const response = await fetch(`http://127.0.0.1:8000/user-management/${id}`, {
+      const response = await fetch(`https://api.secuboard.live/user-management/${id}`, {
         method: "DELETE",
         headers: {
           Authorization: `Bearer ${token}`,

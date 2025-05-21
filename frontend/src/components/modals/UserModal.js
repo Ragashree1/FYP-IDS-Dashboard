@@ -20,7 +20,7 @@ const UserModal = ({ onClose, onConfirm, user = null, fixedRole }) => {
       // Get token from localStorage or use mock token for platform admin
       const token = localStorage.getItem("token") || "mock-token-for-platform-admin"
 
-      const response = await fetch("http://127.0.0.1:8000/user-management/roles", {
+      const response = await fetch("https://api.secuboard.live/user-management/roles", {
         method: "GET",
         headers: {
           Authorization: `Bearer ${token}`,
@@ -42,7 +42,7 @@ const UserModal = ({ onClose, onConfirm, user = null, fixedRole }) => {
             { id: 1, roleName: "Organisation Admin" },
             { id: 2, roleName: "Network Admin" },
             { id: 3, roleName: "IT Manager" }, // Added IT Manager role
-            { id: 4, roleName: "Data Analyst" }, // Added default role
+            { id: 4, roleName: "Data Analyst" },
           ])
         }
 
@@ -59,6 +59,7 @@ const UserModal = ({ onClose, onConfirm, user = null, fixedRole }) => {
           { id: 1, roleName: "Organisation Admin" },
           { id: 2, roleName: "Network Admin" },
           { id: 3, roleName: "IT Manager" }, // Added IT Manager role
+          { id: 4, roleName: "Data Analyst" },
         ])
         throw new Error("Failed to fetch roles")
       }
@@ -69,6 +70,7 @@ const UserModal = ({ onClose, onConfirm, user = null, fixedRole }) => {
         { id: 1, roleName: "Organisation Admin" },
         { id: 2, roleName: "Network Admin" },
         { id: 3, roleName: "IT Manager" }, // Added IT Manager role
+        { id: 4, roleName: "Data Analyst" },
       ])
     }
   }
@@ -188,6 +190,9 @@ const UserModal = ({ onClose, onConfirm, user = null, fixedRole }) => {
       return "Network Admin"
     } else if (fixedRole === 3 || formData.userRole === 3) {
       return "IT Manager" // Added IT Manager role
+    }
+    else if (fixedRole === 4 || formData.userRole === 4) {
+      return "Data Analyst" // Added Data Analyst role
     }
 
     const role = roles.find((r) => r.id === (fixedRole || formData.userRole))

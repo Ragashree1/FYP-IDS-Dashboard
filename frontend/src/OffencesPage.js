@@ -5,7 +5,7 @@ import Sidebar from "./Sidebar" // Import the Sidebar component
 import defaultClassifications from "./defaultClassifications" // Import default classifications
 
 const userRole = "2"
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+const API_BASE_URL = "https://api.secuboard.live";
 
 const FilterModal = ({ onClose, onSubmit , initialValues}) => {
 

@@ -15,7 +15,7 @@ const PredictedThreatsPage = () => {
   const [logError, setLogError] = useState(null);
 
   const userRole = "2";
-  const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+  const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "https://api.secuboard.live";
 
   const handleDeletePrediction = async (prediction) => {
     if (!window.confirm("Are you sure you want to delete this prediction?")) return;

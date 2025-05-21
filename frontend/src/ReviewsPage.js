@@ -27,7 +27,7 @@ const ReviewsPage = () => {
       setLoading(true)
       const token = getToken()
 
-      const response = await fetch("http://127.0.0.1:8000/reviews/", {
+      const response = await fetch("https://api.secuboard.live/reviews/", {
         method: "GET",
         headers: {
           "Content-Type": "application/json",
@@ -79,7 +79,7 @@ const ReviewsPage = () => {
       setDeleteLoading(true)
       const token = getToken()
 
-      const response = await fetch(`http://127.0.0.1:8000/reviews/${id}`, {
+      const response = await fetch(`https://api.secuboard.live/reviews/${id}`, {
         method: "DELETE",
         headers: {
           Authorization: `Bearer ${token}`,

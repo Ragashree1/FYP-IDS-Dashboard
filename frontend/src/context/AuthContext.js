@@ -86,7 +86,7 @@ export const AuthProvider = ({ children }) => {
       console.log("Token being sent for validation:", user.token); // Debug log
       const verifyToken = async () => {
         try {
-          const response = await fetch('http://127.0.0.1:8000/login/get_token', {
+          const response = await fetch('https://api.secuboard.live/login/get_token', {
             headers: {
               'Authorization': `Bearer ${user.token}`,
             },

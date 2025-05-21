@@ -20,7 +20,7 @@ import { Select, ColorPicker } from 'antd';
 import defaultClassifications from './defaultClassifications';  
 const { Option } = Select;
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+const API_BASE_URL = "https://api.secuboard.live";
 
 const Dashboard = () => {
   const navigate = useNavigate();

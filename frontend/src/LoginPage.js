@@ -122,7 +122,7 @@ export default function LoginPage() {
 
     try {
       // First, check if the account exists and its status
-      const checkStatusResponse = await fetch("http://127.0.0.1:8000/user-management/check-status", {
+      const checkStatusResponse = await fetch("https://api.secuboard.live/user-management/check-status", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -149,7 +149,7 @@ export default function LoginPage() {
       }
 
       // If account status check passes, proceed with login
-      const loginResponse = await fetch("http://127.0.0.1:8000/login/token", {
+      const loginResponse = await fetch("https://api.secuboard.live/login/token", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -233,11 +233,7 @@ export default function LoginPage() {
           // Network Admin goes to dashboard
           console.log("Redirecting to dashboard (Network Admin)") // Debug log
           navigate("/dashboard")
-        } else if (userRoleId === 4) {
-          // Platform Admin goes to dashboard
-          console.log("Redirecting to dashboard (Data Analyst)") // Debug log
-          navigate("/trained-models")
-        }  else if (userRoleId === 3) {
+        } else if (userRoleId === 3) {
           // IT Manager goes to system activity logs
           console.log("Redirecting to system activity logs (IT Manager)") // Debug log
           navigate("/system-activity-logs")

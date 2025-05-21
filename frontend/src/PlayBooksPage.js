@@ -62,7 +62,7 @@ const PlaybookModal = ({ playbook, onClose, onSave }) => {
         condition_type: condition.condition_type || "threshold",
         field: condition.field || "source_ip_alert_count",
         operator: condition.operator || "greater than or equal",
-        value: condition.condition_type === "severity" ? (condition.value || "low") : (condition.value || ""),
+        value: condition.value || "",
         window_period: condition.window_period || "",
       }));
       setConditions(parsedConditions);
@@ -113,7 +113,7 @@ const PlaybookModal = ({ playbook, onClose, onSave }) => {
               ...(field === "condition_type" && {
                 field: conditionFieldOptions[value]?.[0]?.value || "",
                 operator: conditionOperatorOptions[value]?.[0]?.value || "",
-                value: conditionValueOptions[value]?.[0]?.value || "", // Set default value "low" for severity
+                value: "",
               }),
             }
           : condition
@@ -686,7 +686,7 @@ const PlaybooksPage = () => {
   const [playbooks, setPlaybooks] = useState([])
 
   const [totalBlockedIps, setTotalBlockedIPs] = useState(0);
-  const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+  const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "https://api.secuboard.live";
 
   const getOrgId = async () => {
     const token = localStorage.getItem("token");
@@ -739,7 +739,7 @@ const PlaybooksPage = () => {
 
   const fetchPlaybooks = async () => {
     try {
-      const response = await fetch('http://localhost:8000/playbooks');
+      const response = await fetch('https://api.secuboard.live/playbooks');
       const data = await response.json();
       setPlaybooks(Array.isArray(data) ? data : []);
       setLoading(false);
@@ -839,14 +839,14 @@ const PlaybooksPage = () => {
       let response;
       if (id) {
         // Update existing playbook
-        response = await fetch(`http://localhost:8000/playbooks/${id}`, {
+        response = await fetch(`https://api.secuboard.live/playbooks/${id}`, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(playbookData),
         });
       } else {
         // Create new playbook
-        response = await fetch('http://localhost:8000/playbooks', {
+        response = await fetch('https://api.secuboard.live/playbooks', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(playbookData),
@@ -868,7 +868,7 @@ const PlaybooksPage = () => {
 
   const handleDeletePlaybook = async (playbookId) => {
     try {
-      const response = await fetch(`http://localhost:8000/playbooks/${playbookId}`, {
+      const response = await fetch(`https://api.secuboard.live/playbooks/${playbookId}`, {
         method: 'DELETE'
       });
 
@@ -885,7 +885,7 @@ const PlaybooksPage = () => {
 
   const handleToggleStatus = async (playbookId) => {
     try {
-      const response = await fetch(`http://localhost:8000/playbooks/${playbookId}/toggle`, {
+      const response = await fetch(`https://api.secuboard.live/playbooks/${playbookId}/toggle`, {
         method: 'POST'
       });
 

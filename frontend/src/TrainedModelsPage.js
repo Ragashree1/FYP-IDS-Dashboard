@@ -138,7 +138,7 @@ const Dialog = ({ open, onOpenChange, children }) => {
 
 const TrainedModelsPage = () => {
   const [models, setModels] = useState([])
-  const userRole = "4" // Add this line for Data Analyst role
+  // const [isModelDialogOpen, setIsModelDialogOpen] = useState(false)
   const [newModelName, setNewModelName] = useState("") // Added state for model name
   const [newAlgorithm, setNewAlgorithm] = useState("")
   const [labelMappingText, setLabelMappingText] = useState("")
@@ -155,7 +155,7 @@ const TrainedModelsPage = () => {
   
   // Modify dialog open state to handle both add and edit
   const [isModelDialogOpen, setIsModelDialogOpen] = useState(false);
-  const baseUrl = "http://localhost:8000"
+  const baseUrl = "https://api.secuboard.live"
 
   useEffect(() => {
     fetchModels()
@@ -350,7 +350,7 @@ const TrainedModelsPage = () => {
 
   return (
     <div style={{ display: "flex", height: "100vh", background: "#f4f4f4", overflow: "hidden" }}>
-      <Sidebar userRole={userRole} /> {/* Add userRole prop */}
+      <Sidebar />
 
       <div style={{ flex: 1, padding: "32px", overflowY: "auto", overflowX: "hidden" }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "24px" }}>

@@ -5,8 +5,8 @@ import Sidebar from "./Sidebar" // Import the Sidebar component
 
 const userRole = "2"
 
-const API_URL = "http://localhost:8000/ip-blocking"; // backend API base URL
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+const API_URL = "https://api.secuboard.live/ip-blocking"; // backend API base URL
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "https://api.secuboard.live";
 
 const getOrgId = async () => {
   const token = localStorage.getItem("token");
@@ -33,7 +33,7 @@ const fetchBlockedIPs = async (setBlocklist, navigate) => {
   }
 
   try {
-    const response = await fetch(`http://localhost:8000/ip-blocking/${orgId}/blocked-ips`, {
+    const response = await fetch(`https://api.secuboard.live/ip-blocking/${orgId}/blocked-ips`, {
       method: "GET",
       headers: {
         "Content-Type": "application/json"

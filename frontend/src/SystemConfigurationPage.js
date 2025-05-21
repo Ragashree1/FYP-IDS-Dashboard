@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import Sidebar from "./Sidebar";
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "https://api.secuboard.live";
 
 const userRole = "2";
 
@@ -143,12 +143,7 @@ const SystemConfiguration = () => {
 
   const fetchVerifiedIPs = async (orgId) => {
     try {
-      const token = localStorage.getItem("token");
-      const response = await fetch(`${API_BASE_URL}/ip-verification/verified-ips/${orgId}`, {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      });
+      const response = await fetch(`${API_BASE_URL}/ip-verification/verified-ips/${orgId}`);
       if (!response.ok) {
         const errorData = await response.json();
         throw new Error(errorData.message || "Failed to fetch verified IPs");
@@ -167,14 +162,12 @@ const SystemConfiguration = () => {
     }
   };
 
+  
+
   const handleRemoveClient = async (id) => {
     try {
-      const token = localStorage.getItem("token");
       const response = await fetch(`${API_BASE_URL}/ip-verification/remove-ip/${id}`, {
         method: "DELETE",
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
       });
 
       if (!response.ok) {
@@ -193,13 +186,9 @@ const SystemConfiguration = () => {
 
   const handleAddIP = async (newIP) => {
     try {
-      const token = localStorage.getItem("token");
       const response = await fetch(`${API_BASE_URL}/ip-verification/verify-ip`, {
         method: "POST",
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ organization_id: userOrgId, ip: newIP }),
       });
 
