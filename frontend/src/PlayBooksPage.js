@@ -686,7 +686,7 @@ const PlaybooksPage = () => {
   const [playbooks, setPlaybooks] = useState([])
 
   const [totalBlockedIps, setTotalBlockedIPs] = useState(0);
-  const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "https://api.secuboard.live";
+  const API_BASE_URL = "https://api.secuboard.live";
 
   const getOrgId = async () => {
     const token = localStorage.getItem("token");
@@ -739,7 +739,10 @@ const PlaybooksPage = () => {
 
   const fetchPlaybooks = async () => {
     try {
-      const response = await fetch('https://api.secuboard.live/playbooks');
+      const response = await fetch(`${API_BASE_URL}/playbooks`);
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
       const data = await response.json();
       setPlaybooks(Array.isArray(data) ? data : []);
       setLoading(false);
@@ -839,14 +842,14 @@ const PlaybooksPage = () => {
       let response;
       if (id) {
         // Update existing playbook
-        response = await fetch(`https://api.secuboard.live/playbooks/${id}`, {
+        response = await fetch(`${API_BASE_URL}/playbooks/${id}`, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(playbookData),
         });
       } else {
         // Create new playbook
-        response = await fetch('https://api.secuboard.live/playbooks', {
+        response = await fetch(`${API_BASE_URL}/playbooks`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(playbookData),
@@ -868,7 +871,7 @@ const PlaybooksPage = () => {
 
   const handleDeletePlaybook = async (playbookId) => {
     try {
-      const response = await fetch(`https://api.secuboard.live/playbooks/${playbookId}`, {
+      const response = await fetch(`${API_BASE_URL}/playbooks/${playbookId}`, {
         method: 'DELETE'
       });
 
@@ -885,7 +888,7 @@ const PlaybooksPage = () => {
 
   const handleToggleStatus = async (playbookId) => {
     try {
-      const response = await fetch(`https://api.secuboard.live/playbooks/${playbookId}/toggle`, {
+      const response = await fetch(`${API_BASE_URL}/playbooks/${playbookId}/toggle`, {
         method: 'POST'
       });
 

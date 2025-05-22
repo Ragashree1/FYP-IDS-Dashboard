@@ -163,8 +163,8 @@ const EventLogPage = () => {
   useEffect(() => {
     setLoading(true);
     const endpoint = logType === "apache"
-      ? 'http://localhost:8000/logs'
-      : `http://localhost:8000/logs/networkLogs?page=${currentPage}&page_size=10`; // Add page_size parameter
+      ? `${API_BASE_URL}/logs`
+      : `${API_BASE_URL}/logs/networkLogs?page=${currentPage}&page_size=10`; // Add page_size parameter
     axios.get(endpoint)
       .then(response => {
         const data = response.data;
