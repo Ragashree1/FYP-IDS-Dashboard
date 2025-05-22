@@ -739,13 +739,29 @@ const PlaybooksPage = () => {
 
   const fetchPlaybooks = async () => {
     try {
-      const response = await fetch('https://api.secuboard.live/playbooks');
+      const token = localStorage.getItem("token");
+      if (!token) {
+        throw new Error("No authentication token found");
+      }
+
+      const response = await fetch(`${API_BASE_URL}/playbooks`, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
       const data = await response.json();
       setPlaybooks(Array.isArray(data) ? data : []);
       setLoading(false);
     } catch (error) {
       console.error('Error fetching playbooks:', error);
-      setError('Failed to fetch playbooks');
+      setError(error.message || 'Failed to fetch playbooks');
       setLoading(false);
       setPlaybooks([]);
     }
@@ -810,93 +826,94 @@ const PlaybooksPage = () => {
   }
 
   const handleSavePlaybook = async (formData, id) => {
-    console.log(formData);
     try {
-      let actionType = ""
-      if (formData.blockIP && formData.sendEmailAlert) {
-        actionType = "Block IP + Alert"
-      } else if (formData.blockIP) {
-        actionType = "Block IP"
-      } else if (formData.sendEmailAlert) {
-        actionType = "Alert"
+      const token = localStorage.getItem("token");
+      if (!token) {
+        throw new Error("No authentication token found");
       }
-
-      console.log('saving playbook');
-      console.log('form data: ', formData)
-      const playbookData = {
-        name: formData.name,
-        description: formData.description,
-        actionType: formData.actionType,
-        status: formData.status ? "active" : "inactive",
-        conditions: formData.conditions,
-        actions: formData.actions,
-        blockIP: formData.blockIP,
-        sendEmailAlert: formData.sendEmailAlert,
-        emailRecipients: formData.emailRecipients,
-      };
-      console.log('obj ', playbookData);
 
       let response;
       if (id) {
-        // Update existing playbook
-        response = await fetch(`https://api.secuboard.live/playbooks/${id}`, {
+        response = await fetch(`${API_BASE_URL}/playbooks/${id}`, {
           method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(playbookData),
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify(formData),
         });
       } else {
-        // Create new playbook
-        response = await fetch('https://api.secuboard.live/playbooks', {
+        response = await fetch(`${API_BASE_URL}/playbooks`, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(playbookData),
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify(formData),
         });
       }
 
       if (!response.ok) {
-        throw new Error(`Failed to ${id ? 'update' : 'create'} playbook`);
+        const errorData = await response.json();
+        throw new Error(errorData.message || `Failed to ${id ? 'update' : 'create'} playbook`);
       }
 
-      // Refresh playbooks list
-      fetchPlaybooks();
+      await fetchPlaybooks();
       handleCloseModal();
     } catch (error) {
       console.error('Error saving playbook:', error);
-      // You might want to show an error message to the user here
+      setError(error.message);
     }
   };
 
   const handleDeletePlaybook = async (playbookId) => {
     try {
-      const response = await fetch(`https://api.secuboard.live/playbooks/${playbookId}`, {
-        method: 'DELETE'
+      const token = localStorage.getItem("token");
+      if (!token) {
+        throw new Error("No authentication token found");
+      }
+
+      const response = await fetch(`${API_BASE_URL}/playbooks/${playbookId}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        }
       });
 
       if (!response.ok) {
         throw new Error('Failed to delete playbook');
       }
 
-      // Refresh playbooks list
-      fetchPlaybooks();
+      await fetchPlaybooks();
     } catch (error) {
       console.error('Error deleting playbook:', error);
+      setError(error.message);
     }
   };
 
   const handleToggleStatus = async (playbookId) => {
     try {
-      const response = await fetch(`https://api.secuboard.live/playbooks/${playbookId}/toggle`, {
-        method: 'POST'
+      const token = localStorage.getItem("token");
+      if (!token) {
+        throw new Error("No authentication token found");
+      }
+
+      const response = await fetch(`${API_BASE_URL}/playbooks/${playbookId}/toggle`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
       });
 
       if (!response.ok) {
         throw new Error('Failed to toggle playbook status');
       }
 
-      // Refresh playbooks list
-      fetchPlaybooks();
+      await fetchPlaybooks();
     } catch (error) {
       console.error('Error toggling playbook status:', error);
+      setError(error.message);
     }
   };
 
