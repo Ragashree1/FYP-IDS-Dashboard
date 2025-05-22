@@ -687,7 +687,28 @@ const PlaybooksPage = () => {
   const [playbooks, setPlaybooks] = useState([])
 
   const [totalBlockedIps, setTotalBlockedIPs] = useState(0);
-  const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "https://api.secuboard.live";
+  const API_BASE_URL = "https://api.secuboard.live";
+
+  const axiosInstance = axios.create({
+    baseURL: API_BASE_URL,
+    timeout: 10000,
+    maxRedirects: 5,
+    withCredentials: true,
+    headers: {
+      'Accept': 'application/json',
+      'Content-Type': 'application/json',
+    }
+  });
+
+  axiosInstance.interceptors.request.use((config) => {
+    const token = localStorage.getItem("token");
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
+    return config;
+  }, (error) => {
+    return Promise.reject(error);
+  });
 
   const getOrgId = async () => {
     const token = localStorage.getItem("token");
@@ -745,15 +766,7 @@ const PlaybooksPage = () => {
         throw new Error("No authentication token found");
       }
 
-      const config = {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
-        timeout: 10000 // 10 second timeout
-      };
-
-      const response = await axios.get(`${API_BASE_URL}/playbooks`, config);
+      const response = await axiosInstance.get('/playbooks/');
       
       if (response.status === 200) {
         const data = response.data;
@@ -763,16 +776,12 @@ const PlaybooksPage = () => {
       }
     } catch (error) {
       if (error.response) {
-        // The request was made and the server responded with a status code
-        // that falls out of the range of 2xx
         console.error('Server Error:', error.response.data);
         setError(`Server Error: ${error.response.data.message || 'Unknown error'}`);
       } else if (error.request) {
-        // The request was made but no response was received
         console.error('Network Error:', error.request);
         setError('Network error - please check your connection');
       } else {
-        // Something happened in setting up the request that triggered an Error
         console.error('Error:', error.message);
         setError(error.message || 'Failed to fetch playbooks');
       }
@@ -842,23 +851,10 @@ const PlaybooksPage = () => {
 
   const handleSavePlaybook = async (formData, id) => {
     try {
-      const token = localStorage.getItem("token");
-      if (!token) {
-        throw new Error("No authentication token found");
-      }
-
-      const config = {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
-        timeout: 10000
-      };
-
       if (id) {
-        await axios.put(`${API_BASE_URL}/playbooks/${id}`, formData, config);
+        await axiosInstance.put(`/playbooks/${id}/`, formData);
       } else {
-        await axios.post(`${API_BASE_URL}/playbooks`, formData, config);
+        await axiosInstance.post('/playbooks/', formData);
       }
 
       await fetchPlaybooks();
@@ -872,19 +868,7 @@ const PlaybooksPage = () => {
 
   const handleDeletePlaybook = async (playbookId) => {
     try {
-      const token = localStorage.getItem("token");
-      if (!token) {
-        throw new Error("No authentication token found");
-      }
-
-      const config = {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-        },
-        timeout: 10000
-      };
-
-      await axios.delete(`${API_BASE_URL}/playbooks/${playbookId}`, config);
+      await axiosInstance.delete(`/playbooks/${playbookId}/`);
       await fetchPlaybooks();
     } catch (error) {
       const errorMessage = error.response?.data?.message || error.message || 'Failed to delete playbook';
@@ -895,20 +879,7 @@ const PlaybooksPage = () => {
 
   const handleToggleStatus = async (playbookId) => {
     try {
-      const token = localStorage.getItem("token");
-      if (!token) {
-        throw new Error("No authentication token found");
-      }
-
-      const config = {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
-        timeout: 10000
-      };
-
-      await axios.post(`${API_BASE_URL}/playbooks/${playbookId}/toggle`, {}, config);
+      await axiosInstance.post(`/playbooks/${playbookId}/toggle/`, {});
       await fetchPlaybooks();
     } catch (error) {
       const errorMessage = error.response?.data?.message || error.message || 'Failed to toggle playbook status';
