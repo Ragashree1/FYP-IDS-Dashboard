@@ -19,7 +19,7 @@ const AccountActivityLogsPage = () => {
   const fetchOrgId = async () => {
     const token = localStorage.getItem("token");
     try {
-      const response = await fetch("http://127.0.0.1:8000/login/get_user", {
+      const response = await fetch("https://api.secuboard.live/login/get_user", {
         headers: { Authorization: `Bearer ${token}` },
       });
       if (response.ok) {
@@ -43,7 +43,7 @@ const AccountActivityLogsPage = () => {
         return;
       }
 
-      const response = await fetch(`http://127.0.0.1:8000/audit/account-logs/?organization_id=${orgId}`, {
+      const response = await fetch(`https://api.secuboard.live/audit/account-logs/?organization_id=${orgId}`, {
         headers: {
           'Authorization': `Bearer ${token}`
         }
@@ -90,7 +90,7 @@ const AccountActivityLogsPage = () => {
       setDeleteLoading(true)
       const token = localStorage.getItem("token")
 
-      const response = await fetch(`http://127.0.0.1:8000/audit/delete-log/${logId}`, {
+      const response = await fetch(`https://api.secuboard.live/audit/delete-log/${logId}`, {
         method: "DELETE",
         headers: {
           Authorization: `Bearer ${token}`,

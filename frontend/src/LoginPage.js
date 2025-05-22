@@ -122,7 +122,7 @@ export default function LoginPage() {
 
     try {
       // First, check if the account exists and its status
-      const checkStatusResponse = await fetch("http://127.0.0.1:8000/user-management/check-status", {
+      const checkStatusResponse = await fetch("https://api.secuboard.live/user-management/check-status", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -149,7 +149,7 @@ export default function LoginPage() {
       }
 
       // If account status check passes, proceed with login
-      const loginResponse = await fetch("http://127.0.0.1:8000/login/token", {
+      const loginResponse = await fetch("https://api.secuboard.live/login/token", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

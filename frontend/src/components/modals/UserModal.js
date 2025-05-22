@@ -20,7 +20,7 @@ const UserModal = ({ onClose, onConfirm, user = null, fixedRole }) => {
       // Get token from localStorage or use mock token for platform admin
       const token = localStorage.getItem("token") || "mock-token-for-platform-admin"
 
-      const response = await fetch("http://127.0.0.1:8000/user-management/roles", {
+      const response = await fetch("https://api.secuboard.live/user-management/roles", {
         method: "GET",
         headers: {
           Authorization: `Bearer ${token}`,

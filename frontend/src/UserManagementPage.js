@@ -28,7 +28,7 @@ const UserManagementPage = () => {
 
   const getOrgId = async () => {
     const token = localStorage.getItem("token")
-    const response = await fetch("http://127.0.0.1:8000/login/get_user", {
+    const response = await fetch("https://api.secuboard.live/login/get_user", {
       headers: { Authorization: `Bearer ${token}` },
     })
     if (!response.ok) {
@@ -54,7 +54,7 @@ const UserManagementPage = () => {
   const logActivity = async (action, targetUser, description) => {
     try {
       const token = localStorage.getItem("token")
-      const response = await fetch("http://127.0.0.1:8000/audit/log-activity", {
+      const response = await fetch("https://api.secuboard.live/audit/log-activity", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -78,7 +78,7 @@ const UserManagementPage = () => {
   const fetchRoles = async () => {
     try {
       const token = localStorage.getItem("token") // Get the token from localStorage
-      const response = await fetch("http://127.0.0.1:8000/user-management/roles", {
+      const response = await fetch("https://api.secuboard.live/user-management/roles", {
         method: "GET",
         headers: {
           Authorization: `Bearer ${token}`, // Include the token in the headers
@@ -138,7 +138,7 @@ const UserManagementPage = () => {
   const fetchUsers = async () => {
     try {
       const token = localStorage.getItem("token")
-      const response = await fetch("http://127.0.0.1:8000/user-management/", {
+      const response = await fetch("https://api.secuboard.live/user-management/", {
         method: "GET",
         headers: {
           "Content-Type": "application/json",
@@ -251,7 +251,7 @@ const UserManagementPage = () => {
 
       console.log("Creating new user with data:", newUser)
 
-      const response = await fetch("http://127.0.0.1:8000/user-management/", {
+      const response = await fetch("https://api.secuboard.live/user-management/", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -304,7 +304,7 @@ const UserManagementPage = () => {
 
       console.log("Updating user with payload:", payload)
 
-      const response = await fetch(`http://127.0.0.1:8000/user-management/${user.id}`, {
+      const response = await fetch(`https://api.secuboard.live/user-management/${user.id}`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
@@ -375,7 +375,7 @@ const UserManagementPage = () => {
       // Find the user before deleting to use in the log
       const userToBeDeleted = users.find((user) => user.id === id)
 
-      const response = await fetch(`http://127.0.0.1:8000/user-management/${id}`, {
+      const response = await fetch(`https://api.secuboard.live/user-management/${id}`, {
         method: "DELETE",
         headers: {
           Authorization: `Bearer ${token}`, // Include the token in the headers
