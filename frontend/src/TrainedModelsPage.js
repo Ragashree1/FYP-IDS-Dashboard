@@ -242,9 +242,9 @@ const TrainedModelsPage = () => {
 
     try {
       if (editingModel) {
-        await axios.put(baseUrl + `/ml_model/${editingModel.id}`, formData);
+        await axios.put(baseUrl + `/ml_model/${editingModel.id}/`, formData);
       } else {
-        await axios.post(baseUrl + "/ml_model", formData);
+        await axios.post(baseUrl + "/ml_model/", formData);
       }
       fetchModels();
       setIsModelDialogOpen(false);
@@ -311,7 +311,7 @@ const TrainedModelsPage = () => {
     formData.append("model_file", modelFile)
 
     try {
-      await axios.post(baseUrl + "/ml_model", formData)
+      await axios.post(baseUrl + "/ml_model/", formData)
       fetchModels()
       setIsModelDialogOpen(false)
       resetForm()
@@ -321,12 +321,12 @@ const TrainedModelsPage = () => {
   }
 
   const handleDeleteModel = async (modelId) => {
-    await axios.delete(baseUrl + `/ml_model/${modelId}`)
+    await axios.delete(baseUrl + `/ml_model/${modelId}/`)
     fetchModels()
   }
 
   const handleToggleModelStatus = async (modelId, isActive) => {
-    await axios.put(baseUrl + `/ml_model/${modelId}/status`, {
+    await axios.put(baseUrl + `/ml_model/${modelId}/status/`, {
       organization_id: await getOrgId(),
       is_active: isActive,
       model_id: modelId,
@@ -336,7 +336,7 @@ const TrainedModelsPage = () => {
 
   const getOrgId = async () => {
     const token = localStorage.getItem("token")
-    const response = await fetch(`${baseUrl}/login/get_user`, {
+    const response = await fetch(`${baseUrl}/login/get_user/`, {
       headers: { Authorization: `Bearer ${token}` },
     })
     if (!response.ok) {
