@@ -103,10 +103,10 @@ FIELD_MAPPING = {
 
 CICFLOW_FIELDS = list(FIELD_MAPPING.keys())
 
-ES_URL = "http://localhost:9200/cicflow-*/_search"
+ES_URL = "http://54.91.203.196:9200/cicflow-*/_search"
 
 def fetch_logs():
-    es_url = "http://localhost:9200/apache-*/_search"
+    es_url = "http://54.91.203.196:9200/apache-*/_search"
     query = {
         "size": 100,
         "query": {"match_all": {}},

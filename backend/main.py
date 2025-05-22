@@ -142,6 +142,8 @@ origins = [
     "http://127.0.0.1:3000",
     "http://localhost:3006",
     "http://localhost:9600",
+    "https://www.secuboard.live",
+    "https://api.secuboard.live",
 ]
 
 app.add_middleware(

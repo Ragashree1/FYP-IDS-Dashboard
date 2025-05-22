@@ -33,7 +33,7 @@ def parse_timestamp(timestamp_str):
 
 def fetch_alerts():
     print("Starting fetch_alerts...")  # Debug print
-    es_url = "http://localhost:9200/snort-logs-*/_search"
+    es_url = "http://54.91.203.196:9200/snort-logs-*/_search"
     query = {
         "size": 100,
         "query": {"match_all": {}},

@@ -21,10 +21,10 @@ LOW_VALUE_ALERTS = [
 
 def get_elasticsearch_alert_count():
     try:
-        es_url = "http://localhost:9200/zeek-alerts-*/_count"
+        es_url = "http://54.91.203.196:9200/zeek-alerts-*/_count"
         headers = {"Content-Type": "application/json"}
 
-        health_check = requests.get("http://localhost:9200/_cluster/health", timeout=5)
+        health_check = requests.get("http://54.91.203.196:9200/_cluster/health", timeout=5)
         if health_check.status_code != 200:
             logger.error(f"Elasticsearch health check failed: {health_check.status_code}")
             return 0
@@ -41,7 +41,7 @@ def get_elasticsearch_alert_count():
 
 def get_elasticsearch_alert_count_by_note():
     try:
-        es_url = "http://localhost:9200/zeek-alerts-*/_search"
+        es_url = "http://54.91.203.196:9200/zeek-alerts-*/_search"
         headers = {"Content-Type": "application/json"}
         query = {
             "size": 0,
@@ -87,7 +87,7 @@ def get_database_alert_count(orgId: int):
 
 def fetch_recent_alerts(limit=1000, minutes=5):
     try:
-        es_url = "http://localhost:9200/zeek-alerts-*/_search"
+        es_url = "http://54.91.203.196:9200/zeek-alerts-*/_search"
         headers = {"Content-Type": "application/json"}
         time_ago = datetime.utcnow() - timedelta(minutes=minutes)
         time_ago_str = time_ago.strftime("%Y-%m-%dT%H:%M:%S.%fZ")

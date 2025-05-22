@@ -9,7 +9,7 @@ import shutil
 
 router = APIRouter(prefix="/ml_model", tags=["ml_model"])
 
-UPLOAD_DIR = "/home/raga/logIntegration/uploads/ml_models"
+UPLOAD_DIR = "/home/ubuntu/uploads/ml_models"
 
 @router.post("/", response_model=MLModelOut)
 def create_model(

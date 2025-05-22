@@ -1,7 +1,4 @@
-"use client"
-
 import { useState, useEffect } from "react"
-import { jwtDecode } from "jwt-decode"
 import { useNavigate, useLocation } from "react-router-dom"
 import { useAuth } from "./context/AuthContext" // Import useAuth
 import Sidebar from "./Sidebar"
@@ -27,44 +24,29 @@ const UserManagementPage = () => {
   const [loading, setLoading] = useState(true) // Added loading state
   const [error, setError] = useState(null)
 
-  // Function to extract organization ID from token and save to localStorage
-  const extractOrgIdFromToken = () => {
-    try {
-      const token = localStorage.getItem("token")
-      if (!token) {
-        console.error("No token found in localStorage")
-        return null
-      }
-
-      // Decode the token
-      const decodedToken = jwtDecode(token)
-      console.log("Decoded token:", decodedToken)
-
-      // Try to find organization_id in different possible locations in the token
-      let orgId = null
-
-      // Check if organization_id is directly in the token
-      if (decodedToken.organization_id) {
-        orgId = decodedToken.organization_id
-      }
-      // Check if it's in the user object
-      else if (decodedToken.user && decodedToken.user.organization_id) {
-        orgId = decodedToken.user.organization_id
-      }
-
-      if (orgId) {
-        console.log("Found organization ID in token:", orgId)
-        localStorage.setItem("orgId", String(orgId))
-        return orgId
-      } else {
-        console.warn("Organization ID not found in token")
-        return null
-      }
-    } catch (err) {
-      console.error("Error extracting organization ID from token:", err)
-      return null
+  const getOrgId = async () => {
+    const token = localStorage.getItem("token")
+    const response = await fetch("https://api.secuboard.live/login/get_user", {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+    if (!response.ok) {
+      throw new Error("Failed to get organization ID")
     }
+    const data = await response.json()
+    return data.user.organization_id
   }
+
+  useEffect(() => {
+    const fetchOrgId = async () => {
+      const fetchedOrgId = await getOrgId()
+      if (fetchedOrgId) {
+        localStorage.setItem("orgId", String(fetchedOrgId))
+      } else {
+        console.warn("Could not fetch organization ID")
+      }
+    }
+    fetchOrgId()
+  }, [])
 
   // Function to log user activity
   const logActivity = async (action, targetUser, description) => {
@@ -112,7 +94,7 @@ const UserManagementPage = () => {
           { id: 1, roleName: "Organisation Admin" },
           { id: 2, roleName: "Network Admin" },
           { id: 3, roleName: "IT Manager" }, // Added IT Manager role
-          { id: 4, roleName: "Data Analyst" },
+          { id: 4, roleName: "Data Analyst" }
         ])
         throw new Error("Failed to fetch roles")
       }
@@ -122,35 +104,12 @@ const UserManagementPage = () => {
       setRoles([
         { id: 1, roleName: "Organisation Admin" },
         { id: 2, roleName: "Network Admin" },
-        { id: 3, roleName: "IT Manager" }, // Added IT Manager role
-        { id: 4, roleName: "Data Analyst" },
+        { id: 3, roleName: "IT Manager" }, 
+        { id: 4, roleName: "Data Analyst" }
       ])
       setLoading(false)
     }
   }
-
-  // Check for organization ID on component mount
-  useEffect(() => {
-    // Check if orgId exists in localStorage
-    const orgId = localStorage.getItem("orgId")
-
-    if (!orgId || isNaN(Number(orgId))) {
-      console.log("No valid organization ID in localStorage, attempting to extract from token")
-      const extractedOrgId = extractOrgIdFromToken()
-
-      if (!extractedOrgId) {
-        // If we still don't have an orgId, try to get it from authData
-        if (authData && authData.orgId) {
-          console.log("Using organization ID from authData:", authData.orgId)
-          localStorage.setItem("orgId", String(authData.orgId))
-        } else {
-          console.warn("Could not find organization ID in token or authData")
-        }
-      }
-    } else {
-      console.log("Found organization ID in localStorage:", orgId)
-    }
-  }, [authData])
 
   useEffect(() => {
     fetchRoles()
@@ -168,9 +127,6 @@ const UserManagementPage = () => {
     } else if (roleIdNum === 3) {
       return "IT Manager" // Added IT Manager role
     }
-    else if (roleIdNum === 4) {
-      return "Data Analyst" // Added Data Analyst role
-    }
 
     // Otherwise look up in the roles array
     const role = roles.find((r) => r.id === roleIdNum)
@@ -179,19 +135,24 @@ const UserManagementPage = () => {
 
   const fetchUsers = async () => {
     try {
-      const token = localStorage.getItem("token") // Get the token from localStorage
+      const token = localStorage.getItem("token")
       const response = await fetch("https://api.secuboard.live/user-management/", {
         method: "GET",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`, // Pass the token in the headers
+          Authorization: `Bearer ${token}`,
         },
       })
 
       if (response.ok) {
         const data = await response.json()
-        console.log("Fetched users:", data) // Debug log
-        setUsers(data)
+        console.log("Fetched users:", data)
+        if (Array.isArray(data)) {
+          setUsers(data)
+        } else {
+          console.error("Received non-array data:", data)
+          setUsers([])
+        }
         setLoading(false)
       } else {
         throw new Error("Failed to fetch users")
@@ -271,43 +232,19 @@ const UserManagementPage = () => {
 
   const addUser = async (user) => {
     try {
-      const token = localStorage.getItem("token") // Get the token from localStorage
-      let orgId = localStorage.getItem("orgId") // Get the organization ID
+      const token = localStorage.getItem("token")
+      const orgId = await getOrgId()
 
-      console.log("Organization ID from localStorage:", orgId)
-
-      // If no orgId in localStorage, try to extract from token
-      if (!orgId || isNaN(Number(orgId))) {
-        console.log("No valid organization ID in localStorage, attempting to extract from token")
-        orgId = extractOrgIdFromToken()
-
-        // If still no orgId, try from authData
-        if (!orgId && authData && authData.orgId) {
-          orgId = String(authData.orgId)
-          console.log("Using organization ID from authData:", orgId)
-          localStorage.setItem("orgId", orgId)
-        }
-      }
-
-      // Parse organization ID as a number
-      let parsedOrgId = null
-      if (orgId && !isNaN(Number(orgId))) {
-        parsedOrgId = Number(orgId)
-        console.log("Parsed organization ID:", parsedOrgId)
-      } else {
-        console.error("Invalid or missing organization ID")
-        setError("Organization ID is missing or invalid. Please log in again.")
-        setTimeout(() => setError(null), 5000)
+      if (!orgId) {
+        setError("Organization ID is missing. Please log in again.")
         return false
       }
 
-      // Set userSuspend to false for users created in user management page
-      // This allows them to log in immediately without approval
       const newUser = {
         ...user,
         userSuspend: false,
         userRejected: false,
-        organization_id: parsedOrgId, // Add organization_id to the new user
+        organization_id: orgId,
       }
 
       console.log("Creating new user with data:", newUser)
@@ -316,9 +253,9 @@ const UserManagementPage = () => {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`, // Ensure the token is included in the headers
+          Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify(newUser), // Send the user data in the request body
+        body: JSON.stringify(newUser),
       })
 
       if (!response.ok) {
@@ -352,46 +289,15 @@ const UserManagementPage = () => {
   const updateUser = async (user) => {
     try {
       const token = localStorage.getItem("token") // Get the token from localStorage
-      let orgId = localStorage.getItem("orgId") // Get the organization ID
-
-      // If no orgId in localStorage, try to extract from token
-      if (!orgId || isNaN(Number(orgId))) {
-        orgId = extractOrgIdFromToken()
-
-        // If still no orgId, try from authData
-        if (!orgId && authData && authData.orgId) {
-          orgId = String(authData.orgId)
-          localStorage.setItem("orgId", orgId)
-        }
-      }
-
-      // Parse organization ID as a number
-      let parsedOrgId = null
-      if (orgId && !isNaN(Number(orgId))) {
-        parsedOrgId = Number(orgId)
-      }
+      const orgId = await getOrgId() // Get the organization ID
 
       // Get the original user to compare changes
       const originalUser = users.find((u) => u.id === user.id)
 
       // Ensure all required fields are included
       const payload = {
-        id: user.id,
-        username: user.username,
-        userFirstName: user.userFirstName || "",
-        userLastName: user.userLastName || "",
-        userComName: user.userComName,
-        userEmail: user.userEmail,
-        userPhoneNum: user.userPhoneNum,
-        userRole: user.userRole,
-        userSuspend: user.userSuspend,
-        userRejected: user.userRejected || false,
-        organization_id: parsedOrgId || user.organization_id, // Preserve or update organization_id
-      }
-
-      // Include password only if it is provided
-      if (user.passwd) {
-        payload.passwd = user.passwd
+        ...user,
+        organization_id: orgId,
       }
 
       console.log("Updating user with payload:", payload)

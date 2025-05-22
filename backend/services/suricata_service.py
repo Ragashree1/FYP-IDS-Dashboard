@@ -15,12 +15,12 @@ logger = logging.getLogger(__name__)
 
 def get_elasticsearch_alert_count():
     try:
-        es_url = "http://localhost:9200/suricata-alerts-*,suricata-logs-*/_count"
+        es_url = "http://54.91.203.196:9200/suricata-alerts-*,suricata-logs-*/_count"
         headers = {"Content-Type": "application/json"}
         
         # Check if Elasticsearch is reachable first
         try:
-            health_check = requests.get("http://localhost:9200/_cluster/health", timeout=5)
+            health_check = requests.get("http://54.91.203.196:9200/_cluster/health", timeout=5)
             if health_check.status_code != 200:
                 logger.error(f"Elasticsearch health check failed: {health_check.status_code}")
                 return 0
@@ -44,7 +44,7 @@ def get_elasticsearch_alert_count():
 def get_elasticsearch_alert_count_by_signature():
     """Get alert counts grouped by signature"""
     try:
-        es_url = "http://localhost:9200/suricata-alerts-*/_search"
+        es_url = "http://54.91.203.196:9200/suricata-alerts-*/_search"
         headers = {"Content-Type": "application/json"}
         
         query = {
@@ -86,11 +86,11 @@ def get_database_alert_count(orgId: int):
 
 def fetch_suricata_alerts(orgId: int):
     try:
-        es_url = "http://localhost:9200/suricata-alerts-*,suricata-logs-*/_search"
+        es_url = "http://54.91.203.196:9200/suricata-alerts-*,suricata-logs-*/_search"
         
         # First, check if Elasticsearch is reachable
         try:
-            health_check = requests.get("http://localhost:9200/_cluster/health", timeout=5)
+            health_check = requests.get("http://54.91.203.196:9200/_cluster/health", timeout=5)
             if health_check.status_code != 200:
                 logger.error(f"Elasticsearch health check failed: {health_check.status_code}")
                 return []
@@ -127,11 +127,11 @@ def fetch_suricata_alerts(orgId: int):
 
 def fetch_suricata_alerts_by_ip(ip_address: str):
     try:
-        es_url = "http://localhost:9200/suricata-alerts-*,suricata-logs-*/_search"
+        es_url = "http://54.91.203.196:9200/suricata-alerts-*,suricata-logs-*/_search"
         
         # First, check if Elasticsearch is reachable
         try:
-            health_check = requests.get("http://localhost:9200/_cluster/health", timeout=5)
+            health_check = requests.get("http://54.91.203.196:9200/_cluster/health", timeout=5)
             if health_check.status_code != 200:
                 logger.error(f"Elasticsearch health check failed: {health_check.status_code}")
                 return []
@@ -183,7 +183,7 @@ def fetch_recent_alerts(limit=1000, minutes=5):
         minutes: Only fetch alerts from the last X minutes
     """
     try:
-        es_url = "http://localhost:9200/suricata-alerts-*/_search"
+        es_url = "http://54.91.203.196:9200/suricata-alerts-*/_search"
         headers = {"Content-Type": "application/json"}
         
         # Calculate timestamp for X minutes ago
@@ -221,7 +221,7 @@ def fetch_recent_alerts(limit=1000, minutes=5):
 def fetch_new_alerts(orgId: int, start_time=None):
     """Fetch only new alerts since the given timestamp"""
     try:
-        es_url = "http://localhost:9200/suricata-alerts-*/_search"
+        es_url = "http://54.91.203.196:9200/suricata-alerts-*/_search"
         
         # Build a query that gets alerts after the start_time
         query = {
