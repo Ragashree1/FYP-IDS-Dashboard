@@ -24,6 +24,7 @@ const UserManagementPage = () => {
   const [loading, setLoading] = useState(true) // Added loading state
   const [error, setError] = useState(null)
 
+
   const getOrgId = async () => {
     const token = localStorage.getItem("token")
     const response = await fetch("https://api.secuboard.live/login/get_user", {
@@ -48,7 +49,6 @@ const UserManagementPage = () => {
     fetchOrgId()
   }, [])
 
-  // Function to log user activity
   const logActivity = async (action, targetUser, description) => {
     try {
       const token = localStorage.getItem("token")
