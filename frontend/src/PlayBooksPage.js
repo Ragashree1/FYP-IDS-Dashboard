@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react"
 import { useNavigate, useLocation } from "react-router-dom"
 import Sidebar from "./Sidebar"
+import axios from 'axios'
 
 const userRole = "2"
 
@@ -744,26 +745,40 @@ const PlaybooksPage = () => {
         throw new Error("No authentication token found");
       }
 
-      const response = await fetch(`${API_BASE_URL}/playbooks`, {
-        method: 'GET',
+      const config = {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json',
         },
-      });
+        timeout: 10000 // 10 second timeout
+      };
 
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+      const response = await axios.get(`${API_BASE_URL}/playbooks`, config);
+      
+      if (response.status === 200) {
+        const data = response.data;
+        setPlaybooks(Array.isArray(data) ? data : []);
+      } else {
+        throw new Error('Failed to fetch playbooks');
       }
-
-      const data = await response.json();
-      setPlaybooks(Array.isArray(data) ? data : []);
-      setLoading(false);
     } catch (error) {
-      console.error('Error fetching playbooks:', error);
-      setError(error.message || 'Failed to fetch playbooks');
-      setLoading(false);
+      if (error.response) {
+        // The request was made and the server responded with a status code
+        // that falls out of the range of 2xx
+        console.error('Server Error:', error.response.data);
+        setError(`Server Error: ${error.response.data.message || 'Unknown error'}`);
+      } else if (error.request) {
+        // The request was made but no response was received
+        console.error('Network Error:', error.request);
+        setError('Network error - please check your connection');
+      } else {
+        // Something happened in setting up the request that triggered an Error
+        console.error('Error:', error.message);
+        setError(error.message || 'Failed to fetch playbooks');
+      }
       setPlaybooks([]);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -832,37 +847,26 @@ const PlaybooksPage = () => {
         throw new Error("No authentication token found");
       }
 
-      let response;
-      if (id) {
-        response = await fetch(`${API_BASE_URL}/playbooks/${id}`, {
-          method: 'PUT',
-          headers: {
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify(formData),
-        });
-      } else {
-        response = await fetch(`${API_BASE_URL}/playbooks`, {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify(formData),
-        });
-      }
+      const config = {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        timeout: 10000
+      };
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || `Failed to ${id ? 'update' : 'create'} playbook`);
+      if (id) {
+        await axios.put(`${API_BASE_URL}/playbooks/${id}`, formData, config);
+      } else {
+        await axios.post(`${API_BASE_URL}/playbooks`, formData, config);
       }
 
       await fetchPlaybooks();
       handleCloseModal();
     } catch (error) {
-      console.error('Error saving playbook:', error);
-      setError(error.message);
+      const errorMessage = error.response?.data?.message || error.message || 'Failed to save playbook';
+      console.error('Error saving playbook:', errorMessage);
+      setError(errorMessage);
     }
   };
 
@@ -873,21 +877,19 @@ const PlaybooksPage = () => {
         throw new Error("No authentication token found");
       }
 
-      const response = await fetch(`${API_BASE_URL}/playbooks/${playbookId}`, {
-        method: 'DELETE',
+      const config = {
         headers: {
           'Authorization': `Bearer ${token}`,
-        }
-      });
+        },
+        timeout: 10000
+      };
 
-      if (!response.ok) {
-        throw new Error('Failed to delete playbook');
-      }
-
+      await axios.delete(`${API_BASE_URL}/playbooks/${playbookId}`, config);
       await fetchPlaybooks();
     } catch (error) {
-      console.error('Error deleting playbook:', error);
-      setError(error.message);
+      const errorMessage = error.response?.data?.message || error.message || 'Failed to delete playbook';
+      console.error('Error deleting playbook:', errorMessage);
+      setError(errorMessage);
     }
   };
 
@@ -898,22 +900,20 @@ const PlaybooksPage = () => {
         throw new Error("No authentication token found");
       }
 
-      const response = await fetch(`${API_BASE_URL}/playbooks/${playbookId}/toggle`, {
-        method: 'POST',
+      const config = {
         headers: {
           'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        }
-      });
+          'Content-Type': 'application/json',
+        },
+        timeout: 10000
+      };
 
-      if (!response.ok) {
-        throw new Error('Failed to toggle playbook status');
-      }
-
+      await axios.post(`${API_BASE_URL}/playbooks/${playbookId}/toggle`, {}, config);
       await fetchPlaybooks();
     } catch (error) {
-      console.error('Error toggling playbook status:', error);
-      setError(error.message);
+      const errorMessage = error.response?.data?.message || error.message || 'Failed to toggle playbook status';
+      console.error('Error toggling playbook status:', errorMessage);
+      setError(errorMessage);
     }
   };
 
