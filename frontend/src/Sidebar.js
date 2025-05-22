@@ -1,5 +1,3 @@
-"use client"
-
 import { useNavigate, useLocation } from "react-router-dom"
 import React from 'react';
 
@@ -80,6 +78,22 @@ const Sidebar = ({ userRole }) => {
               </h2>
             </div>
             <ul style={{ listStyle: "none", padding: 0 }}>
+            <li
+                style={{
+                  padding: "12px 16px",
+                  background: isActive("/dashboard") ? "#555" : "#333",
+                  marginBottom: "8px",
+                  borderRadius: "4px",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "12px",
+                  cursor: "pointer",
+                }}
+                onClick={() => navigate("/dashboard")}
+              >
+                <span style={{ fontSize: "18px" }}>📊</span>
+                Dashboard
+              </li>
               <li
                 style={{
                   padding: "12px 16px",
@@ -144,6 +158,22 @@ const Sidebar = ({ userRole }) => {
             </div>
 
             <ul style={{ listStyle: "none", padding: 0, margin: 0 }}>
+              {/* <li
+                style={{
+                  padding: "12px 16px",
+                  background: isActive("/roles-permission") ? "#555" : "#333",
+                  marginBottom: "8px",
+                  borderRadius: "4px",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "12px",
+                  cursor: "pointer",
+                }}
+                onClick={() => navigate("/roles-permission")}
+              >
+                <span style={{ fontSize: "18px" }}>🔒</span>
+                Roles and Permission Management
+              </li> */}
               <li
                 style={{
                   padding: "12px 16px",
@@ -160,7 +190,7 @@ const Sidebar = ({ userRole }) => {
                 <span style={{ fontSize: "18px" }}>👥</span>
                 User Management
               </li>
-              <li
+              {/* <li
                 style={{
                   padding: "12px 16px",
                   background: isActive("/settings") ? "#555" : "#333",
@@ -175,7 +205,7 @@ const Sidebar = ({ userRole }) => {
               >
                 <span style={{ fontSize: "18px" }}>⚙️</span>
                 Settings
-              </li>
+              </li> */}
             </ul>
           </div>
           <div style={logoutContainerStyle}>
@@ -319,7 +349,7 @@ const Sidebar = ({ userRole }) => {
                 <span style={{ fontSize: "18px" }}>🔧</span>
                 System Configurations
               </li>
-              <li
+              {/* <li
                 style={{
                   padding: "12px 16px",
                   background: isActive("/settings") ? "#555" : "#333",
@@ -334,6 +364,52 @@ const Sidebar = ({ userRole }) => {
               >
                 <span style={{ fontSize: "18px" }}>⚙️</span>
                 Settings
+              </li> */}
+            </ul>
+          </div>
+          <div style={logoutContainerStyle}>
+            <button onClick={handleLogout} style={logoutButtonStyle}>
+              <span style={{ fontSize: "18px" }}>🚪</span>
+              Logout
+            </button>
+          </div>
+        </div>
+      </div>
+    )
+  }
+  // Render Network Admin sidebar
+  if (userRole === "4") {
+    return (
+      <div style={{ display: "flex" }}>
+        <div style={spacerStyle} />
+        <div style={sidebarContainerStyle}>
+          <div style={contentAreaStyle}>
+            <div style={{ marginBottom: "40px" }}>
+              <h2 style={{ display: "flex", alignItems: "center", gap: "10px", margin: 0 }}>
+                <img
+                  src="https://hebbkx1anhila5yf.public.blob.vercel-storage.com/image-AwHpatwUXOxUSYkvlo8tVkBUyL8vzm.png"
+                  alt="SecuBoard"
+                  style={{ width: "24px", height: "24px" }}
+                />{" "}
+                SecuBoard
+              </h2>
+            </div>
+            <ul style={{ listStyle: "none", padding: 0 }}>
+              <li
+                style={{
+                  padding: "12px 16px",
+                  background: isActive("/trained-models") ? "#555" : "#333",
+                  marginBottom: "8px",
+                  borderRadius: "4px",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "12px",
+                  cursor: "pointer",
+                }}
+                onClick={() => navigate("/trained-models")}
+              >
+                <span style={{ fontSize: "18px" }}>📊</span>
+                Trained Models Page
               </li>
             </ul>
           </div>

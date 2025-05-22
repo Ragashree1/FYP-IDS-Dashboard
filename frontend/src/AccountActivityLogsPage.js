@@ -1,5 +1,3 @@
-"use client"
-
 import { useState, useEffect } from "react"
 import { useNavigate } from "react-router-dom"
 import { useAuth } from "./context/AuthContext"
@@ -18,35 +16,48 @@ const AccountActivityLogsPage = () => {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
   const [logToDelete, setLogToDelete] = useState(null)
 
-  useEffect(() => {
-    // Fetch activity logs from the API
-    fetchLogs()
-  }, [authData])
+  const fetchOrgId = async () => {
+    const token = localStorage.getItem("token");
+    try {
+      const response = await fetch("http://127.0.0.1:8000/login/get_user", {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (response.ok) {
+        const data = await response.json();
+        return data.user.organization_id;
+      }
+    } catch (error) {
+      console.error("Error fetching org ID:", error);
+      return null;
+    }
+  };
 
   const fetchLogs = async () => {
     try {
-      setLoading(true)
-      const token = localStorage.getItem("token")
+      setLoading(true);
+      const token = localStorage.getItem("token");
+      const orgId = await fetchOrgId();
 
-      const response = await fetch("https://api.secuboard.live/audit/account-logs", {
-        method: "GET",
+      if (!orgId) {
+        setError("Failed to fetch organization ID");
+        return;
+      }
+
+      const response = await fetch(`http://127.0.0.1:8000/audit/account-logs/?organization_id=${orgId}`, {
         headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      })
+          'Authorization': `Bearer ${token}`
+        }
+      });
 
       if (response.ok) {
-        const data = await response.json()
-        setLogs(data)
+        const data = await response.json();
+        setLogs(data);
       } else {
-        throw new Error("Failed to fetch account activity logs")
+        throw new Error("Failed to fetch account activity logs");
       }
-      setLoading(false)
     } catch (err) {
-      console.error("Error fetching account activity logs:", err)
-      setError("Failed to load account activity logs. Please try again later.")
-
-      // Fallback to mock data if API fails
+      console.error("Error fetching account activity logs:", err);
+      setError("Failed to load account activity logs. Please try again later.");
       setLogs([
         {
           id: 1,
@@ -55,7 +66,6 @@ const AccountActivityLogsPage = () => {
           targetUser: "john.doe@example.com",
           action: "user_created",
           description: "Created new user account for John Doe",
-          ipAddress: "192.168.1.45",
         },
         {
           id: 2,
@@ -64,20 +74,23 @@ const AccountActivityLogsPage = () => {
           targetUser: "sarah.smith@example.com",
           action: "role_changed",
           description: "Changed user role from Network Admin to IT Manager",
-          ipAddress: "192.168.1.45",
         },
-      ])
-      setLoading(false)
+      ]);
+    } finally {
+      setLoading(false);
     }
-  }
+  };
 
-  // Handle deleting a log
+  useEffect(() => {
+    fetchLogs();
+  }, []);
+
   const handleDeleteLog = async (logId) => {
     try {
       setDeleteLoading(true)
       const token = localStorage.getItem("token")
 
-      const response = await fetch(`https://api.secuboard.live/audit/delete-log/${logId}`, {
+      const response = await fetch(`http://127.0.0.1:8000/audit/delete-log/${logId}`, {
         method: "DELETE",
         headers: {
           Authorization: `Bearer ${token}`,
@@ -85,9 +98,8 @@ const AccountActivityLogsPage = () => {
       })
 
       if (response.ok) {
-        // Remove the deleted log from the state
         setLogs(logs.filter((log) => log.id !== logId))
-        setError(null) // Clear any previous errors
+        setError(null)
       } else {
         const errorData = await response.json()
         throw new Error(errorData.detail || "Failed to delete log")
@@ -100,13 +112,11 @@ const AccountActivityLogsPage = () => {
     }
   }
 
-  // Replace the existing confirmDeleteLog function with this new implementation
   const confirmDeleteLog = (logId) => {
     setLogToDelete(logId)
     setShowDeleteConfirm(true)
   }
 
-  // Add a new function to handle confirmation
   const handleConfirmDelete = () => {
     if (logToDelete) {
       handleDeleteLog(logToDelete)
@@ -115,16 +125,12 @@ const AccountActivityLogsPage = () => {
     }
   }
 
-  // Filter logs based on search query and filters
   const filteredLogs = logs.filter((log) => {
-    // Search filter
     const matchesSearch =
       log.user.toLowerCase().includes(searchQuery.toLowerCase()) ||
       log.targetUser.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      log.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      (log.ipAddress && log.ipAddress.toLowerCase().includes(searchQuery.toLowerCase()))
+      log.description.toLowerCase().includes(searchQuery.toLowerCase())
 
-    // Date filter
     const logDate = new Date(log.timestamp)
     const today = new Date()
     const yesterday = new Date(today)
@@ -141,7 +147,6 @@ const AccountActivityLogsPage = () => {
       matchesDate = logDate >= lastWeek
     }
 
-    // Action filter
     let matchesAction = true
     if (actionFilter !== "all") {
       matchesAction = log.action === actionFilter
@@ -150,7 +155,6 @@ const AccountActivityLogsPage = () => {
     return matchesSearch && matchesDate && matchesAction
   })
 
-  // Format date for display
   const formatDate = (dateString) => {
     const options = {
       year: "numeric",
@@ -163,7 +167,6 @@ const AccountActivityLogsPage = () => {
     return new Date(dateString).toLocaleDateString(undefined, options)
   }
 
-  // Get action display name
   const getActionDisplayName = (action) => {
     switch (action) {
       case "user_created":
@@ -192,35 +195,33 @@ const AccountActivityLogsPage = () => {
     }
   }
 
-  // Get action badge color
   const getActionBadgeColor = (action) => {
     switch (action) {
       case "user_created":
-        return { bg: "#f6ffed", text: "#52c41a" } // Green
+        return { bg: "#f6ffed", text: "#52c41a" }
       case "user_deleted":
-        return { bg: "#fff1f0", text: "#f5222d" } // Red
+        return { bg: "#fff1f0", text: "#f5222d" }
       case "user_suspended":
-        return { bg: "#fff2e8", text: "#fa541c" } // Orange
+        return { bg: "#fff2e8", text: "#fa541c" }
       case "user_activated":
-        return { bg: "#f6ffed", text: "#52c41a" } // Green
+        return { bg: "#f6ffed", text: "#52c41a" }
       case "user_updated":
-        return { bg: "#e6f7ff", text: "#1890ff" } // Blue
+        return { bg: "#e6f7ff", text: "#1890ff" }
       case "role_changed":
-        return { bg: "#e6f7ff", text: "#1890ff" } // Blue
+        return { bg: "#e6f7ff", text: "#1890ff" }
       case "permissions_changed":
-        return { bg: "#e6f7ff", text: "#1890ff" } // Blue
+        return { bg: "#e6f7ff", text: "#1890ff" }
       case "password_changed":
-        return { bg: "#f9f0ff", text: "#722ed1" } // Purple
+        return { bg: "#f9f0ff", text: "#722ed1" }
       case "profile_updated":
-        return { bg: "#f9f0ff", text: "#722ed1" } // Purple
+        return { bg: "#f9f0ff", text: "#722ed1" }
       default:
-        return { bg: "#f5f5f5", text: "#666666" } // Gray
+        return { bg: "#f5f5f5", text: "#666666" }
     }
   }
 
-  // Handle export to CSV
   const exportToCSV = () => {
-    const headers = ["Timestamp", "User", "Target User", "Action", "Description", "IP Address"]
+    const headers = ["Timestamp", "User", "Target User", "Action", "Description"]
 
     const csvContent = [
       headers.join(","),
@@ -230,8 +231,7 @@ const AccountActivityLogsPage = () => {
           log.user,
           log.targetUser,
           getActionDisplayName(log.action),
-          `"${log.description.replace(/"/g, '""')}"`, // Escape quotes in description
-          log.ipAddress,
+          `"${log.description.replace(/"/g, '""')}"`,
         ].join(","),
       ),
     ].join("\n")
@@ -413,20 +413,19 @@ const AccountActivityLogsPage = () => {
                 <th style={{ padding: "16px", textAlign: "left", borderBottom: "1px solid #eee" }}>Target User</th>
                 <th style={{ padding: "16px", textAlign: "left", borderBottom: "1px solid #eee" }}>Action</th>
                 <th style={{ padding: "16px", textAlign: "left", borderBottom: "1px solid #eee" }}>Description</th>
-                <th style={{ padding: "16px", textAlign: "left", borderBottom: "1px solid #eee" }}>IP Address</th>
                 <th style={{ padding: "16px", textAlign: "center", borderBottom: "1px solid #eee" }}>Actions</th>
               </tr>
             </thead>
             <tbody>
               {loading ? (
                 <tr>
-                  <td colSpan={7} style={{ padding: "16px", textAlign: "center" }}>
+                  <td colSpan={6} style={{ padding: "16px", textAlign: "center" }}>
                     Loading...
                   </td>
                 </tr>
               ) : filteredLogs.length === 0 ? (
                 <tr>
-                  <td colSpan={7} style={{ padding: "16px", textAlign: "center" }}>
+                  <td colSpan={6} style={{ padding: "16px", textAlign: "center" }}>
                     No logs found matching your criteria
                   </td>
                 </tr>
@@ -454,7 +453,6 @@ const AccountActivityLogsPage = () => {
                         </span>
                       </td>
                       <td style={{ padding: "16px" }}>{log.description}</td>
-                      <td style={{ padding: "16px" }}>{log.ipAddress}</td>
                       <td style={{ padding: "16px", textAlign: "center" }}>
                         <button
                           onClick={() => confirmDeleteLog(log.id)}

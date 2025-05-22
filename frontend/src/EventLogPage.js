@@ -94,7 +94,7 @@ const EventLogPage = () => {
 
   const currentPageLogIds = useMemo(() => filteredLogs.map(log => log.id), [filteredLogs]);
   const userRole = "2"
-  const API_BASE_URL = "https://api.secuboard.live";
+  const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "https://api.secuboard.live";
 
   const isAllSelected = currentPageLogIds.length > 0 && currentPageLogIds.every(id => selectedLogs.includes(id));
   const handleSelectAll = () => {
@@ -163,8 +163,8 @@ const EventLogPage = () => {
   useEffect(() => {
     setLoading(true);
     const endpoint = logType === "apache"
-      ? `${API_BASE_URL}/logs`
-      : `${API_BASE_URL}/logs/networkLogs?page=${currentPage}&page_size=10`; // Add page_size parameter
+      ? 'https://api.secuboard.live/logs'
+      : `https://api.secuboard.live/logs/networkLogs?page=${currentPage}&page_size=10`; // Add page_size parameter
     axios.get(endpoint)
       .then(response => {
         const data = response.data;
@@ -202,7 +202,7 @@ const EventLogPage = () => {
         return;
       }
       const response = await axios.post(
-        `http://localhost:8000/logs/upload?orgId=${orgId}`,
+        `https://api.secuboard.live/logs/upload?orgId=${orgId}`,
         formData,
         {
           headers: {
@@ -247,7 +247,7 @@ const EventLogPage = () => {
     }
   
     try {
-      const response = await axios.post('http://localhost:8000/threat/predict/batch', {
+      const response = await axios.post('https://api.secuboard.live/threat/predict/batch', {
         log_ids: selectedLogs.map((id) => parseInt(id, 0)),
         organization_id: await getOrgId(),
       });

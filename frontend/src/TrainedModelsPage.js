@@ -138,7 +138,7 @@ const Dialog = ({ open, onOpenChange, children }) => {
 
 const TrainedModelsPage = () => {
   const [models, setModels] = useState([])
-  // const [isModelDialogOpen, setIsModelDialogOpen] = useState(false)
+  const userRole = "4" // Add this line for Data Analyst role
   const [newModelName, setNewModelName] = useState("") // Added state for model name
   const [newAlgorithm, setNewAlgorithm] = useState("")
   const [labelMappingText, setLabelMappingText] = useState("")
@@ -350,7 +350,7 @@ const TrainedModelsPage = () => {
 
   return (
     <div style={{ display: "flex", height: "100vh", background: "#f4f4f4", overflow: "hidden" }}>
-      <Sidebar />
+      <Sidebar userRole={userRole} /> {/* Add userRole prop */}
 
       <div style={{ flex: 1, padding: "32px", overflowY: "auto", overflowX: "hidden" }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "24px" }}>

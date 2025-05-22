@@ -86,7 +86,7 @@ const RoleDetailModal = ({ onClose, onConfirm, role = null }) => {
 
   const fetchPermission = async () => {
     try {
-      const response = await fetch ("https://api.secuboard.live/roles-permission/permission/", {
+      const response = await fetch ("http://127.0.0.1:8000/roles-permission/permission/", {
           method: "GET",
         });
 
@@ -292,7 +292,7 @@ const RolesAndPermissionPage = () => {
 
   const fetchRoles = async () => {
     try {
-      const response = await fetch ("https://api.secuboard.live/roles-permission/", {
+      const response = await fetch ("http://127.0.0.1:8000/roles-permission/", {
           method: "GET",
         });
 
@@ -351,7 +351,7 @@ const RolesAndPermissionPage = () => {
   
   const updateRole = async (role) => {
     try {
-      const response = await fetch (`https://api.secuboard.live/roles-permission/${role.id}/`, { method: "PUT", headers: {
+      const response = await fetch (`http://127.0.0.1:8000/roles-permission/${role.id}/`, { method: "PUT", headers: {
         "Content-Type": "application/json", // Add this header to indicate the body is JSON
       },
         body: JSON.stringify(role), // Send userData as the payload to update the role
@@ -370,7 +370,7 @@ const RolesAndPermissionPage = () => {
 
   const addRole = async (role) => {
     try {
-      await fetch(`https://api.secuboard.live/roles-permission/`, { method: "POST" , headers: {
+      await fetch(`http://127.0.0.1:8000/roles-permission/`, { method: "POST" , headers: {
         "Content-Type": "application/json", // Add this header to indicate the body is JSON
       },
         body: JSON.stringify(role), // Send userData as the payload to add the user
@@ -389,7 +389,7 @@ const RolesAndPermissionPage = () => {
 
   const deleteUser = async (role) => {
     try {
-      await fetch(`https://api.secuboard.live/roles-permission/${role.id}/`, { method: "DELETE" });
+      await fetch(`http://127.0.0.1:8000/roles-permission/${role.id}/`, { method: "DELETE" });
       fetchRoles()
     } catch (err) {
       setError("Failed to delete role");

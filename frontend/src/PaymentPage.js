@@ -234,7 +234,7 @@ const PaymentPage = () => {
     // Fetch the logged-in user's ID from backend
     const fetchUserId = async () => {
       try {
-        const response = await fetch("https://api.secuboard.live/user/", {
+        const response = await fetch("http://127.0.0.1:8000/user/", {
           headers: {
             Authorization: `Bearer ${localStorage.getItem("token")}`,
           },
@@ -343,7 +343,7 @@ const PaymentPage = () => {
     if (!validateForm()) return;
 
     try {
-      const response = await fetch("https://api.secuboard.live/payment/", {
+      const response = await fetch("http://127.0.0.1:8000/payment/", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
