@@ -162,7 +162,7 @@ const TrainedModelsPage = () => {
   }, [])
 
   const fetchModels = async () => {
-    const response = await axios.get(baseUrl + "/ml_model", {
+    const response = await axios.get(baseUrl + "/ml_model/", {
       params: { organization_id: await getOrgId() },
     })
     setModels(response.data)
