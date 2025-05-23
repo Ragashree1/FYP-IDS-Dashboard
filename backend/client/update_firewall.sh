@@ -2,7 +2,7 @@
 
 # NOTE: Change 'codenova' to your actual organization name as needed.
 ORG_NAME="codenova"
-API_URL="http://localhost:8000/ip-blocking/blocked-ips/${ORG_NAME}"
+API_URL="https://api.secuboard.live/ip-blocking/blocked-ips/${ORG_NAME}"
 
 # Path to the firewall log (optional)
 LOG_FILE="/var/log/ids-firewall-update.log"

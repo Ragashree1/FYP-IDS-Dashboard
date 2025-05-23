@@ -852,7 +852,7 @@ const PlaybooksPage = () => {
   const handleSavePlaybook = async (formData, id) => {
     try {
       if (id) {
-        await axiosInstance.put(`/playbooks/${id}/`, formData);
+        await axiosInstance.put(`/playbooks/${id}`, formData);
       } else {
         await axiosInstance.post('/playbooks/', formData);
       }
@@ -879,7 +879,7 @@ const PlaybooksPage = () => {
 
   const handleToggleStatus = async (playbookId) => {
     try {
-      await axiosInstance.post(`/playbooks/${playbookId}/toggle/`, {});
+      await axiosInstance.post(`/playbooks/${playbookId}/toggle`, {});
       await fetchPlaybooks();
     } catch (error) {
       const errorMessage = error.response?.data?.message || error.message || 'Failed to toggle playbook status';
