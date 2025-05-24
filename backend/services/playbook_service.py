@@ -15,6 +15,11 @@ def get_all_playbooks() -> List[PlaybookOut]:
     with SessionLocal() as db:
         playbooks = db.query(Playbook).all()
         return [PlaybookOut.model_validate(playbook) for playbook in playbooks]
+    
+def get_playbooks_by_org(organization_id: int) -> List[PlaybookOut]:
+    with SessionLocal() as db:
+        playbooks = db.query(Playbook).filter(Playbook.organization_id == organization_id).all()
+        return [PlaybookOut.model_validate(playbook) for playbook in playbooks]
 
 def add_playbook(playbook_data: PlaybookBase, organization_id: int = DEFAULT_ORG_ID, current_user: str = "system") -> PlaybookOut:
     with SessionLocal() as db:

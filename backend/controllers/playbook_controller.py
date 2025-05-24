@@ -6,6 +6,11 @@ import uuid
 
 router = APIRouter(prefix="/playbooks", tags=["playbooks"])
 
+@router.get("/org/{organization_id}", response_model=List[PlaybookOut])
+def fetch_playbooks_by_org(organization_id: int):
+    """Get all playbooks for a specific organization"""
+    return playbook_service.get_playbooks_by_org(organization_id)
+
 @router.get("/", response_model=List[PlaybookOut])
 def fetch_playbooks():
     """Get all playbooks"""
