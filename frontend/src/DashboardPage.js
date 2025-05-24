@@ -117,7 +117,7 @@ const Dashboard = () => {
         setLoading(true);
         // Fetch data from all sources in parallel
         const [alertsResponse, zeekResponse, suricataResponse] = await Promise.all([
-          axios.get(`${API_BASE_URL}/alerts?orgId=${fetchedOrgId}`),
+          axios.get(`${API_BASE_URL}/alerts/org/${fetchedOrgId}`),
           axios.get(`${API_BASE_URL}/zeek/alerts?orgId=${fetchedOrgId}`),
           axios.get(`${API_BASE_URL}/suricata/alerts?orgId=${fetchedOrgId}`)
         ]);

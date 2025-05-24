@@ -164,27 +164,39 @@ def check_ip_alerts_by_organization(threshold: int, interval_minutes: int, organ
                 ) AS window_start
         ),
         combined_alerts AS (
-            SELECT dest_ip, timestamp::timestamp, 'snort' as source
+            SELECT src_ip AS ip, timestamp::timestamp, 'snort' as source
             FROM "SnortAlerts"
             WHERE organization_id = :organization_id
             UNION ALL
-            SELECT dest_ip, timestamp::timestamp, 'zeek' as source
+            SELECT dest_ip AS ip, timestamp::timestamp, 'snort' as source
+            FROM "SnortAlerts"
+            WHERE organization_id = :organization_id
+            UNION ALL
+            SELECT src_ip AS ip, timestamp::timestamp, 'zeek' as source
             FROM "ZeekAlerts"
             WHERE organization_id = :organization_id
             UNION ALL
-            SELECT dest_ip, timestamp::timestamp, 'suricata' as source
+            SELECT dest_ip AS ip, timestamp::timestamp, 'zeek' as source
+            FROM "ZeekAlerts"
+            WHERE organization_id = :organization_id
+            UNION ALL
+            SELECT src_ip AS ip, timestamp::timestamp, 'suricata' as source
+            FROM "SuricataAlerts"
+            WHERE organization_id = :organization_id
+            UNION ALL
+            SELECT dest_ip AS ip, timestamp::timestamp, 'suricata' as source
             FROM "SuricataAlerts"
             WHERE organization_id = :organization_id
         )
         SELECT 
-            a.dest_ip,
+            a.ip,
             t.window_start,
             COUNT(*) AS alert_count,
             array_agg(DISTINCT a.source) as alert_sources
         FROM combined_alerts a
         JOIN time_windows t
             ON a.timestamp BETWEEN t.window_start AND t.window_start + INTERVAL '{interval_minutes} minutes'
-        GROUP BY a.dest_ip, t.window_start
+        GROUP BY a.ip, t.window_start
         HAVING COUNT(*) >= {threshold}
         ORDER BY t.window_start DESC;
         """)
@@ -218,13 +230,13 @@ def check_internations_blacklist_and_block_ips():
 
 def check_exceed_severity_level_by_organization(severity: str, organization_id: int) -> List[str]:
     """
-    Returns all source IP addresses of threats that exceed the specified severity level for a given organization
-    across Snort, Zeek, and Suricata alerts.
+    Returns all IP addresses (source and destination) of threats that exceed the specified severity level
+    for a given organization across Snort, Zeek, and Suricata alerts.
     Args:
         severity (str): The severity level to check ("low", "medium", "high", "critical")
         organization_id (int): The ID of the organization to filter alerts
     Returns:
-        List[str]: List of source IP addresses that exceed the severity level
+        List[str]: List of IP addresses (source and destination) that exceed the severity level
     """
     severity_mapping = {
         "low": 1,
@@ -234,7 +246,7 @@ def check_exceed_severity_level_by_organization(severity: str, organization_id: 
     }
 
     if severity not in severity_mapping:
-        print('severity '+ severity)
+        print('severity ' + severity)
         raise ValueError("Invalid severity level. Choose from 'low', 'medium', 'high', or 'critical'.")
 
     min_priority = severity_mapping[severity.lower()]
@@ -242,19 +254,31 @@ def check_exceed_severity_level_by_organization(severity: str, organization_id: 
     with SessionLocal() as db:
         query = text("""
         WITH combined_alerts AS (
-            SELECT dest_ip, classification, 'snort' as source
+            SELECT src_ip AS ip, classification, 'snort' as source
             FROM "SnortAlerts"
             WHERE organization_id = :organization_id
             UNION ALL
-            SELECT dest_ip, classification, 'zeek' as source
+            SELECT dest_ip AS ip, classification, 'snort' as source
+            FROM "SnortAlerts"
+            WHERE organization_id = :organization_id
+            UNION ALL
+            SELECT src_ip AS ip, classification, 'zeek' as source
             FROM "ZeekAlerts"
             WHERE organization_id = :organization_id
             UNION ALL
-            SELECT dest_ip, classification, 'suricata' as source
+            SELECT dest_ip AS ip, classification, 'zeek' as source
+            FROM "ZeekAlerts"
+            WHERE organization_id = :organization_id
+            UNION ALL
+            SELECT src_ip AS ip, classification, 'suricata' as source
+            FROM "SuricataAlerts"
+            WHERE organization_id = :organization_id
+            UNION ALL
+            SELECT dest_ip AS ip, classification, 'suricata' as source
             FROM "SuricataAlerts"
             WHERE organization_id = :organization_id
         )
-        SELECT DISTINCT a.dest_ip
+        SELECT DISTINCT a.ip
         FROM combined_alerts a
         JOIN priority_classification p
         ON a.classification = p.classification
@@ -268,30 +292,42 @@ def check_exceed_severity_level_by_organization(severity: str, organization_id: 
 
 def check_classtype_by_organization(classType: str, organization_id: int) -> List[str]:
     """
-    Returns all source IP addresses of threats that match the specified classtype for a given organization
-    across Snort, Zeek, and Suricata alerts.
+    Returns all IP addresses (source and destination) of threats that match the specified classtype
+    for a given organization across Snort, Zeek, and Suricata alerts.
     Args:
         classType (str): The classification type to check
         organization_id (int): The ID of the organization to filter alerts
     Returns:
-        List[str]: List of source IP addresses that match the classtype
+        List[str]: List of IP addresses (source and destination) that match the classtype
     """
     with SessionLocal() as db:
         query = text("""
         WITH combined_alerts AS (
-            SELECT dest_ip, classification, 'snort' as source
+            SELECT src_ip AS ip, classification, 'snort' as source
             FROM "SnortAlerts"
             WHERE organization_id = :organization_id
             UNION ALL
-            SELECT dest_ip, classification, 'zeek' as source
+            SELECT dest_ip AS ip, classification, 'snort' as source
+            FROM "SnortAlerts"
+            WHERE organization_id = :organization_id
+            UNION ALL
+            SELECT src_ip AS ip, classification, 'zeek' as source
             FROM "ZeekAlerts"
             WHERE organization_id = :organization_id
             UNION ALL
-            SELECT dest_ip, classification, 'suricata' as source
+            SELECT dest_ip AS ip, classification, 'zeek' as source
+            FROM "ZeekAlerts"
+            WHERE organization_id = :organization_id
+            UNION ALL
+            SELECT src_ip AS ip, classification, 'suricata' as source
+            FROM "SuricataAlerts"
+            WHERE organization_id = :organization_id
+            UNION ALL
+            SELECT dest_ip AS ip, classification, 'suricata' as source
             FROM "SuricataAlerts"
             WHERE organization_id = :organization_id
         )
-        SELECT DISTINCT dest_ip
+        SELECT DISTINCT ip
         FROM combined_alerts
         WHERE classification = :classtype;
         """)
@@ -390,16 +426,24 @@ def execute_playbook_rules():
                         ips_to_block.intersection_update(condition_ips)
                         print(f"IPs to block after intersection: {ips_to_block}")
 
-                # Filter out verified IPs
+               # Filter out verified IPs
                 verified_ips = db.query(VerifiedIP).filter(
                     VerifiedIP.organization_id == organization_id,
-                    VerifiedIP.is_verified == True,
                     VerifiedIP.ip.in_(ips_to_block)
                 ).with_entities(VerifiedIP.ip).all()
+
+                # Convert verified IPs to a set for exclusion
                 verified_ips_set = {ip[0] for ip in verified_ips}
                 print(f"Verified IPs to exclude: {verified_ips_set}")
+
+                # Ensure verified IPs are excluded from the blocklist
                 ips_to_block = ips_to_block - verified_ips_set
                 print(f"Final IPs to block (after excluding verified): {ips_to_block}")
+
+                # Debugging: Check if any verified IPs are still in the blocklist
+                intersection = ips_to_block.intersection(verified_ips_set)
+                if intersection:
+                    print(f"ERROR: Verified IPs still in blocklist: {intersection}")
 
                 # Consolidate IPs for email alert (only non-verified IPs)
                 if actions.get("sendEmailAlert"):
