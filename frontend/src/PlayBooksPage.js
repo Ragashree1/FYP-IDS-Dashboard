@@ -765,8 +765,10 @@ const PlaybooksPage = () => {
       if (!token) {
         throw new Error("No authentication token found");
       }
+      
+      const orgId = await getOrgId();
 
-      const response = await axiosInstance.get('/playbooks/');
+      const response = await axiosInstance.get(`/playbooks/org/${orgId}`);
       
       if (response.status === 200) {
         const data = response.data;
