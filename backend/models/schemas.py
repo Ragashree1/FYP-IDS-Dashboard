@@ -299,6 +299,7 @@ class PlaybookBase(BaseModel):
     description: Optional[str] = None
     conditions: list
     actions: dict
+    organization_id: int
     is_active: bool = True
 
     class Config:

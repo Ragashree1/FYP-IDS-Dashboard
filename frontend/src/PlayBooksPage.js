@@ -853,17 +853,27 @@ const PlaybooksPage = () => {
 
   const handleSavePlaybook = async (formData, id) => {
     try {
-      if (id) {
-        await axiosInstance.put(`/playbooks/${id}`, formData);
-      } else {
-        await axiosInstance.post('/playbooks/', formData);
+      const orgId = await getOrgId(); // Fetch the organization ID
+      if (!orgId) {
+        throw new Error("Organization ID is missing");
       }
-
+  
+      const playbookData = {
+        ...formData,
+        organization_id: orgId, // Include the organization ID
+      };
+  
+      if (id) {
+        await axiosInstance.put(`/playbooks/${id}`, playbookData);
+      } else {
+        await axiosInstance.post("/playbooks/", playbookData); // Pass organization_id in the request body
+      }
+  
       await fetchPlaybooks();
       handleCloseModal();
     } catch (error) {
-      const errorMessage = error.response?.data?.message || error.message || 'Failed to save playbook';
-      console.error('Error saving playbook:', errorMessage);
+      const errorMessage = error.response?.data?.message || error.message || "Failed to save playbook";
+      console.error("Error saving playbook:", errorMessage);
       setError(errorMessage);
     }
   };

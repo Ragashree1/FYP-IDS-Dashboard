@@ -21,15 +21,18 @@ def get_playbooks_by_org(organization_id: int) -> List[PlaybookOut]:
         playbooks = db.query(Playbook).filter(Playbook.organization_id == organization_id).all()
         return [PlaybookOut.model_validate(playbook) for playbook in playbooks]
 
-def add_playbook(playbook_data: PlaybookBase, organization_id: int = DEFAULT_ORG_ID, current_user: str = "system") -> PlaybookOut:
+def add_playbook(playbook_data: PlaybookBase, organization_id: int, current_user: str = "system") -> PlaybookOut:
     with SessionLocal() as db:
         # Ensure default organization exists
         ensure_default_organization()
         
-        # Check if playbook with same name exists
-        existing = db.query(Playbook).filter(Playbook.name == playbook_data.name).first()
+        # Check if playbook with the same name exists
+        existing = db.query(Playbook).filter(
+            Playbook.name == playbook_data.name,
+            Playbook.organization_id == organization_id
+        ).first()
         if existing:
-            raise HTTPException(status_code=400, detail="Playbook with this name already exists")
+            raise HTTPException(status_code=400, detail="Playbook with this name already exists for the organization")
 
         db_playbook = Playbook(
             organization_id=organization_id,

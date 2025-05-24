@@ -19,9 +19,11 @@ def fetch_playbooks():
 @router.post("/", response_model=PlaybookOut)
 def create_playbook(playbook: PlaybookBase):
     """Create a new playbook"""
-    # Hardcoded organization_id for now - you might want to get this from auth context
-    organization_id = 1
-    return playbook_service.add_playbook(playbook_data=playbook, organization_id=organization_id)
+    # Use the organization_id from the request body
+    if not playbook.organization_id:
+        raise HTTPException(status_code=400, detail="Organization ID is required")
+    
+    return playbook_service.add_playbook(playbook_data=playbook, organization_id=playbook.organization_id)
 
 @router.delete("/{playbook_id}")
 def remove_playbook(playbook_id: int):
